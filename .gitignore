@@ -1,0 +1,16 @@
+# Maven build artifacts
+target/
+*.jar
+*.war
+*.ear
+
+# IDE specific files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.DS_Store
+
+# Local log files
+*.log

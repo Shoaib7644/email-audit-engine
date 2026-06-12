@@ -1,0 +1,256 @@
+package com.acxiom.emailaudit.rules;
+
+import com.acxiom.emailaudit.rules.AuditRule;
+import com.acxiom.emailaudit.rules.RuleResult;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * {@link AuditRule} that validates every {@code <img>} element on a rendered
+ * HTML page for the presence of a meaningful {@code alt} attribute.
+ *
+ * <h2>Checks performed</h2>
+ * <p>For each {@code <img>} element found on the page, this rule fails if:</p>
+ * <ul>
+ *   <li>the {@code alt} attribute is <strong>missing entirely</strong>
+ *       (no {@code alt} attribute present on the element), or</li>
+ *   <li>the {@code alt} attribute is present but is <strong>empty after
+ *       trimming whitespace</strong> (e.g. {@code alt=""} or {@code alt="   "}).</li>
+ * </ul>
+ *
+ * <p>Each offending image is reported as a separate finding identifying the
+ * image's {@code src} value, so the content team can locate and fix the
+ * specific image.</p>
+ *
+ * <h2>Extraction strategy</h2>
+ * <p>All {@code <img>} elements are collected via a single
+ * {@link Page#evaluate(String)} round-trip, which returns the {@code src}
+ * attribute, whether {@code alt} is present, and the raw {@code alt} value
+ * for every image in document order — consistent with the extraction
+ * approach used by {@link LinkValidationRule}.</p>
+ *
+ * <h2>Thread safety</h2>
+ * <p>This class is stateless and has no mutable fields. It is safe for
+ * concurrent use from multiple TestNG threads, each operating on its own
+ * {@link Page}.</p>
+ */
+public final class AltTextValidationRule implements AuditRule {
+
+    private static final Logger log = LoggerFactory.getLogger(AltTextValidationRule.class);
+
+    // -------------------------------------------------------------------------
+    // Rule identity
+    // -------------------------------------------------------------------------
+
+    public static final String RULE_ID = "ALT_TEXT_VALIDATION";
+
+    private static final String DESCRIPTION =
+            "Validates that every <img> element has a non-empty alt attribute "
+                    + "for screen-reader accessibility.";
+
+    /** Caps the number of individual findings to keep report output readable. */
+    private static final int MAX_FINDINGS = 25;
+
+    /** Placeholder used in findings when an <img> has no usable src value. */
+    private static final String UNKNOWN_SRC = "(no src attribute)";
+
+    // -------------------------------------------------------------------------
+    // JavaScript used to extract all <img> data in one round-trip
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns a JSON array of objects {@code {src, hasAlt, alt}} for every
+     * {@code <img>} element on the page, in document order.
+     *
+     * <p>{@code hasAlt} distinguishes "no alt attribute" ({@code false}) from
+     * "alt attribute present but empty" ({@code true} with {@code alt: ""}),
+     * which {@code img.getAttribute('alt')} alone cannot do (it returns
+     * {@code null} for both an absent attribute and would otherwise be
+     * indistinguishable from an empty string once serialised).</p>
+     */
+    private static final String EXTRACT_IMAGES_JS = """
+            () => Array.from(document.querySelectorAll('img')).map(img => ({
+                src: img.getAttribute('src') || '',
+                hasAlt: img.hasAttribute('alt'),
+                alt: img.getAttribute('alt') || ''
+            }))
+            """;
+
+    // -------------------------------------------------------------------------
+    // Construction
+    // -------------------------------------------------------------------------
+
+    /** Creates an {@code AltTextValidationRule} with default configuration. */
+    public AltTextValidationRule() {
+        // stateless
+    }
+
+    // -------------------------------------------------------------------------
+    // AuditRule implementation
+    // -------------------------------------------------------------------------
+
+    @Override
+    public String ruleId() {
+        return RULE_ID;
+    }
+
+    @Override
+    public String description() {
+        return DESCRIPTION;
+    }
+
+    @Override
+    public RuleCategory category() {
+        return RuleCategory.ACCESSIBILITY;
+    }
+
+    @Override
+    public RuleSeverity severity() {
+        return RuleSeverity.HIGH;
+    }
+
+    /**
+     * Runs the alt-text validation against {@code page}.
+     *
+     * @param page live, fully loaded Playwright page; must not be {@code null}
+     * @return PASS when every {@code <img>} has a non-empty {@code alt},
+     *         FAIL when one or more images are missing it,
+     *         ERROR when image extraction itself fails
+     */
+    @Override
+    public RuleResult execute(final Page page) {
+        Objects.requireNonNull(page, "page must not be null");
+
+        final long startMs = System.currentTimeMillis();
+        log.info("[{}] Starting alt-text validation on: {}", RULE_ID, safeUrl(page));
+
+        final List<ImageEntry> images;
+        try {
+            images = extractImages(page);
+        } catch (final Exception e) {
+            log.error("[{}] Failed to extract <img> elements: {}", RULE_ID, e.getMessage(), e);
+            return RuleResult.error(this, startMs, e);
+        }
+
+        log.info("[{}] {} <img> element(s) found", RULE_ID, images.size());
+
+        final List<String> findings = buildFindings(images);
+
+        if (findings.isEmpty()) {
+            log.info("[{}] All images have non-empty alt attributes", RULE_ID);
+            return RuleResult.pass(this, startMs);
+        }
+
+        log.warn("[{}] {} image(s) with missing or empty alt attribute(s)", RULE_ID, findings.size());
+        return RuleResult.fail(this, startMs, findings);
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal – finding construction
+    // -------------------------------------------------------------------------
+
+    /**
+     * Builds one finding per offending image, capped at {@value #MAX_FINDINGS}
+     * with an overflow summary appended if exceeded.
+     */
+    private static List<String> buildFindings(final List<ImageEntry> images) {
+        final List<String> offending = new ArrayList<>();
+
+        for (final ImageEntry image : images) {
+            final String src = image.src().isBlank() ? UNKNOWN_SRC : image.src();
+
+            if (!image.hasAlt()) {
+                offending.add("Missing alt attribute on image: " + src);
+            } else if (image.alt().trim().isEmpty()) {
+                offending.add("Empty alt attribute on image: " + src);
+            }
+        }
+
+        if (offending.size() <= MAX_FINDINGS) {
+            return offending;
+        }
+
+        final List<String> capped = new ArrayList<>(offending.subList(0, MAX_FINDINGS));
+        capped.add(String.format("… and %d more image(s) with missing or empty alt attributes",
+                offending.size() - MAX_FINDINGS));
+        return capped;
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal – page extraction
+    // -------------------------------------------------------------------------
+
+    /**
+     * Evaluates JavaScript in the page to extract all {@code <img>} elements
+     * and returns them as typed {@link ImageEntry} records.
+     */
+    @SuppressWarnings("unchecked")
+    private static List<ImageEntry> extractImages(final Page page) {
+        try {
+            final Object raw = page.evaluate(EXTRACT_IMAGES_JS);
+
+            if (!(raw instanceof List<?> rawList)) {
+                log.warn("[{}] Unexpected JS evaluation result type: {}",
+                        RULE_ID, raw == null ? "null" : raw.getClass().getSimpleName());
+                return List.of();
+            }
+
+            final List<ImageEntry> entries = new ArrayList<>(rawList.size());
+            for (final Object item : rawList) {
+                if (item instanceof Map<?, ?> map) {
+                    final String  src    = stringOrEmpty(map.get("src"));
+                    final boolean hasAlt = booleanOrFalse(map.get("hasAlt"));
+                    final String  alt    = stringOrEmpty(map.get("alt"));
+                    entries.add(new ImageEntry(src, hasAlt, alt));
+                }
+            }
+
+            return entries;
+
+        } catch (final PlaywrightException e) {
+            log.error("[{}] Playwright error during <img> extraction: {}", RULE_ID, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal – helpers
+    // -------------------------------------------------------------------------
+
+    private static String safeUrl(final Page page) {
+        try {
+            return page.url();
+        } catch (final Exception e) {
+            return "<unavailable>";
+        }
+    }
+
+    private static String stringOrEmpty(final Object value) {
+        return value instanceof String s ? s : "";
+    }
+
+    private static boolean booleanOrFalse(final Object value) {
+        return value instanceof Boolean b && b;
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal records
+    // -------------------------------------------------------------------------
+
+    /**
+     * Typed representation of a single {@code <img>} element extracted from
+     * the page.
+     *
+     * @param src    the raw {@code src} attribute value (empty string if absent)
+     * @param hasAlt whether the {@code alt} attribute is present on the element
+     * @param alt    the raw {@code alt} attribute value (empty string if absent)
+     */
+    private record ImageEntry(String src, boolean hasAlt, String alt) {}
+}
