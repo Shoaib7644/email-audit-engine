@@ -40,7 +40,7 @@ import java.util.Objects;
  * <h2>Configuration key</h2>
  * <table>
  *   <tr><td>{@code screenshot.output.dir}</td>
- *       <td>Directory for PNG output (default: {@code target/audit-screenshots})</td></tr>
+ *       <td>Directory for PNG output (default: {@code audit-results/screenshots})</td></tr>
  * </table>
  */
 public final class ScreenshotService {
@@ -48,7 +48,7 @@ public final class ScreenshotService {
     private static final Logger log = LoggerFactory.getLogger(ScreenshotService.class);
 
     private static final String CONFIG_KEY_SCREENSHOT_DIR  = "screenshot.output.dir";
-    private static final String DEFAULT_SCREENSHOT_DIR     = "target/audit-screenshots";
+    private static final String DEFAULT_SCREENSHOT_DIR     = "audit-results/screenshots";
 
     /** ISO-like UTC timestamp with millisecond precision; safe for file names on all OS. */
     private static final DateTimeFormatter TIMESTAMP_FMT =

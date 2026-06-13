@@ -1,0 +1,1085 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>Email Audit Report</title>
+<link rel="apple-touch-icon" href="https://cdn.jsdelivr.net/gh/extent-framework/extent-github-cdn@b00a2d0486596e73dd7326beacf352c639623a0e/commons/img/logo.png">
+<link rel="shortcut icon" href="https://cdn.jsdelivr.net/gh/extent-framework/extent-github-cdn@b00a2d0486596e73dd7326beacf352c639623a0e/commons/img/logo.png">
+<link href="https://cdn.jsdelivr.net/gh/extent-framework/extent-github-cdn@ce8b10435bcbae260c334c0d0c6b61d2c19b6168/spark/css/spark-style.css" rel="stylesheet" />
+<link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/gh/extent-framework/extent-github-cdn@7cc78ce/spark/js/jsontree.js"></script>
+<style type="text/css">.badge-primary { background-color: #5d6d7e; } body { font-family: 'Segoe UI', Arial, sans-serif; }</style></head><body class="spa -report dark">
+  <div class="app">
+    <div class="layout">
+<div class="header navbar">
+<div class="vheader">
+<div class="nav-logo">
+<a href="#">
+<div class="logo" style="background-image: url('https://cdn.jsdelivr.net/gh/extent-framework/extent-github-cdn@b00a2d0486596e73dd7326beacf352c639623a0e/commons/img/logo.png')"></div>
+</a>
+</div>
+<ul class="nav-left">
+<li class="search-box">
+<a class="search-toggle" href="#">
+<i class="search-icon fa fa-search"></i>
+<i class="search-icon-close fa fa-close"></i>
+</a>
+</li>
+<li class="search-input"><input id="search-tests" class="form-control" type="text" placeholder="Search..."></li>
+</ul>
+<ul class="nav-right">
+<li class="m-r-10">
+<a href="#"><span class="badge badge-primary">Audit Run</span></a>
+</li>
+<li class="m-r-10">
+<a href="#"><span class="badge badge-primary">2026-06-13 18:49:50</span></a>
+</li>
+</ul>
+</div>
+</div><div class="side-nav">
+<div class="side-nav-inner">
+<ul class="side-nav-menu">
+<li class="nav-item dropdown" onclick="toggleView('test-view')">
+<a id="nav-test" class="dropdown-toggle" href="#">
+<span class="ico"><i class="fa fa-list"></i></span>
+</a>
+</li>
+<li class="nav-item dropdown" onclick="toggleView('category-view')">
+<a id="nav-category" class="dropdown-toggle" href="#">
+<span class="ico"><i class="fa fa-tag"></i></span>
+</a>
+</li>
+<li class="nav-item dropdown" onclick="toggleView('dashboard-view')">
+<a id="nav-dashboard" class="dropdown-toggle" href="#">
+<span class="ico"><i class="fa fa-bar-chart"></i></span>
+</a>
+</li>
+</ul>
+</div>
+</div>      <div class="vcontainer">
+        <div class="main-content">
+<div class="test-wrapper row view test-view">
+  <div class="test-list">
+    <div class="test-list-tools">
+<ul class="tools pull-left">
+<li><a href="#"><span class="font-size-14">Tests</span></a></li>
+</ul>
+<ul class="tools text-right">
+<li class="dropdown">
+<a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-exclamation-circle"></i></a>
+<ul id="status-toggle" class="dropdown-menu dropdown-md p-v-0">
+<a class="dropdown-item" status="fail" href="#"><span>Fail</span><span class="status danger"></span></a>
+<div class="dropdown-divider"></div>
+<a status="clear" class="dropdown-item" href="#"><span>Clear</span><span class="pull-right"><i class="fa fa-close"></i></span></a>
+</ul>
+</li>
+<li class="dropdown">
+<a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-tag"></i></a>
+<ul id="tag-toggle" class="dropdown-menu dropdown-md p-v-0">
+<a class="dropdown-item" href="#">SUMMARY</a><a class="dropdown-item" href="#">FAIL</a><a class="dropdown-item" href="#">CRITICAL</a><a class="dropdown-item" href="#">HIGH</a><a class="dropdown-item" href="#">MEDIUM</a>
+</ul>
+</li>
+</ul>
+</div>    <div class="test-list-wrapper scrollable">
+      <ul class="test-list-item">
+        <li class="test-item"  status="fail" test-id="1"
+          author=""
+          tag="FAIL"
+          device="">
+          <div class="test-detail">
+            <p class="name">NFCU_Prospecting_0626_VBOT2.html</p>
+            <p class="text-sm">
+              <span>6:49:53 pm</span> / <span>00:00:00:009</span>
+              <span class="badge fail-bg log float-right">Fail</span>
+            </p>
+          </div>
+          <div class="test-contents d-none">
+<div class="detail-head">
+<div class="p-v-10">
+<div class="info">
+<h5 class="test-status text-fail">NFCU_Prospecting_0626_VBOT2.html</h5>
+<span class='badge badge-success'>06.13.2026 6:49:53 pm</span>
+<span class='badge badge-danger'>06.13.2026 6:49:53 pm</span>
+<span class='badge badge-default'>00:00:00:009</span>
+&middot; <span class='uri-anchor badge badge-default'>#test-id=1</span>
+<span title='Skip to the next failed step' class='badge badge-danger pointer float-right ne ml-1'><i class="fa fa-fast-forward"></i></span>
+<span title='Collapse all nodes' class='badge badge-default pointer float-right ct ml-1'><i class="fa fa-compress"></i></span>
+<span title='Expand all nodes' class='badge badge-default pointer float-right et'><i class="fa fa-expand"></i></span>
+</div>
+<div class="m-t-15"><span class="badge badge-pill badge-default">FAIL</span></div>
+</div>
+</div><div class="detail-body mt-4">
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log info-bg">Info</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          Page Screenshot
+    <div class="row mb-3"><div class="col-md-3">
+    
+
+<img data-featherlight='file:///Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/audit-results/screenshots/NFCU_Prospecting_0626_VBOT2_20260613T131953467Z.png' src="file:///Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/audit-results/screenshots/NFCU_Prospecting_0626_VBOT2_20260613T131953467Z.png">
+  
+    
+
+    </div></div>
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log info-bg">Info</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          File: <b>NFCU_Prospecting_0626_VBOT2.html</b>
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log info-bg">Info</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          Rules evaluated: <b>9</b>
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log info-bg">Info</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          Evaluated at: <b>2026-06-13 13:19:53 UTC</b>
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <table style='border-collapse:collapse;font-size:13px'><tr style='background:#4a4a4a;color:#fff'><th style='padding:6px 12px'>Pass</th><th style='padding:6px 12px'>Fail</th><th style='padding:6px 12px'>Error</th><th style='padding:6px 12px'>Skipped</th><th style='padding:6px 12px'>Duration</th></tr><tr style='text-align:center'><td style='padding:6px 12px;color:#2ecc71'><b>5</b></td><td style='padding:6px 12px;color:#e74c3c'><b>4</b></td><td style='padding:6px 12px;color:#e67e22'><b>0</b></td><td style='padding:6px 12px;color:#95a5a6'><b>0</b></td><td style='padding:6px 12px'>3175ms</td></tr></table>
+        </td>
+      </tr>
+  </tbody>
+</table>
+</div>
+  <div class="mt-4">  <div class="accordion" role="tablist">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge fail-bg log ">Fail</span></li>
+              <li><span class='badge badge-default'>30:00:001</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="2"><span>[ACCESSIBILITY] ACCESSIBILITY_AXE</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">FAIL</span>
+<span class="badge badge-pill badge-default">CRITICAL</span>            </div>
+          </div>
+        </div>
+        <div class="">
+          <div class="card-body">
+            <p>Scans the page with axe-core for WCAG 2.1 A/AA violations and best-practice issues.</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          Rule failed with 7 finding(s) (520ms)
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> [SERIOUS] color-contrast – Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds | nodes: .dm_ffffff &gt; a &gt; span | help: https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=PlaywrightJava
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> [SERIOUS] document-title – Ensure each HTML document contains a non-empty &lt;title&gt; element | nodes: html | help: https://dequeuniversity.com/rules/axe/4.10/document-title?application=PlaywrightJava
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> [MINOR] empty-table-header – Ensure table headers have discernible text | nodes: .NFCU_PR_LT_3U_padding.stack[width=&quot;130&quot;]:nth-child(1) &gt; table &gt; tbody &gt; tr &gt; .stack:nth-child(2) &gt; table &gt; tbody &gt; tr:nth-child(1) &gt; .NFCU_PR_LT_3U_header_padding[align=&quot;left&quot;]; .NFCU_PR_LT_3U_padding.stack[width=&quot;130&quot;]:nth-child(2) &gt; table &gt; tbody &gt; tr &gt; .stack:nth-child(2) &gt; table &gt; tbody &gt; tr:nth-child(1) &gt; .NFCU_PR_LT_3U_header_padding[align=&quot;left&quot;]; .NFCU_PR_LT_3U_padding.stack[width=&quot;130&quot;]:nth-child(3) &gt; table &gt; tbody &gt; tr &gt; .stack:nth-child(2) &gt; table &gt; tbody &gt; tr:nth-child(1) &gt; .NFCU_PR_LT_3U_header_padding[align=&quot;left&quot;]; .NFCU_PR_LT_3U_unstack &gt; table &gt; tbody &gt; tr:nth-child(1) &gt; .NFCU_PR_LT_3U_header_padding[align=&quot;left&quot;] | help: https://dequeuniversity.com/rules/axe/4.10/empty-table-header?application=PlaywrightJava
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> [SERIOUS] html-has-lang – Ensure every HTML document has a lang attribute | nodes: html | help: https://dequeuniversity.com/rules/axe/4.10/html-has-lang?application=PlaywrightJava
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> [MODERATE] landmark-one-main – Ensure the document has a main landmark | nodes: html | help: https://dequeuniversity.com/rules/axe/4.10/landmark-one-main?application=PlaywrightJava
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> [MODERATE] page-has-heading-one – Ensure that the page, or at least one of its frames contains a level-one heading | nodes: html | help: https://dequeuniversity.com/rules/axe/4.10/page-has-heading-one?application=PlaywrightJava
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> [MODERATE] region – Ensure all page content is contained by landmarks | nodes: img[src$=&quot;EM_NFCU_LogoBar_Desk.png&quot;]; .container_module[bgcolor=&quot;#ffffff&quot;]:nth-child(2) &gt; tbody &gt; tr &gt; td &gt; table:nth-child(1); a[description=&quot;Masthead Image&quot;] &gt; .hide[width=&quot;600&quot;]; .container_module[bgcolor=&quot;#ffffff&quot;]:nth-child(3); .container_module[bgcolor=&quot;#ffffff&quot;]:nth-child(4) &gt; tbody &gt; tr &gt; td &gt; table &gt; tbody &gt; tr:nth-child(1) … (+36 more) | help: https://dequeuniversity.com/rules/axe/4.10/region?application=PlaywrightJava
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge pass-bg log ">Pass</span></li>
+              <li><span class='badge badge-default'>30:00:000</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="3"><span>[ACCESSIBILITY] ALT_TEXT_VALIDATION</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">FAIL</span>
+<span class="badge badge-pill badge-default">HIGH</span>            </div>
+          </div>
+        </div>
+        <div class="collapse">
+          <div class="card-body">
+            <p>Validates that every <img> element has a non-empty alt attribute for screen-reader accessibility.</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log pass-bg">Pass</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          All checks passed (2ms)
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge fail-bg log ">Fail</span></li>
+              <li><span class='badge badge-default'>30:00:000</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="4"><span>[LINKS] BROKEN_ANCHOR</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">MEDIUM</span>
+<span class="badge badge-pill badge-default">FAIL</span>            </div>
+          </div>
+        </div>
+        <div class="">
+          <div class="card-body">
+            <p>Validates that every in-page fragment link (href="#section") resolves to an element with a matching id on the page.</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          Rule failed with 1 finding(s) (1ms)
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> Broken anchor: href=&quot;#Acxiomtoprogram&quot; has no element with id=&quot;Acxiomtoprogram&quot;
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge pass-bg log ">Pass</span></li>
+              <li><span class='badge badge-default'>30:00:000</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="5"><span>[CONTENT] CTA_VALIDATION</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">FAIL</span>
+<span class="badge badge-pill badge-default">HIGH</span>            </div>
+          </div>
+        </div>
+        <div class="collapse">
+          <div class="card-body">
+            <p>Validates primary call-to-action buttons and button-styled links for visible text, a valid href, and visibility.</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log pass-bg">Pass</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          All checks passed (1ms)
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge fail-bg log ">Fail</span></li>
+              <li><span class='badge badge-default'>30:00:000</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="6"><span>[CONTENT] CONTENT_VALIDATION</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">FAIL</span>
+<span class="badge badge-pill badge-default">HIGH</span>            </div>
+          </div>
+        </div>
+        <div class="">
+          <div class="card-body">
+            <p>Validates page content for missing title, empty body, lorem ipsum filler, and un-replaced placeholder tokens.</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          Rule failed with 1 finding(s) (17ms)
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> Missing or blank &lt;title&gt; element – every HTML email should have a descriptive title.
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge pass-bg log ">Pass</span></li>
+              <li><span class='badge badge-default'>30:00:000</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="7"><span>[HTML] DUPLICATE_ID</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">MEDIUM</span>
+<span class="badge badge-pill badge-default">FAIL</span>            </div>
+          </div>
+        </div>
+        <div class="collapse">
+          <div class="card-body">
+            <p>Detects duplicate id attribute values across the rendered page, which break label associations, fragment links, and accessibility references.</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log pass-bg">Pass</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          All checks passed (0ms)
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge pass-bg log ">Pass</span></li>
+              <li><span class='badge badge-default'>30:00:001</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="8"><span>[CONTENT] LINK_TEXT_VALIDATION</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">MEDIUM</span>
+<span class="badge badge-pill badge-default">FAIL</span>            </div>
+          </div>
+        </div>
+        <div class="collapse">
+          <div class="card-body">
+            <p>Flags links with generic, non-descriptive text (e.g. "click here", "read more") that provide no context when read out of order, excluding footer unsubscribe links.</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log pass-bg">Pass</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          All checks passed (1ms)
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge pass-bg log ">Pass</span></li>
+              <li><span class='badge badge-default'>30:00:000</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="9"><span>[LINKS] LINK_VALIDATION</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">FAIL</span>
+<span class="badge badge-pill badge-default">HIGH</span>            </div>
+          </div>
+        </div>
+        <div class="collapse">
+          <div class="card-body">
+            <p>Validates all anchor links for broken URLs, insecure HTTP scheme, and presence of a mandatory unsubscribe link.</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log pass-bg">Pass</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          All checks passed (2630ms)
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-toolbar node-info">
+            <ul class="list-inline d-none d-sm-block">
+              <li><span class="badge fail-bg log ">Fail</span></li>
+              <li><span class='badge badge-default'>30:00:000</span></li>
+              <li></li>
+            </ul>
+          </div>
+          <div class="card-title">
+            <a class="node " id="10"><span>[ACCESSIBILITY] HEADING_HIERARCHY</span></a>
+            <div class="node-attr">
+<span class="badge badge-pill badge-default">MEDIUM</span>
+<span class="badge badge-pill badge-default">FAIL</span>            </div>
+          </div>
+        </div>
+        <div class="">
+          <div class="card-body">
+            <p>Validates the page's heading outline: exactly one <h1>, and no skipped heading levels (e.g. <h1> directly followed by <h3>).</p>
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          Rule failed with 1 finding(s) (3ms)
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Finding:</b> Missing &lt;h1&gt;: the page has no top-level heading.
+        </td>
+      </tr>
+  </tbody>
+</table>
+          </div>
+        </div>
+      </div>
+  </div>
+</div>
+          </div>
+        </li>
+        <li class="test-item"  status="fail" test-id="11"
+          author=""
+          tag="SUMMARY"
+          device="">
+          <div class="test-detail">
+            <p class="name">📊 Run Summary – 2026-06-13 13:19:53 UTC</p>
+            <p class="text-sm">
+              <span>6:49:53 pm</span> / <span>00:00:00:001</span>
+              <span class="badge fail-bg log float-right">Fail</span>
+            </p>
+          </div>
+          <div class="test-contents d-none">
+<div class="detail-head">
+<div class="p-v-10">
+<div class="info">
+<h5 class="test-status text-fail">📊 Run Summary – 2026-06-13 13:19:53 UTC</h5>
+<span class='badge badge-success'>06.13.2026 6:49:53 pm</span>
+<span class='badge badge-danger'>06.13.2026 6:49:53 pm</span>
+<span class='badge badge-default'>00:00:00:001</span>
+&middot; <span class='uri-anchor badge badge-default'>#test-id=11</span>
+<span title='Skip to the next failed step' class='badge badge-danger pointer float-right ne ml-1'><i class="fa fa-fast-forward"></i></span>
+<span title='Collapse all nodes' class='badge badge-default pointer float-right ct ml-1'><i class="fa fa-compress"></i></span>
+<span title='Expand all nodes' class='badge badge-default pointer float-right et'><i class="fa fa-expand"></i></span>
+</div>
+<div class="m-t-15"><span class="badge badge-pill badge-default">SUMMARY</span></div>
+</div>
+</div><div class="detail-body mt-4">
+<table class="table table-sm">
+  <thead><tr><th class="status-col">Status</th><th class="timestamp-col">Timestamp</th><th class="details-col">Details</th></tr></thead>
+  <tbody>
+      <tr class="event-row">
+        <td><span class="badge log info-bg">Info</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <table style='border-collapse:collapse;font-size:13px;min-width:420px'><tr style='background:#34495e;color:#fff'><th style='padding:7px 14px'>Metric</th><th style='padding:7px 14px'>Value</th></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>Files Audited</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'>1</td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>Total Rule Evaluations</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'>9</td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>Passed</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'><span style='color:#2ecc71'><b>5</b></span></td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>Failed</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'><span style='color:#e74c3c'><b>4</b></span></td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>Errored</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'><span style='color:#e67e22'><b>0</b></span></td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>Skipped</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'><span style='color:#95a5a6'><b>0</b></span></td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>Pass Rate</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'><b>55.6%</b></td></tr></table>
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log info-bg">Info</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <b>Rule Failure Leaderboard</b>
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log info-bg">Info</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          <table style='border-collapse:collapse;font-size:13px;min-width:320px'><tr style='background:#34495e;color:#fff'><th style='padding:7px 14px'>Rule ID</th><th style='padding:7px 14px'>Failures</th></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>ACCESSIBILITY_AXE</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'>1</td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>HEADING_HIERARCHY</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'>1</td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>BROKEN_ANCHOR</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'>1</td></tr><tr><td style='padding:6px 14px;border-bottom:1px solid #ddd'>CONTENT_VALIDATION</td><td style='padding:6px 14px;border-bottom:1px solid #ddd;text-align:center'>1</td></tr></table>
+        </td>
+      </tr>
+      <tr class="event-row">
+        <td><span class="badge log fail-bg">Fail</span></td>
+        <td>6:49:53 pm</td>
+        <td>
+          4 failure(s) and 0 error(s) detected across 1 file(s).
+        </td>
+      </tr>
+  </tbody>
+</table>
+</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+<div class="test-content scrollable">
+<div class="test-content-tools">
+<ul><li><a class="back-to-test" href="#"><i class="fa fa-arrow-left"></i></a></li></ul>
+</div>
+<div class="test-content-detail"><div class="detail-body"></div></div>
+</div></div>
+<div class="test-wrapper row view category-view attributes-view">
+<div class="test-list">
+<div class="test-list-tools">
+<ul class="tools pull-left"><li><a href=""><span class="font-size-14">Category</span></a></li></ul>
+<ul class="tools text-right"><li><a href="#"><span class="badge badge-primary">5</span></a></li></ul>
+</div>
+<div class="test-list-wrapper scrollable">
+<ul class="test-list-item">
+<li class="test-item">
+<div class="test-detail">
+<span class="meta">
+<span class='badge log badge-danger'>1</span>
+</span>
+<p class="name">SUMMARY</p>
+<p class="duration text-sm">1 tests</p>
+</div>
+<div class="test-contents d-none">
+<div class="info">
+<h4>SUMMARY</h4>
+<span status="fail" class='badge log badge-danger'>1 failed</span>
+</div>
+<table class='table table-sm mt-4'>
+<thead>
+<tr>
+<th class="status-col">Status</th>
+<th class="timestamp-col">Timestamp</th>
+<th>TestName</th>
+</tr>
+</thead>
+<tbody>
+<tr class="tag-test-status" status="fail">
+<td><span class="badge log fail-bg">Fail</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='11' id='11'>📊 Run Summary – 2026-06-13 13:19:53 UTC</a>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li class="test-item">
+<div class="test-detail">
+<span class="meta">
+<span class='badge log badge-danger'>1</span>
+</span>
+<p class="name">FAIL</p>
+<p class="duration text-sm">1 tests</p>
+</div>
+<div class="test-contents d-none">
+<div class="info">
+<h4>FAIL</h4>
+<span status="fail" class='badge log badge-danger'>1 failed</span>
+</div>
+<table class='table table-sm mt-4'>
+<thead>
+<tr>
+<th class="status-col">Status</th>
+<th class="timestamp-col">Timestamp</th>
+<th>TestName</th>
+</tr>
+</thead>
+<tbody>
+<tr class="tag-test-status" status="fail">
+<td><span class="badge log fail-bg">Fail</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='1'>NFCU_Prospecting_0626_VBOT2.html</a>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li class="test-item">
+<div class="test-detail">
+<span class="meta">
+<span class='badge log badge-danger'>1</span>
+</span>
+<p class="name">CRITICAL</p>
+<p class="duration text-sm">1 tests</p>
+</div>
+<div class="test-contents d-none">
+<div class="info">
+<h4>CRITICAL</h4>
+<span status="fail" class='badge log badge-danger'>1 failed</span>
+</div>
+<table class='table table-sm mt-4'>
+<thead>
+<tr>
+<th class="status-col">Status</th>
+<th class="timestamp-col">Timestamp</th>
+<th>TestName</th>
+</tr>
+</thead>
+<tbody>
+<tr class="tag-test-status" status="fail">
+<td><span class="badge log fail-bg">Fail</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='2'>[ACCESSIBILITY] ACCESSIBILITY_AXE</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[ACCESSIBILITY] ACCESSIBILITY_AXE</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li class="test-item">
+<div class="test-detail">
+<span class="meta">
+<span class='badge log pass-bg'>3</span>
+<span class='badge log badge-danger'>1</span>
+</span>
+<p class="name">HIGH</p>
+<p class="duration text-sm">4 tests</p>
+</div>
+<div class="test-contents d-none">
+<div class="info">
+<h4>HIGH</h4>
+<span status="pass" class='badge log pass-bg'>3 passed</span>
+<span status="fail" class='badge log badge-danger'>1 failed</span>
+</div>
+<table class='table table-sm mt-4'>
+<thead>
+<tr>
+<th class="status-col">Status</th>
+<th class="timestamp-col">Timestamp</th>
+<th>TestName</th>
+</tr>
+</thead>
+<tbody>
+<tr class="tag-test-status" status="pass">
+<td><span class="badge log pass-bg">Pass</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='3'>[ACCESSIBILITY] ALT_TEXT_VALIDATION</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[ACCESSIBILITY] ALT_TEXT_VALIDATION</span>
+</div>
+</td>
+</tr>
+<tr class="tag-test-status" status="pass">
+<td><span class="badge log pass-bg">Pass</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='5'>[CONTENT] CTA_VALIDATION</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[CONTENT] CTA_VALIDATION</span>
+</div>
+</td>
+</tr>
+<tr class="tag-test-status" status="fail">
+<td><span class="badge log fail-bg">Fail</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='6'>[CONTENT] CONTENT_VALIDATION</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[CONTENT] CONTENT_VALIDATION</span>
+</div>
+</td>
+</tr>
+<tr class="tag-test-status" status="pass">
+<td><span class="badge log pass-bg">Pass</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='9'>[LINKS] LINK_VALIDATION</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[LINKS] LINK_VALIDATION</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+<li class="test-item">
+<div class="test-detail">
+<span class="meta">
+<span class='badge log pass-bg'>2</span>
+<span class='badge log badge-danger'>2</span>
+</span>
+<p class="name">MEDIUM</p>
+<p class="duration text-sm">4 tests</p>
+</div>
+<div class="test-contents d-none">
+<div class="info">
+<h4>MEDIUM</h4>
+<span status="pass" class='badge log pass-bg'>2 passed</span>
+<span status="fail" class='badge log badge-danger'>2 failed</span>
+</div>
+<table class='table table-sm mt-4'>
+<thead>
+<tr>
+<th class="status-col">Status</th>
+<th class="timestamp-col">Timestamp</th>
+<th>TestName</th>
+</tr>
+</thead>
+<tbody>
+<tr class="tag-test-status" status="fail">
+<td><span class="badge log fail-bg">Fail</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='4'>[LINKS] BROKEN_ANCHOR</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[LINKS] BROKEN_ANCHOR</span>
+</div>
+</td>
+</tr>
+<tr class="tag-test-status" status="pass">
+<td><span class="badge log pass-bg">Pass</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='7'>[HTML] DUPLICATE_ID</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[HTML] DUPLICATE_ID</span>
+</div>
+</td>
+</tr>
+<tr class="tag-test-status" status="pass">
+<td><span class="badge log pass-bg">Pass</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='8'>[CONTENT] LINK_TEXT_VALIDATION</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[CONTENT] LINK_TEXT_VALIDATION</span>
+</div>
+</td>
+</tr>
+<tr class="tag-test-status" status="fail">
+<td><span class="badge log fail-bg">Fail</span></td>
+<td>18:49:53 pm</td>
+<td>
+<a href="#" class="linked" test-id='1' id='10'>[ACCESSIBILITY] HEADING_HIERARCHY</a>
+<div class="">
+<span class="badge badge-default">NFCU_Prospecting_0626_VBOT2.html.[ACCESSIBILITY] HEADING_HIERARCHY</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="test-content scrollable">
+<div class="test-content-detail">
+<div class="detail-body"></div>
+</div>
+</div>
+</div><div class="container-fluid p-4 view dashboard-view">
+<div class="row">
+<div class="col-md-3">
+<div class="card"><div class="card-body">
+<p class="m-b-0">Started</p>
+<h3>2026-06-13 18:49:50</h3>
+</div></div>
+</div>
+<div class="col-md-3">
+<div class="card"><div class="card-body">
+<p class="m-b-0">Ended</p>
+<h3>2026-06-13 18:49:53</h3>
+</div></div>
+</div>
+<div class="col-md-3">
+<div class="card"><div class="card-body">
+<p class="m-b-0 text-pass">Tests Passed</p>
+<h3>0</h3>
+</div></div>
+</div>
+<div class="col-md-3">
+<div class="card"><div class="card-body">
+<p class="m-b-0 text-fail">Tests Failed</p>
+<h3>2</h3>
+</div></div>
+</div>
+</div>
+<div class="row">
+<div class="col-md-4">
+<div class="card">
+<div class="card-header">
+<h6 class="card-title">Tests</h6>
+</div>
+<div class="card-body">
+<div class="">
+<canvas id='parent-analysis' width='115' height='90'></canvas>
+</div>
+</div>
+<div class="card-footer">
+<div><small data-tooltip='0%'>
+<b>0</b> tests passed
+</small>
+</div>
+<div>
+<small data-tooltip='100%'><b>2</b> tests failed,
+<b>0</b> skipped, <b data-tooltip='0%'>0</b> others
+</small>
+</div>
+</div>
+</div>
+</div>
+<div class="col-md-4">
+<div class="card">
+<div class="card-header">
+<h6 class="card-title">Steps</h6>
+</div>
+<div class="card-body">
+<div class="">
+<canvas id='child-analysis' width='115' height='90'></canvas>
+</div>
+</div>
+<div class="card-footer">
+<div><small data-tooltip='55%'><b>5</b> steps passed</small></div>
+<div>
+<small data-tooltip='44%'><b>4</b> steps failed,
+<b>0</b> skipped, <b data-tooltip='%'>0</b> others
+</small>
+</div>
+</div>
+</div>
+</div>
+<div class="col-md-4">
+<div class="card">
+<div class="card-header">
+<h6 class="card-title">Log events</h6>
+</div>
+<div class="card-body">
+<div class="">
+<canvas id='events-analysis' width='115' height='90'></canvas>
+</div>
+</div>
+<div class="card-footer">
+<div><small data-tooltip='17%'><b>5</b> events passed</small></div>
+<div>
+<small data-tooltip='57%'><b>16</b> events failed,
+<b data-tooltip='%'>7</b> others
+</small>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="row"><div class="col-md-12">
+<div class="card"><div class="card-header"><p>Timeline</p></div>
+<div class="card-body pt-0"><div>
+<canvas id="timeline" height="120"></canvas>
+</div></div>
+</div>
+</div></div>
+<script>
+var timeline = {
+"NFCU_Prospecting_0626_VBOT2.html":0.009,"📊 Run Summary – 2026-06-13 13:19:53 UTC":0.001
+};
+</script>
+<div class="row">
+<div class="col-lg-6 col-md-12 category-container">
+<div class="card">
+<div class="card-header"><p>Tags</p></div>
+<div class="card-body pb-0 pt-0"><table class="table table-sm table-bordered">
+<thead><tr class="bg-gray"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th><th>Others</th><th>Passed %</th></tr></thead><tbody>
+<tr>
+<td>SUMMARY</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>FAIL</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>CRITICAL</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>HIGH</td>
+<td>3</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>75%</td>
+</tr>
+<tr>
+<td>MEDIUM</td>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>50%</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div class="col-lg-6 col-md-12 sysenv-container">
+<div class="card">
+<div class="card-header"><p>System/Environment</p></div>
+<div class="card-body pb-0 pt-0"><table class="table table-sm table-bordered">
+<thead><tr class="bg-gray"><th>Name</th><th>Value</th></tr></thead>
+<tbody>
+<tr>
+<td>Framework</td>
+<td>Email Audit Engine</td>
+</tr>
+<tr>
+<td>Java Version</td>
+<td>25.0.2</td>
+</tr>
+<tr>
+<td>OS</td>
+<td>Mac OS X</td>
+</tr>
+<tr>
+<td>Run Started</td>
+<td>2026-06-13 13:19:50 UTC</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</div>
+</div>
+<script>
+var statusGroup = {
+parentCount: 5,
+passParent: 0,
+failParent: 2,
+warningParent: 0,
+skipParent: 0,
+childCount: 5,
+passChild: 5,
+failChild: 4,
+warningChild: 0,
+skipChild: 0,
+infoChild: 0,
+grandChildCount: 5,
+passGrandChild: 0,
+failGrandChild: 0,
+warningGrandChild: 0,
+skipGrandChild: 0,
+infoGrandChild: 0,
+eventsCount: 5,
+passEvents: 5,
+failEvents: 16,
+warningEvents: 0,
+skipEvents: 0,
+infoEvents: 7
+};
+</script>        </div>
+      </div>
+    </div>
+  </div>
+<script src="https://cdn.jsdelivr.net/gh/extent-framework/extent-github-cdn@c05cd28cde1617b9d0c05a831daff6cb97fd9fd5/spark/js/spark-script.js"></script>
+<script type="text/javascript"></script></body>
+</html>

@@ -70,7 +70,7 @@ public final class ArchiveManager {
     private static final String KEY_SUCCESS_DIR     = "archive.success.dir";
     private static final String KEY_FAILED_DIR      = "archive.failed.dir";
 
-    private static final String DEFAULT_ARCHIVE_ROOT = "target/audit-archive";
+    private static final String DEFAULT_ARCHIVE_ROOT = "audit-results/archive";
     private static final String DEFAULT_SUCCESS_DIR   = "success";
     private static final String DEFAULT_FAILED_DIR    = "failed";
 

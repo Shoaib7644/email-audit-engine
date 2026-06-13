@@ -62,7 +62,7 @@ public final class StateRegistry {
     private static final Logger log = LoggerFactory.getLogger(StateRegistry.class);
 
     private static final String CONFIG_KEY_REGISTRY_FILE = "state.registry.file";
-    private static final String DEFAULT_REGISTRY_FILE    = "target/audit-state/registry.json";
+    private static final String DEFAULT_REGISTRY_FILE    = "audit-results/state/registry.json";
     private static final String HASH_ALGORITHM           = "SHA-256";
     private static final TypeReference<Map<String, ProcessedFileRecord>> STATE_TYPE_REF =
             new TypeReference<>() {};

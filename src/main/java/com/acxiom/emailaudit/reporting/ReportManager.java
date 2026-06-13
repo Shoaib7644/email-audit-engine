@@ -82,7 +82,7 @@ public final class ReportManager {
     private static final String KEY_REPORT_TITLE = "report.title";
     private static final String KEY_REPORT_NAME  = "report.name";
 
-    private static final String DEFAULT_REPORT_DIR   = "target/audit-reports";
+    private static final String DEFAULT_REPORT_DIR   = "audit-results/reports";
     private static final String DEFAULT_REPORT_TITLE = "Email Audit Report";
     private static final String DEFAULT_REPORT_NAME  = "Audit Run";
 

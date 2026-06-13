@@ -23,6 +23,56 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Single-threaded coordinator that executes the full email-audit pipeline
+ * end-to-end for every HTML file discovered under the configured input
+ * directory.
+ *
+ * <h2>Pipeline stages (per file, in order)</h2>
+ * <ol>
+ *   <li><strong>Discover</strong> – {@link FileScanner} returns all HTML files.</li>
+ *   <li><strong>State check</strong> – {@link StateRegistry#isAlreadyProcessed}
+ *       skips files already successfully processed with unchanged content.</li>
+ *   <li><strong>Duplicate check</strong> – {@link DuplicateDetector} skips files
+ *       whose content is identical to one already seen in this run.</li>
+ *   <li><strong>Render</strong> – {@link HtmlRenderer} loads the file in a
+ *       Playwright {@link Page}.</li>
+ *   <li><strong>Execute rules</strong> – {@link RuleExecutor} runs every
+ *       registered {@link com.acxiom.emailaudit.rules.AuditRule} against the page.</li>
+ *   <li><strong>Capture evidence</strong> – {@link ScreenshotService} saves a
+ *       full-page PNG.</li>
+ *   <li><strong>Build context</strong> – {@link AuditContext} aggregates hash,
+ *       screenshot, results, timing, and overall status.</li>
+ *   <li><strong>Report</strong> – {@link ReportManager#recordFileResults}
+ *       writes the file's section into the Spark dashboard.</li>
+ *   <li><strong>Archive</strong> – {@link ArchiveManager} moves the file to the
+ *       success or failed archive directory.</li>
+ *   <li><strong>Update state</strong> – {@link StateRegistry#markSuccess} /
+ *       {@link StateRegistry#markFailed} persists the outcome for future runs.</li>
+ * </ol>
+ *
+ * <h2>Execution model</h2>
+ * <p>This orchestrator is intentionally <strong>single-threaded</strong>: one
+ * {@link HtmlRenderer} (and therefore one Playwright {@code Browser} instance)
+ * is created and reused for the entire run, processing files
+ * sequentially. This avoids the per-thread Playwright lifecycle management
+ * required for parallel execution and is appropriate for scheduled batch
+ * runs where wall-clock time is dominated by I/O (link probing, rendering)
+ * rather than CPU.</p>
+ *
+ * <h2>Fault isolation</h2>
+ * <p>An unexpected exception while processing one file is caught, logged,
+ * recorded as a {@link AuditStatus#ERROR} context, and the file is archived
+ * to the failed directory and marked failed in {@link StateRegistry}.
+ * Processing then continues with the next file — one broken file never
+ * aborts the run.</p>
+ *
+ * <h2>Configuration keys</h2>
+ * <table>
+ *   <tr><td>{@code ingestion.input.dir}</td>
+ *       <td>Root directory to scan for HTML files (default: {@code input})</td></tr>
+ * </table>
+ */
 public final class AuditOrchestrator implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(AuditOrchestrator.class);
@@ -398,9 +448,13 @@ public final class AuditOrchestrator implements AutoCloseable {
         final RuleRegistry registry = new RuleRegistry();
         registry.register(new AccessibilityRule());
         registry.register(new AltTextValidationRule());
+        registry.register(new BrokenAnchorRule());
+        registry.register(new CtaValidationRule());
         registry.register(new ContentValidationRule());
         registry.register(new DuplicateIdRule());
+        registry.register(new LinkTextValidationRule());
         registry.register(new LinkValidationRule());
+        registry.register(new HeadingHierarchyRule());
         return registry;
     }
 
