@@ -1,0 +1,11 @@
+{
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_VBOT2_20260613T142930529Z.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_VBOT2_20260613T142930529Z.html",
+    "contentHash" : "1fea5662afdf04e28016d37472642260a322e5d1e907975737e6da785cf51c87",
+    "status" : "FAILED",
+    "processedAt" : "2026-06-13T15:27:19.870420Z",
+    "errorMessage" : "4 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

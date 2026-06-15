@@ -69,7 +69,14 @@ public final class ApplicationLauncher {
         log.info("Email Audit Engine – exiting with code {}", exitCode);
         System.exit(exitCode);
     }
+    public static AuditOrchestrator.RunSummary runAudit() {
 
+        try (AuditOrchestrator orchestrator =
+                     new AuditOrchestrator()) {
+
+            return orchestrator.run();
+        }
+    }
     // -------------------------------------------------------------------------
     // Internal – orchestration
     // -------------------------------------------------------------------------

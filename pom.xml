@@ -21,7 +21,7 @@
         <commons-lang3.version>3.17.0</commons-lang3.version>
         <languagetool.version>6.4</languagetool.version>
         <axe-playwright.version>4.10.0</axe-playwright.version>
-
+        <javafx.version>21.0.2</javafx.version>
         <maven-compiler.version>3.13.0</maven-compiler.version>
         <maven-surefire.version>3.5.2</maven-surefire.version>
         <maven-assembly.version>3.7.1</maven-assembly.version>
@@ -39,7 +39,17 @@
             <artifactId>testng</artifactId>
             <version>${testng.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
 
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.aventstack</groupId>
             <artifactId>extentreports</artifactId>
@@ -68,7 +78,11 @@
             <artifactId>jsoup</artifactId>
             <version>${jsoup.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -125,23 +139,36 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
 
+                <configuration>
+                    <mainClass>
+                        com.acxiom.emailaudit.gui.AuditApplication
+                    </mainClass>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${maven-assembly.version}</version>
+
                 <configuration>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
+
                     <archive>
                         <manifest>
                             <mainClass>
-                                com.acxiom.emailaudit.bootstrap.ApplicationLauncher
+                                com.acxiom.emailaudit.gui.AuditApplication
                             </mainClass>
                         </manifest>
                     </archive>
                 </configuration>
+
                 <executions>
                     <execution>
                         <id>make-assembly</id>
