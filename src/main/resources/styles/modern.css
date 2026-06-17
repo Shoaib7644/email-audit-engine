@@ -1,0 +1,113 @@
+/* Core Scene Rules */
+.main-container {
+    -fx-background-color: #121214; /* Clean deep onyx canvas */
+    -fx-font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Typography Header */
+.header-panel {
+    -fx-border-color: transparent transparent #2a2a32 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 0 12 0;
+}
+.header-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: left;
+}
+.header-subtitle {
+    -fx-text-fill: #8a8a98;
+    -fx-font-size: 12px;
+}
+
+/* Environment Info Cards */
+.info-card {
+    -fx-background-color: #1e1e24;
+    -fx-border-color: #2e2e38;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 12px;
+}
+.card-title {
+    -fx-text-fill: #007acc; /* Electric Blue Accent */
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+.card-value {
+    -fx-text-fill: #e1e1e6;
+    -fx-font-size: 13px;
+    -fx-font-family: "Courier New", monospace; /* Clean path style mapping */
+}
+
+/* Command Trigger Elements (Buttons) */
+.button {
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 10px 16px;
+    -fx-cursor: hand;
+    -fx-transition: all 0.2s ease-in-out;
+}
+.btn-primary {
+    -fx-background-color: #007acc;
+    -fx-text-fill: #ffffff;
+}
+.btn-primary:hover {
+    -fx-background-color: #0098ff;
+}
+.btn-primary:disabled {
+    -fx-background-color: #26435c;
+    -fx-text-fill: #7fa2c2;
+}
+.btn-secondary {
+    -fx-background-color: #25252b;
+    -fx-text-fill: #e1e1e6;
+    -fx-border-color: #3e3e4a;
+    -fx-border-width: 1px;
+}
+.btn-secondary:hover {
+    -fx-background-color: #32323c;
+    -fx-border-color: #007acc;
+}
+.btn-secondary:disabled {
+    -fx-background-color: #16161a;
+    -fx-text-fill: #5a5a66;
+    -fx-border-color: #222226;
+}
+
+/* Execution Progress Element Tracker */
+.custom-progress-bar .track {
+    -fx-background-color: #1e1e24;
+    -fx-background-radius: 4px;
+}
+.custom-progress-bar .bar {
+    -fx-background-color: linear-gradient(to right, #005999, #007acc);
+    -fx-background-radius: 4px;
+}
+
+/* Log Terminal Framework */
+.console-container {
+    -fx-spacing: 6px;
+}
+.console-header-label {
+    -fx-text-fill: #8a8a98;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.modern-log-area {
+    -fx-text-fill: #4af626; /* Cyber green command monitor style */
+    -fx-font-family: Consolas, "Liberation Mono", Courier, monospace;
+    -fx-font-size: 12px;
+}
+.modern-log-area .content {
+    -fx-background-color: #0b0b0d; /* Pure obsidian backdrop context */
+    -fx-border-color: #222226;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+.modern-log-area .scroll-pane {
+    -fx-background-color: transparent;
+}

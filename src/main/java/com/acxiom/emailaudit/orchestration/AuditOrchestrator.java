@@ -15,6 +15,9 @@ import com.acxiom.emailaudit.utilities.HashUtil;
 import com.microsoft.playwright.Page;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.acxiom.emailaudit.reporting.CustomDashboardGenerator;
+import com.acxiom.emailaudit.reporting.dashboard.DashboardDataCollector;
+import com.acxiom.emailaudit.reporting.dashboard.RunAuditData;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,6 +26,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import java.nio.file.Path;
 
 /**
  * Single-threaded coordinator that executes the full email-audit pipeline
@@ -228,21 +233,69 @@ public final class AuditOrchestrator implements AutoCloseable {
 
         final Path reportPath = reportManager.flush();
 
-        final Duration runDuration = Duration.between(runStart, Instant.now());
-        log.info("=== Audit run complete in {}ms – total: {}, processed: {}, skipped: {}, "
-                        + "success: {}, failed: {}, error: {} – report: '{}' ===",
-                runDuration.toMillis(), htmlFiles.size(), processed, skipped,
-                succeeded, failed, errored, reportPath);
+        RunSummary runSummary =
+                new RunSummary(
+                        htmlFiles.size(),
+                        processed,
+                        skipped,
+                        succeeded,
+                        failed,
+                        errored,
+                        reportPath,
+                        null,
+                        auditResults);
 
-        return new RunSummary(
+        try {
+
+            RunAuditData dashboardData =
+                    DashboardDataCollector.collect(runSummary);
+
+            CustomDashboardGenerator dashboardGenerator =
+                    new CustomDashboardGenerator();
+
+            Path dashboardPath =
+                    dashboardGenerator.generate(dashboardData);
+
+            runSummary =
+                    new RunSummary(
+                            runSummary.totalDiscovered(),
+                            runSummary.processed(),
+                            runSummary.skipped(),
+                            runSummary.succeeded(),
+                            runSummary.failed(),
+                            runSummary.errored(),
+                            runSummary.reportPath(),
+                            dashboardPath,
+                            runSummary.auditResults());
+
+            log.info(
+                    "Custom dashboard generated successfully: {}",
+                    dashboardPath.toAbsolutePath());
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Failed to generate custom dashboard",
+                    ex);
+        }
+
+        final Duration runDuration =
+                Duration.between(
+                        runStart,
+                        Instant.now());
+
+        log.info(
+                "=== Audit run complete in {}ms – total: {}, processed: {}, skipped: {}, success: {}, failed: {}, error: {} – report: '{}' ===",
+                runDuration.toMillis(),
                 htmlFiles.size(),
                 processed,
                 skipped,
                 succeeded,
                 failed,
                 errored,
-                reportPath,
-                auditResults);
+                reportPath);
+
+        return runSummary;
     }
 
     /**
@@ -552,6 +605,7 @@ public record RunSummary(
         int failed,
         int errored,
         Path reportPath,
+        Path dashboardPath,
         List<AuditContext> auditResults) {
 }
 

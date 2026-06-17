@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Audit Dashboard</title>
+    <style>
+        /* ================================================================
+           TOKENS
+        ================================================================ */
+        :root {
+            --bg-base:        #0d1117;
+            --bg-panel:       #161b22;
+            --bg-card:        #21262d;
+            --bg-card-hover:  #2a2f38;
+            --bg-input:       #0d1117;
+
+            --border:         #30363d;
+            --border-focus:   #58a6ff;
+
+            --accent:         #58a6ff;
+            --accent-dim:     rgba(88,166,255,0.12);
+
+            --green:          #3fb950;
+            --green-bg:       rgba(63,185,80,0.12);
+            --red:            #f85149;
+            --red-bg:         rgba(248,81,73,0.12);
+            --amber:          #d29922;
+            --amber-bg:       rgba(210,153,34,0.12);
+            --blue:           #58a6ff;
+            --blue-bg:        rgba(88,166,255,0.12);
+            --purple:         #bc8cff;
+            --purple-bg:      rgba(188,140,255,0.12);
+
+            --text-primary:   #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted:     #484f58;
+
+            --radius-sm:  6px;
+            --radius-md:  10px;
+            --radius-lg:  14px;
+
+            --sidebar-width: 300px;
+            --header-height: 56px;
+
+            --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+            --font-mono: "Cascadia Code", "Fira Code", "SF Mono", Consolas, monospace;
+
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* ================================================================
+           RESET + BASE
+        ================================================================ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button { font-family: inherit; cursor: pointer; border: none; background: none; }
+        a { color: var(--accent); text-decoration: none; }
+
+        /* ================================================================
+           LAYOUT SHELL
+        ================================================================ */
+        .app-shell {
+            display: grid;
+            grid-template-rows: var(--header-height) 1fr;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-areas:
+        "topbar topbar"
+        "sidebar main";
+            min-height: 100vh;
+        }
+
+        /* ================================================================
+           TOPBAR
+        ================================================================ */
+        .topbar {
+            grid-area: topbar;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .topbar-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            color: #0d1117;
+            flex-shrink: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .topbar-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        .topbar-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .topbar-stats {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .topbar-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .topbar-stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .topbar-stat-dot.green { background: var(--green); }
+        .topbar-stat-dot.red   { background: var(--red); }
+
+        .topbar-stat-val {
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ================================================================
+           SIDEBAR
+        ================================================================ */
+        .sidebar {
+            grid-area: sidebar;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+            overflow: hidden;
+        }
+
+        .sidebar-search-wrap {
+            padding: 14px 14px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-search {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 7px 10px 7px 32px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .sidebar-search:focus { border-color: var(--border-focus); }
+
+        .sidebar-search-icon {
+            position: absolute;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            font-size: 13px;
+        }
+
+        .sidebar-search-wrap { position: relative; }
+
+        .sidebar-list-label {
+            padding: 8px 14px 4px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .sidebar-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 8px 16px;
+        }
+
+        .sidebar-list::-webkit-scrollbar { width: 4px; }
+        .sidebar-list::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.12s;
+            margin-bottom: 2px;
+        }
+
+        .sidebar-item:hover { background: var(--bg-card-hover); }
+
+        .sidebar-item.active {
+            background: var(--accent-dim);
+            border: 1px solid rgba(88,166,255,0.25);
+        }
+
+        .sidebar-item-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item-dot.pass { background: var(--green); }
+        .sidebar-item-dot.fail { background: var(--red); }
+
+        .sidebar-item-name {
+            font-size: 13px;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active .sidebar-item-name { color: var(--accent); }
+
+        .sidebar-item-count {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .sidebar-empty {
+            padding: 24px 14px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* ================================================================
+           MAIN PANEL
+        ================================================================ */
+        .main-panel {
+            grid-area: main;
+            overflow-y: auto;
+            padding: 28px;
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        .main-panel::-webkit-scrollbar { width: 6px; }
+        .main-panel::-webkit-scrollbar-track { background: transparent; }
+        .main-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* ================================================================
+           EMPTY / WELCOME STATE
+        ================================================================ */
+        .welcome-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            gap: 16px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .welcome-icon {
+            font-size: 48px;
+            opacity: 0.25;
+        }
+
+        .welcome-state h2 {
+            font-size: 18px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .welcome-state p {
+            font-size: 13px;
+            color: var(--text-muted);
+            max-width: 280px;
+        }
+
+        /* ================================================================
+           EMAIL DETAIL — HEADER
+        ================================================================ */
+        .detail-header {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .detail-header-left { flex: 1; min-width: 0; }
+
+        .detail-filename {
+            font-family: var(--font-mono);
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 6px;
+        }
+
+        .detail-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .detail-meta-item {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .detail-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        /* Pass-rate arc gauge — signature element */
+        .gauge-wrap {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+        }
+
+        .gauge-svg {
+            transform: rotate(-90deg);
+        }
+
+        .gauge-track {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 6;
+        }
+
+        .gauge-arc {
+            fill: none;
+            stroke-width: 6;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+            stroke 0.3s;
+        }
+
+        .gauge-label {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .gauge-pct {
+            font-size: 16px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+
+        .gauge-sub {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-top: 2px;
+        }
+
+        /* ================================================================
+           STATUS BADGE
+        ================================================================ */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .status-badge::before {
+            content: "";
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+
+        .badge-pass    { background: var(--green-bg); color: var(--green); }
+        .badge-fail    { background: var(--red-bg);   color: var(--red);   }
+        .badge-error   { background: var(--amber-bg); color: var(--amber); }
+        .badge-skipped { background: var(--blue-bg);  color: var(--blue);  }
+
+        /* ================================================================
+           SUMMARY STRIP
+        ================================================================ */
+        .summary-strip {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .summary-tile {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .summary-tile-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .summary-tile-value {
+            font-family: var(--font-mono);
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tile-total   .summary-tile-value { color: var(--accent); }
+        .tile-passed  .summary-tile-value { color: var(--green);  }
+        .tile-failed  .summary-tile-value { color: var(--red);    }
+
+        .summary-tile-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ================================================================
+           SECTION HEADERS
+        ================================================================ */
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-label::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ================================================================
+           VALIDATION CARDS
+        ================================================================ */
+        .validation-list { margin-bottom: 20px; }
+
+        .val-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            margin-bottom: 8px;
+            overflow: hidden;
+            transition: border-color 0.15s;
+        }
+
+        .val-card:focus-within { border-color: var(--border-focus); }
+
+        .val-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 16px;
+            cursor: pointer;
+            user-select: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            transition: background 0.12s;
+        }
+
+        .val-card-header:hover { background: var(--bg-card-hover); }
+
+        .val-card.expanded > .val-card-header {
+            background: var(--bg-card-hover);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .val-card-chevron {
+            color: var(--text-muted);
+            font-size: 10px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .val-card.expanded .val-card-chevron { transform: rotate(90deg); }
+
+        .val-card-rule-id {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 7px;
+            flex-shrink: 0;
+        }
+
+        .val-card-name {
+            font-size: 13px;
+            font-weight: 600;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-primary);
+        }
+
+        .val-card-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .finding-count-pill {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--red-bg);
+            color: var(--red);
+        }
+
+        .severity-chip {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .sev-critical { background: rgba(201,36,27,0.2);    color: #f97583; }
+        .sev-high     { background: var(--red-bg);          color: var(--red);   }
+        .sev-medium   { background: var(--amber-bg);        color: var(--amber); }
+        .sev-low      { background: rgba(210,153,34,0.08);  color: #e3b341; }
+        .sev-info     { background: var(--blue-bg);         color: var(--blue);  }
+
+        /* ================================================================
+           FINDINGS PANEL
+        ================================================================ */
+        .val-card-body {
+            display: none;
+            padding: 0;
+        }
+
+        .val-card.expanded .val-card-body { display: block; }
+
+        .findings-list { padding: 12px 16px 16px; }
+
+        .finding-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+
+        .finding-item:last-child { margin-bottom: 0; }
+
+        .finding-index {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-muted);
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            height: fit-content;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .finding-content { flex: 1; min-width: 0; }
+
+        .finding-impact {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--amber);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .finding-impact::before {
+            content: "⚡";
+            font-size: 11px;
+        }
+
+        .finding-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+            word-break: break-word;
+        }
+
+        .no-findings {
+            padding: 12px 16px 16px;
+            font-size: 12px;
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .no-findings::before { content: "✓"; font-weight: 700; }
+
+        /* ================================================================
+           SCREENSHOT SECTION
+        ================================================================ */
+        .screenshot-section {
+            margin-bottom: 20px;
+        }
+
+        .screenshot-frame {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .screenshot-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+
+        .screenshot-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+
+        .screenshot-url {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .screenshot-img-wrap {
+            padding: 0;
+            max-height: 420px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .screenshot-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top;
+            display: block;
+            transition: max-height 0.3s ease;
+        }
+
+        .screenshot-expand-btn {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(13,17,23,0.95));
+            padding: 40px 0 14px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .screenshot-expand-btn button {
+            font-size: 12px;
+            color: var(--accent);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .screenshot-expand-btn button:hover { background: var(--bg-card-hover); }
+
+        .screenshot-no-image {
+            padding: 32px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Screenshot unavailable placeholder */
+        .screenshot-unavailable {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 48px 32px;
+            text-align: center;
+        }
+
+        .screenshot-unavailable-icon {
+            font-size: 36px;
+            color: var(--text-muted);
+            opacity: 0.4;
+            line-height: 1;
+        }
+
+        .screenshot-unavailable-msg {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .screenshot-unavailable-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            max-width: 340px;
+            line-height: 1.6;
+        }
+
+        /* ================================================================
+           PASS-ALL STATE
+        ================================================================ */
+        .pass-all-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            background: var(--green-bg);
+            border: 1px solid rgba(63,185,80,0.25);
+            border-radius: var(--radius-md);
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--green);
+            font-weight: 500;
+        }
+
+        /* ================================================================
+           SCROLLBAR (Firefox)
+        ================================================================ */
+        .sidebar-list, .main-panel {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        /* ================================================================
+           RESPONSIVE
+        ================================================================ */
+        @media (max-width: 900px) {
+            .app-shell {
+                grid-template-areas:
+            "topbar"
+            "sidebar"
+            "main";
+                grid-template-columns: 1fr;
+                grid-template-rows: var(--header-height) auto 1fr;
+            }
+
+            .sidebar {
+                position: static;
+                height: auto;
+                max-height: 240px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .main-panel { padding: 16px; }
+            .summary-strip { grid-template-columns: repeat(3, 1fr); }
+            .detail-header { flex-direction: column; align-items: flex-start; }
+            .topbar-stats { display: none; }
+        }
+
+        @media (max-width: 560px) {
+            .summary-strip { grid-template-columns: 1fr 1fr; }
+            .tile-total { grid-column: 1 / -1; }
+            .val-card-rule-id { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- ================================================= -->
+    <!-- TOPBAR                                            -->
+    <!-- ================================================= -->
+    <header class="topbar">
+        <div class="topbar-brand">
+            <div class="topbar-icon">EA</div>
+            <div>
+                <div class="topbar-title">Email Audit Dashboard</div>
+            </div>
+        </div>
+        <div class="topbar-stats">
+            <div class="topbar-stat">
+                <span class="topbar-stat-dot green"></span>
+                <span class="topbar-stat-val" id="tb-passed">0</span>
+                <span>passed</span>
+            </div>
+            <div class="topbar-stat">
+                <span class="topbar-stat-dot red"></span>
+                <span class="topbar-stat-val" id="tb-failed">0</span>
+                <span>failed</span>
+            </div>
+            <div class="topbar-stat">
+                <span id="tb-generated" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================================================= -->
+    <!-- SIDEBAR                                           -->
+    <!-- ================================================= -->
+    <aside class="sidebar">
+        <div class="sidebar-search-wrap">
+            <span class="sidebar-search-icon">⌕</span>
+            <input
+                    id="sidebar-search"
+                    class="sidebar-search"
+                    type="search"
+                    placeholder="Filter emails…"
+                    autocomplete="off"
+            />
+        </div>
+        <div class="sidebar-list-label">Emails</div>
+        <div class="sidebar-list" id="sidebar-list">
+            <div class="sidebar-empty">No audit data loaded.</div>
+        </div>
+    </aside>
+
+    <!-- ================================================= -->
+    <!-- MAIN PANEL                                        -->
+    <!-- ================================================= -->
+    <main class="main-panel" id="main-panel">
+        <div class="welcome-state" id="welcome-state">
+            <div class="welcome-icon">✉</div>
+            <h2>Select an email to review</h2>
+            <p>Choose an email from the sidebar to see its audit results and findings.</p>
+        </div>
+        <div id="detail-view" style="display:none"></div>
+    </main>
+
+</div>
+
+<!-- ================================================= -->
+<!-- DATA INJECTION                                    -->
+<!-- ================================================= -->
+<script>
+    const DASHBOARD_DATA = {"totalFiles":3,"passedFiles":1,"failedFiles":2,"generatedAt":"2026-06-16T14:59:10.877062Z","files":[{"fileName":"Perfect Email.html","overallStatus":"PASS","totalChecks":9,"passedChecks":9,"failedChecks":0,"sections":[{"sectionName":"Accessibility","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Accessibility compliance, usability, screen reader support, and WCAG-related checks."},{"sectionName":"Content","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of required email content, metadata, titles, and messaging elements."},{"sectionName":"Call To Action","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of call-to-action elements and user engagement pathways."},{"sectionName":"HTML Structure","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of HTML markup quality, uniqueness, and document structure."},{"sectionName":"Links","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of hyperlinks, anchor references, and link text quality."}],"rules":[{"ruleName":"Scans the page with axe-core for WCAG 2.1 A/AA violations and best-practice issues.","ruleId":"ACCESSIBILITY_AXE","status":"PASS","severity":"CRITICAL","findings":[],"businessImpact":"Accessibility compliance issues detected"},{"ruleName":"Validates that every <img> element has a non-empty alt attribute for screen-reader accessibility.","ruleId":"ALT_TEXT_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"Images are missing alternative text for screen readers"},{"ruleName":"Validates that every in-page fragment link (href=\"#section\") resolves to an element with a matching id on the page.","ruleId":"BROKEN_ANCHOR","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Internal email navigation links are broken"},{"ruleName":"Validates primary call-to-action buttons and button-styled links for visible text, a valid href, and visibility.","ruleId":"CTA_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"Call-to-action validation issues detected"},{"ruleName":"Validates page content for missing title, empty body, lorem ipsum filler, and un-replaced placeholder tokens.","ruleId":"CONTENT_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"Required email content elements are missing"},{"ruleName":"Detects duplicate id attribute values across the rendered page, which break label associations, fragment links, and accessibility references.","ruleId":"DUPLICATE_ID","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Duplicate HTML identifiers detected"},{"ruleName":"Flags links with generic, non-descriptive text (e.g. \"click here\", \"read more\") that provide no context when read out of order, excluding footer unsubscribe links.","ruleId":"LINK_TEXT_VALIDATION","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Links use unclear or non-descriptive text"},{"ruleName":"Validates all anchor links for broken URLs, insecure HTTP scheme, and presence of a mandatory unsubscribe link.","ruleId":"LINK_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"One or more hyperlinks are broken"},{"ruleName":"Validates the page's heading outline: exactly one <h1>, and no skipped heading levels (e.g. <h1> directly followed by <h3>).","ruleId":"HEADING_HIERARCHY","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Heading structure does not follow accessibility standards"}],"screenshotPath":"/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/output/screenshots/Perfect_Email_20260616T145905038Z.png"},{"fileName":"marketing-campaign.html","overallStatus":"FAIL","totalChecks":9,"passedChecks":5,"failedChecks":4,"sections":[{"sectionName":"Accessibility","status":"FAIL","severity":"CRITICAL","findingCount":4,"businessImpact":"Accessibility compliance issues detected"},{"sectionName":"Content","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of required email content, metadata, titles, and messaging elements."},{"sectionName":"Call To Action","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of call-to-action elements and user engagement pathways."},{"sectionName":"HTML Structure","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of HTML markup quality, uniqueness, and document structure."},{"sectionName":"Links","status":"FAIL","severity":"MEDIUM","findingCount":1,"businessImpact":"Links use unclear or non-descriptive text"}],"rules":[{"ruleName":"Scans the page with axe-core for WCAG 2.1 A/AA violations and best-practice issues.","ruleId":"ACCESSIBILITY_AXE","status":"FAIL","severity":"CRITICAL","findings":["[SERIOUS] html-has-lang – Ensure every HTML document has a lang attribute | nodes: html | help: https://dequeuniversity.com/rules/axe/4.10/html-has-lang?application=PlaywrightJava","[CRITICAL] image-alt – Ensure <img> elements have alternate text or a role of none or presentation | nodes: img | help: https://dequeuniversity.com/rules/axe/4.10/image-alt?application=PlaywrightJava","[MODERATE] landmark-one-main – Ensure the document has a main landmark | nodes: html | help: https://dequeuniversity.com/rules/axe/4.10/landmark-one-main?application=PlaywrightJava","[MODERATE] region – Ensure all page content is contained by landmarks | nodes: h1; img; p:nth-child(3); p:nth-child(4); p:nth-child(5) … (+3 more) | help: https://dequeuniversity.com/rules/axe/4.10/region?application=PlaywrightJava"],"businessImpact":"Accessibility compliance issues detected"},{"ruleName":"Validates that every <img> element has a non-empty alt attribute for screen-reader accessibility.","ruleId":"ALT_TEXT_VALIDATION","status":"FAIL","severity":"HIGH","findings":["Missing alt attribute on image: https://picsum.photos/600/300"],"businessImpact":"Images are missing alternative text for screen readers"},{"ruleName":"Validates that every in-page fragment link (href=\"#section\") resolves to an element with a matching id on the page.","ruleId":"BROKEN_ANCHOR","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Internal email navigation links are broken"},{"ruleName":"Validates primary call-to-action buttons and button-styled links for visible text, a valid href, and visibility.","ruleId":"CTA_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"Call-to-action validation issues detected"},{"ruleName":"Validates page content for missing title, empty body, lorem ipsum filler, and un-replaced placeholder tokens.","ruleId":"CONTENT_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"Required email content elements are missing"},{"ruleName":"Detects duplicate id attribute values across the rendered page, which break label associations, fragment links, and accessibility references.","ruleId":"DUPLICATE_ID","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Duplicate HTML identifiers detected"},{"ruleName":"Flags links with generic, non-descriptive text (e.g. \"click here\", \"read more\") that provide no context when read out of order, excluding footer unsubscribe links.","ruleId":"LINK_TEXT_VALIDATION","status":"FAIL","severity":"MEDIUM","findings":["Generic link text \"Read More\" for href=\"\" – use descriptive text that conveys the link's destination out of context."],"businessImpact":"Links use unclear or non-descriptive text"},{"ruleName":"Validates all anchor links for broken URLs, insecure HTTP scheme, and presence of a mandatory unsubscribe link.","ruleId":"LINK_VALIDATION","status":"FAIL","severity":"HIGH","findings":["3 broken link(s) detected: https://this-link-does-not-exist-123456.com/ → UnknownHostException: this-link-does-not-exist-123456.com | https://invalid-domain-acxiom-demo.com/ → UnknownHostException: invalid-domain-acxiom-demo.com | https://www.example.com/unsubscribe → HTTP 404 (broken)"],"businessImpact":"One or more hyperlinks are broken"},{"ruleName":"Validates the page's heading outline: exactly one <h1>, and no skipped heading levels (e.g. <h1> directly followed by <h3>).","ruleId":"HEADING_HIERARCHY","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Heading structure does not follow accessibility standards"}],"screenshotPath":"/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/output/screenshots/marketing-campaign_20260616T145907058Z.png"},{"fileName":"welcome-email.html","overallStatus":"FAIL","totalChecks":9,"passedChecks":7,"failedChecks":2,"sections":[{"sectionName":"Accessibility","status":"FAIL","severity":"CRITICAL","findingCount":3,"businessImpact":"Accessibility compliance issues detected"},{"sectionName":"Content","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of required email content, metadata, titles, and messaging elements."},{"sectionName":"Call To Action","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of call-to-action elements and user engagement pathways."},{"sectionName":"HTML Structure","status":"PASS","severity":"INFO","findingCount":0,"businessImpact":"Validation of HTML markup quality, uniqueness, and document structure."},{"sectionName":"Links","status":"FAIL","severity":"HIGH","findingCount":1,"businessImpact":"One or more hyperlinks are broken"}],"rules":[{"ruleName":"Scans the page with axe-core for WCAG 2.1 A/AA violations and best-practice issues.","ruleId":"ACCESSIBILITY_AXE","status":"FAIL","severity":"CRITICAL","findings":["[SERIOUS] html-has-lang – Ensure every HTML document has a lang attribute | nodes: html | help: https://dequeuniversity.com/rules/axe/4.10/html-has-lang?application=PlaywrightJava","[MODERATE] landmark-one-main – Ensure the document has a main landmark | nodes: html | help: https://dequeuniversity.com/rules/axe/4.10/landmark-one-main?application=PlaywrightJava","[MODERATE] region – Ensure all page content is contained by landmarks | nodes: table | help: https://dequeuniversity.com/rules/axe/4.10/region?application=PlaywrightJava"],"businessImpact":"Accessibility compliance issues detected"},{"ruleName":"Validates that every <img> element has a non-empty alt attribute for screen-reader accessibility.","ruleId":"ALT_TEXT_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"Images are missing alternative text for screen readers"},{"ruleName":"Validates that every in-page fragment link (href=\"#section\") resolves to an element with a matching id on the page.","ruleId":"BROKEN_ANCHOR","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Internal email navigation links are broken"},{"ruleName":"Validates primary call-to-action buttons and button-styled links for visible text, a valid href, and visibility.","ruleId":"CTA_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"Call-to-action validation issues detected"},{"ruleName":"Validates page content for missing title, empty body, lorem ipsum filler, and un-replaced placeholder tokens.","ruleId":"CONTENT_VALIDATION","status":"PASS","severity":"HIGH","findings":[],"businessImpact":"Required email content elements are missing"},{"ruleName":"Detects duplicate id attribute values across the rendered page, which break label associations, fragment links, and accessibility references.","ruleId":"DUPLICATE_ID","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Duplicate HTML identifiers detected"},{"ruleName":"Flags links with generic, non-descriptive text (e.g. \"click here\", \"read more\") that provide no context when read out of order, excluding footer unsubscribe links.","ruleId":"LINK_TEXT_VALIDATION","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Links use unclear or non-descriptive text"},{"ruleName":"Validates all anchor links for broken URLs, insecure HTTP scheme, and presence of a mandatory unsubscribe link.","ruleId":"LINK_VALIDATION","status":"FAIL","severity":"HIGH","findings":["2 broken link(s) detected: https://www.acxiom.com/preferences → HTTP 404 (broken) | https://www.acxiom.com/unsubscribe → HTTP 404 (broken)"],"businessImpact":"One or more hyperlinks are broken"},{"ruleName":"Validates the page's heading outline: exactly one <h1>, and no skipped heading levels (e.g. <h1> directly followed by <h3>).","ruleId":"HEADING_HIERARCHY","status":"PASS","severity":"MEDIUM","findings":[],"businessImpact":"Heading structure does not follow accessibility standards"}],"screenshotPath":"/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/output/screenshots/welcome-email_20260616T145910711Z.png"}]};
+</script>
+
+<script>
+    /* ================================================================
+       UTILITIES
+    ================================================================ */
+    function esc(v) {
+        if (v == null) return "";
+        return String(v)
+            .replace(/&/g,"&amp;")
+            .replace(/</g,"&lt;")
+            .replace(/>/g,"&gt;")
+            .replace(/"/g,"&quot;")
+            .replace(/'/g,"&#039;");
+    }
+
+    function badgeClass(status) {
+        if (!status) return "badge-skipped";
+        switch (status.toUpperCase()) {
+            case "PASS": case "SUCCESS": return "badge-pass";
+            case "FAIL": case "FAILED":  return "badge-fail";
+            case "ERROR":                return "badge-error";
+            default:                     return "badge-skipped";
+        }
+    }
+
+    function severityClass(sev) {
+        if (!sev) return "sev-info";
+        switch (sev.toUpperCase()) {
+            case "CRITICAL": return "sev-critical";
+            case "HIGH":     return "sev-high";
+            case "MEDIUM":   return "sev-medium";
+            case "LOW":      return "sev-low";
+            default:         return "sev-info";
+        }
+    }
+
+    function gaugeColor(pct) {
+        if (pct >= 80) return "var(--green)";
+        if (pct >= 50) return "var(--amber)";
+        return "var(--red)";
+    }
+
+    /* ================================================================
+       GAUGE
+    ================================================================ */
+    function buildGauge(passed, total) {
+        const pct = total > 0 ? Math.round((passed / total) * 100) : 0;
+        const r = 31;
+        const circ = 2 * Math.PI * r;
+        const offset = circ - (pct / 100) * circ;
+        const color = gaugeColor(pct);
+
+        return `
+        <div class="gauge-wrap">
+            <svg class="gauge-svg" width="80" height="80" viewBox="0 0 80 80">
+                <circle class="gauge-track" cx="40" cy="40" r="${r}"/>
+                <circle class="gauge-arc"
+                    cx="40" cy="40" r="${r}"
+                    stroke="${color}"
+                    stroke-dasharray="${circ}"
+                    stroke-dashoffset="${offset}"/>
+            </svg>
+            <div class="gauge-label">
+                <div class="gauge-pct" style="color:${color}">${pct}%</div>
+                <div class="gauge-sub">pass rate</div>
+            </div>
+        </div>
+    `;
+    }
+
+    /* ================================================================
+       SIDEBAR
+    ================================================================ */
+    let allFiles = [];
+    let activeIndex = -1;
+
+    function buildSidebar(files) {
+        const list = document.getElementById("sidebar-list");
+        if (!files || files.length === 0) {
+            list.innerHTML = '<div class="sidebar-empty">No emails audited.</div>';
+            return;
+        }
+
+        list.innerHTML = "";
+        files.forEach((file, i) => {
+            const item = document.createElement("div");
+            item.className = "sidebar-item";
+            item.dataset.index = i;
+
+            const isPassed = (file.overallStatus || "").toUpperCase() === "PASS";
+            const failCount = file.failedChecks || 0;
+
+            item.innerHTML = `
+            <span class="sidebar-item-dot ${isPassed ? "pass" : "fail"}"></span>
+            <span class="sidebar-item-name" title="${esc(file.fileName)}">${esc(file.fileName)}</span>
+            ${failCount > 0 ? `<span class="sidebar-item-count">${failCount}✗</span>` : ""}
+        `;
+
+            item.addEventListener("click", () => selectEmail(i));
+            list.appendChild(item);
+        });
+    }
+
+    function selectEmail(index) {
+        allFiles.forEach((_, i) => {
+            const items = document.querySelectorAll(".sidebar-item");
+            if (items[i]) items[i].classList.toggle("active", i === index);
+        });
+
+        activeIndex = index;
+        renderDetail(allFiles[index]);
+    }
+
+    /* ================================================================
+       SIDEBAR SEARCH
+    ================================================================ */
+    function initSearch() {
+        const input = document.getElementById("sidebar-search");
+        if (!input) return;
+        input.addEventListener("input", () => {
+            const q = input.value.toLowerCase();
+            document.querySelectorAll(".sidebar-item").forEach(item => {
+                const name = (item.querySelector(".sidebar-item-name")?.textContent || "").toLowerCase();
+                item.style.display = name.includes(q) ? "" : "none";
+            });
+        });
+    }
+
+    /* ================================================================
+       DETAIL VIEW
+    ================================================================ */
+    function renderDetail(file) {
+        document.getElementById("welcome-state").style.display = "none";
+        const view = document.getElementById("detail-view");
+        view.style.display = "block";
+
+        const total  = file.totalChecks  || 0;
+        const passed = file.passedChecks || 0;
+        const failed = file.failedChecks || 0;
+        const status = (file.overallStatus || "").toUpperCase();
+        const rules  = file.rules || [];
+
+        const failRules = rules.filter(r => r.status !== "PASS");
+        const passRules = rules.filter(r => r.status === "PASS");
+
+        view.innerHTML = `
+        ${renderDetailHeader(file, passed, total, status)}
+        ${renderSummaryStrip(total, passed, failed)}
+        ${renderScreenshotSection(file)}
+        ${renderValidationSection(failRules, passRules)}
+    `;
+
+        // wire expand/collapse on validation cards
+        view.querySelectorAll(".val-card-header").forEach(header => {
+            header.addEventListener("click", () => {
+                const card = header.closest(".val-card");
+                card.classList.toggle("expanded");
+            });
+        });
+
+        // wire screenshot expand
+        const expandBtn = view.querySelector(".screenshot-expand-trigger");
+        if (expandBtn) {
+            expandBtn.addEventListener("click", () => {
+                const wrap = view.querySelector(".screenshot-img-wrap");
+                const btn  = view.querySelector(".screenshot-expand-btn");
+                if (wrap) { wrap.style.maxHeight = "none"; wrap.style.overflow = "visible"; }
+                if (btn)  { btn.style.display = "none"; }
+            });
+        }
+    }
+
+    function renderDetailHeader(file, passed, total, status) {
+        const badgeCls = badgeClass(status);
+        return `
+        <div class="detail-header">
+            <div class="detail-header-left">
+                <div class="detail-filename">${esc(file.fileName)}</div>
+                <div class="detail-meta">
+                    <span class="status-badge ${badgeCls}">${esc(status)}</span>
+                    <span class="detail-meta-item">
+                        <span style="color:var(--text-muted)">▣</span>
+                        ${total} checks
+                    </span>
+                </div>
+            </div>
+            <div class="detail-header-right">
+                ${buildGauge(passed, total)}
+            </div>
+        </div>
+    `;
+    }
+
+    function renderSummaryStrip(total, passed, failed) {
+        return `
+        <div class="summary-strip">
+            <div class="summary-tile tile-total">
+                <div class="summary-tile-label">Total Checks</div>
+                <div class="summary-tile-value">${total}</div>
+                <div class="summary-tile-sub">rules evaluated</div>
+            </div>
+            <div class="summary-tile tile-passed">
+                <div class="summary-tile-label">Passed</div>
+                <div class="summary-tile-value">${passed}</div>
+                <div class="summary-tile-sub">no findings</div>
+            </div>
+            <div class="summary-tile tile-failed">
+                <div class="summary-tile-label">Failed</div>
+                <div class="summary-tile-value">${failed}</div>
+                <div class="summary-tile-sub">need review</div>
+            </div>
+        </div>
+    `;
+    }
+
+    function renderScreenshotSection(file) {
+        const screenshotPath = file.screenshotPath || null;
+
+        let imgContent;
+        if (screenshotPath) {
+            imgContent = `
+            <div class="screenshot-img-wrap" style="max-height:420px;overflow:hidden">
+                <img class="screenshot-img"
+                     src="${esc(screenshotPath)}"
+                     alt="Screenshot of ${esc(file.fileName)}"
+                     onerror="this.parentElement.innerHTML='<div class=\\'screenshot-no-image\\'>Screenshot file not found at: ${esc(screenshotPath)}</div>'"
+                />
+                <div class="screenshot-expand-btn">
+                    <button class="screenshot-expand-trigger">View full screenshot ↓</button>
+                </div>
+            </div>
+        `;
+        } else {
+            imgContent = `<div class="screenshot-no-image">No screenshot captured for this email.</div>`;
+        }
+
+        return `
+        <div class="screenshot-section">
+            <div class="section-label">Screenshot</div>
+            <div class="screenshot-frame">
+                <div class="screenshot-toolbar">
+                    <span class="screenshot-dot" style="background:#f85149"></span>
+                    <span class="screenshot-dot" style="background:#d29922"></span>
+                    <span class="screenshot-dot" style="background:#3fb950"></span>
+                    <span class="screenshot-url">${esc(file.fileName)}</span>
+                </div>
+                ${imgContent}
+            </div>
+        </div>
+    `;
+    }
+
+    function renderValidationSection(failRules, passRules) {
+        let html = `<div class="section-label">Validation Results</div><div class="validation-list">`;
+
+        if (failRules.length === 0 && passRules.length === 0) {
+            html += `<div class="sidebar-empty">No rule results available.</div>`;
+        } else {
+            if (failRules.length === 0) {
+                html += `
+                <div class="pass-all-banner">
+                    All ${passRules.length} rule${passRules.length !== 1 ? "s" : ""} passed — no issues detected.
+                </div>
+            `;
+            } else {
+                failRules.forEach(rule => { html += renderValCard(rule, true); });
+            }
+
+            if (passRules.length > 0) {
+                html += `
+                <div class="section-label" style="margin-top:20px;margin-bottom:12px">
+                    Passed Rules (${passRules.length})
+                </div>
+            `;
+                passRules.forEach(rule => { html += renderValCard(rule, false); });
+            }
+        }
+
+        html += `</div>`;
+        return html;
+    }
+
+    function renderValCard(rule, expandable) {
+        const ruleId   = rule.ruleId   || "";
+        const ruleName = rule.ruleName || ruleId;
+        const status   = (rule.status   || "").toUpperCase();
+        const severity = rule.severity || "";
+        const findings = rule.findings || [];
+        const impact   = rule.businessImpact || "";
+
+        const badgeCls = badgeClass(status);
+        const sevCls   = severityClass(severity);
+        const isFail   = status !== "PASS";
+        const findingCount = findings.length;
+
+        let bodyHtml = "";
+        if (isFail) {
+            if (findings.length === 0 && !impact) {
+                bodyHtml = `<div class="no-findings">No finding details available.</div>`;
+            } else {
+                bodyHtml = `<div class="findings-list">`;
+                if (findings.length > 0) {
+                    findings.forEach((f, i) => {
+                        bodyHtml += `
+                        <div class="finding-item">
+                            <div class="finding-index">#${i + 1}</div>
+                            <div class="finding-content">
+                                ${impact ? `<div class="finding-impact">${esc(impact)}</div>` : ""}
+                                <div class="finding-text">${esc(f)}</div>
+                            </div>
+                        </div>
+                    `;
+                    });
+                } else if (impact) {
+                    bodyHtml += `
+                    <div class="finding-item">
+                        <div class="finding-index">#1</div>
+                        <div class="finding-content">
+                            <div class="finding-impact">${esc(impact)}</div>
+                        </div>
+                    </div>
+                `;
+                }
+                bodyHtml += `</div>`;
+            }
+        } else {
+            bodyHtml = `<div class="no-findings">All checks passed for this rule.</div>`;
+        }
+
+        return `
+        <div class="val-card${isFail ? " expanded" : ""}">
+            <button class="val-card-header" aria-expanded="${isFail}">
+                <span class="val-card-chevron">▶</span>
+                <span class="val-card-rule-id">${esc(ruleId)}</span>
+                <span class="val-card-name">${esc(ruleName)}</span>
+                <div class="val-card-right">
+                    ${findingCount > 0
+            ? `<span class="finding-count-pill">${findingCount} finding${findingCount !== 1 ? "s" : ""}</span>`
+            : ""}
+                    ${severity ? `<span class="severity-chip ${sevCls}">${esc(severity)}</span>` : ""}
+                    <span class="status-badge ${badgeCls}">${esc(status)}</span>
+                </div>
+            </button>
+            <div class="val-card-body">${bodyHtml}</div>
+        </div>
+    `;
+    }
+
+    /* ================================================================
+       TOPBAR
+    ================================================================ */
+    function renderTopbar(data) {
+        const el = document.getElementById("tb-passed");
+        const ef = document.getElementById("tb-failed");
+        const eg = document.getElementById("tb-generated");
+        if (el) el.textContent = data.passedFiles || 0;
+        if (ef) ef.textContent = data.failedFiles || 0;
+        if (eg && data.generatedAt) {
+            try {
+                eg.textContent = "Generated " + new Date(data.generatedAt).toLocaleString();
+            } catch (_) {
+                eg.textContent = data.generatedAt;
+            }
+        }
+    }
+
+    /* ================================================================
+       BOOT
+    ================================================================ */
+    document.addEventListener("DOMContentLoaded", () => {
+        let data;
+
+        try {
+            data = typeof DASHBOARD_DATA === "string"
+                ? JSON.parse(DASHBOARD_DATA)
+                : DASHBOARD_DATA;
+        } catch (err) {
+            console.error("Failed to parse dashboard data", err);
+            document.getElementById("main-panel").innerHTML =
+                "<div style='padding:32px;color:var(--red)'>" +
+                "Failed to load audit data. Check browser console for details." +
+                "</div>";
+            return;
+        }
+
+        allFiles = data.files || [];
+
+        renderTopbar(data);
+        buildSidebar(allFiles);
+        initSearch();
+
+        // auto-select first file with failures, otherwise first file
+        if (allFiles.length > 0) {
+            const firstFail = allFiles.findIndex(f =>
+                (f.overallStatus || "").toUpperCase() !== "PASS"
+            );
+            selectEmail(firstFail >= 0 ? firstFail : 0);
+        }
+    });
+</script>
+
+</body>
+</html>
