@@ -17,6 +17,8 @@ Email Audit Engine performs automated validation of HTML email templates and gen
 * ALT text validation
 * Screenshot evidence
 * Detailed Extent HTML reports
+* Business-friendly Excel summary reports
+* Interactive, centralized web dashboards
 * Historical execution tracking
 
 The framework is designed for:
@@ -93,6 +95,7 @@ alt="banner"
 alt="photo"
 alt="picture"
 alt="img"
+
 ```
 
 Supports accessibility best practices.
@@ -108,6 +111,7 @@ Example:
 ```html
 <div id="hero"></div>
 <div id="hero"></div>
+
 ```
 
 Provides:
@@ -131,18 +135,33 @@ Features:
 
 ---
 
-### HTML Reporting
+### HTML Reporting & Interactive Dashboard
 
-Generates enterprise reporting using ExtentReports.
+Generates enterprise reporting using ExtentReports and an advanced interactive web dashboard (`dashboard.html`).
 
 Includes:
 
-* File-level results
-* Rule-level breakdowns
-* Pass/Fail summaries
-* Failure leaderboard
-* Screenshot evidence
-* Execution metrics
+* Centralized file-level results and toggle views
+* Interactive navigation sidebar with pass/fail file badges
+* Rule-level breakdowns with impact metrics
+* Fail, error, and skip threshold counters
+* Dynamic search and filter modules
+* Embedded screenshot evidence and technical trace logs
+* System execution context timestamps
+
+---
+
+### Business-Friendly Excel Summaries
+
+Compiles high-level data metrics into a business-oriented workbook tracker format (`EmailAuditSummary.xlsx`).
+
+Provides:
+
+* Tabular file breakdown matrices
+* Severity classifications (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`)
+* Rule ID matching references
+* **Business Impact Statements** for marketing compliance stakeholders
+* Deep-dive **Technical Details** strings for engineering remediation paths
 
 ---
 
@@ -202,65 +221,134 @@ Email Audit Engine
 ├── Archive Manager
 │
 └── State Registry
+
 ```
 
 ---
 
 ## Technology Stack
 
-| Component            | Technology    |
-| -------------------- | ------------- |
-| Language             | Java 17       |
-| Browser Engine       | Playwright    |
-| Accessibility Engine | Axe-Core      |
-| Reporting            | ExtentReports |
-| Logging              | SLF4J         |
-| Build Tool           | Maven         |
-| State Tracking       | JSON Registry |
-| Hashing              | SHA-256       |
+| Component | Technology |
+| --- | --- |
+| Language | Java 17 |
+| Browser Engine | Playwright |
+| Accessibility Engine | Axe-Core |
+| Reporting | ExtentReports & HTML5 |
+| Spreadsheet Engine | Apache POI |
+| Logging | SLF4J |
+| Build Tool | Maven |
+| State Tracking | JSON Registry |
+| Hashing | SHA-256 |
 
 ---
 
 ## Current Validation Rules
 
-| Rule ID                 | Category      | Description                  |
-| ----------------------- | ------------- | ---------------------------- |
-| ACCESSIBILITY_AXE       | Accessibility | Axe accessibility scan       |
-| CONTENT_VALIDATION      | Content       | Content quality checks       |
-| LINK_VALIDATION         | Links         | Link validation              |
-| ALT_TEXT_VALIDATION     | Accessibility | Image ALT text validation    |
-| DUPLICATE_ID_VALIDATION | Accessibility | Duplicate HTML ID validation |
+| Rule ID | Category | Description |
+| --- | --- | --- |
+| **`ACCESSIBILITY_AXE`** | Accessibility | Comprehensive Axe-Core automated accessibility violation scan. |
+| **`ALT_TEXT_VALIDATION`** | Accessibility | Evaluates presence, emptiness, and generic string patterns in image alt attributes. |
+| **`BROKEN_ANCHOR`** | Structural | Validates internal hash fragment jump links against companion destination DOM IDs. |
+| **`CTA_VALIDATION`** | Marketing Quality | Assesses structural properties, contrast rules, and visibility profiles of key action targets. |
+| **`CONTENT_VALIDATION`** | Content Integrity | Scans body text properties, unparsed dynamic template tags, and placeholder copy. |
+| **`DUPLICATE_ID`** | DOM Standards | Flags identical HTML element IDs across the active document tree structure. |
+| **`LINK_TEXT_VALIDATION`** | Usability | Reviews contextual visibility profiles of anchor copy strings (e.g., catching "Click Here"). |
+| **`LINK_VALIDATION`** | Connectivity | Extracts absolute URLs and dispatches remote HTTP status confirmation lookups. |
+| **`HEADING_HIERARCHY`** | Accessibility | Audits logical sequence ordering across structurally nested heading layers (`<h1>` to `<h6>`). |
 
 ---
 
-## Sample Execution
+## Execution Methods
+
+The platform provides two execution paradigms: an automated CLI build workflow and a unified graphical console panel interface.
+
+### Method 1: Headless CLI Execution
+
+To execute via standard command-line tools:
 
 ```bash
 mvn clean package
 
 java -jar email-audit-engine.jar
+
 ```
+
+### Method 2: Interactive UI Execution
+
+The app includes a graphic interface console layout displaying runtime paths, configurations, interactive action triggers, visual progress meters, and integrated terminal streaming log outputs.
+
+#### **Executing on Windows**
+
+Launch the graphical engine console utilizing the target platform command script wrapper:
+
+1. Open your project root folder path inside File Explorer.
+2. Double-click the file named **`RunForWindows.bat`**.
+
+* *Alternative command line method:*
+```cmd
+RunForWindows.bat
+
+```
+
+
+
+#### **Executing on macOS**
+
+Launch the console interface framework via native terminal execution:
+
+1. Open the **Terminal** app and move to your project root workspace directory folder.
+2. Grant executing permissions to the shell script asset if needed:
+```bash
+chmod +x RunForMac.command
+
+```
+
+
+3. Initialize the application container engine context:
+```bash
+./RunForMac.command
+
+```
+
+
 
 ---
 
-## Sample Output Structure
+## Workspace Directory Structure
+
+The operational directories (`input` and `output`) reside at the absolute root of the project workspace alongside your build files. Drop the target raw campaign source files inside the root `input` folder prior to execution.
 
 ```text
-target
+email-audit-engine (Project Root)
 │
-├── audit-reports
-│     └── audit-report.html
+├── input
+│     ├── sample-promo-email.html
+│     └── transactional-welcome.html
 │
-├── audit-screenshots
-│     ├── email1_20250611T120101123Z.png
-│     ├── email2_20250611T120103456Z.png
+├── output
+│     ├── archive
+│     │     ├── failed
+│     │     └── passed
+│     │
+│     ├── audit-reports
+│     │     ├── audit-report.html
+│     │     └── dashboard.html
+│     │
+│     ├── audit-screenshots
+│     │     ├── sample-promo-email_20260617T120101123Z.png
+│     │     └── transactional-welcome_20260617T120103456Z.png
+│     │
+│     ├── reports
+│     │     └── EmailAuditSummary.xlsx
+│     │
+│     └── state
+│           └── registry.json
 │
-├── archive
-│     ├── passed
-│     ├── failed
-│
-└── state
-      └── audit-state.json
+├── src
+├── pom.xml
+├── RunForMac.command
+└── RunForWindows.bat
+
 ```
 
 ---
@@ -279,14 +367,19 @@ SKIPPED
 
 Rule Breakdown:
     ACCESSIBILITY_AXE
-    CONTENT_VALIDATION
-    LINK_VALIDATION
     ALT_TEXT_VALIDATION
-    DUPLICATE_ID_VALIDATION
+    BROKEN_ANCHOR
+    CTA_VALIDATION
+    CONTENT_VALIDATION
+    DUPLICATE_ID
+    LINK_TEXT_VALIDATION
+    LINK_VALIDATION
+    HEADING_HIERARCHY
 
 Screenshot Evidence
 
 Execution Metrics
+
 ```
 
 ---
@@ -347,23 +440,23 @@ Prevent deployment of non-compliant emails.
 * Link Validation
 * Screenshot Evidence
 * Extent Reporting
+* Centralized Web Dashboard View
+* Excel Business Summary Exportation
 * Historical State Registry
 * Duplicate File Detection
 * ALT Text Validation
 * Duplicate ID Validation
+* Heading Hierarchy Validation
+* Unsubscribe Link Validation
+* Broken Image Detection
 
 ### Planned Enhancements
 
-* Heading Hierarchy Validation
-* Color Contrast Validation
-* Missing Language Attribute Detection
 * Email Subject Length Validation
 * Button Accessibility Validation
 * Table Accessibility Validation
-* Unsubscribe Link Validation
 * Email Client Compatibility Checks
 * Spam Score Analysis
-* Broken Image Detection
 * Tracking Pixel Validation
 * Responsive Design Validation
 
@@ -375,6 +468,7 @@ Prevent deployment of non-compliant emails.
 
 ```html
 <img src="banner.jpg">
+
 ```
 
 Result:
@@ -382,6 +476,7 @@ Result:
 ```text
 FAIL
 Image missing ALT attribute
+
 ```
 
 ### Duplicate ID
@@ -389,6 +484,7 @@ Image missing ALT attribute
 ```html
 <div id="hero"></div>
 <div id="hero"></div>
+
 ```
 
 Result:
@@ -397,47 +493,36 @@ Result:
 FAIL
 Duplicate ID detected: hero
 Occurrences: 2
+
 ```
 
 ---
 
-## Repository Structure
+## Repository Source Structure
 
 ```text
 src
 │
-├── config
-├── orchestration
-├── reporting
-├── evidence
-├── rules
-│    ├── accessibility
-│    ├── content
-│    ├── links
-│    └── images
-│
-├── state
-├── archive
-└── utils
+├── main
+│    ├── java
+│    │    └── com
+│    │         └── acxiom
+│    │              └── emailaudit
+│    │                   ├── bootstrap
+│    │                   ├── config
+│    │                   ├── evidence
+│    │                   ├── gui
+│    │                   ├── orchestration
+│    │                   ├── reporting
+│    │                   ├── rules
+│    │                   └── utils
+│    └── resources
+│        └── styles
+
 ```
 
 ---
 
-## Future Validation Coverage
-
-Planned support includes:
-
-* Accessibility Compliance (WCAG 2.1 AA)
-* Email Development Standards
-* Content Governance
-* Marketing Compliance
-* Deliverability Validation
-* Responsive Rendering Checks
-* Brand Consistency Validation
-* Spam Detection Rules
-* Email Client Compatibility Validation
-
----
 
 ## License
 
@@ -454,17 +539,17 @@ Lead QA / Test Automation Engineer
 Specializations:
 
 * Test Automation Architecture
-* Playwright
-* Selenium
+* Playwright, Java, Maven
+* Selenium, C#, .Net
 * Accessibility Testing
-* CI/CD Automation
+* Docker, CI/CD Automation
 * AI-assisted Quality Engineering
 
 ---
 
 ## Version
 
-**v1.3**
+***v1.3***
 
 ### Features Included
 
@@ -476,4 +561,10 @@ Specializations:
 * Duplicate Detection
 * ALT Text Validation
 * Duplicate ID Validation
+* Interactive HTML5 Dashboard Component
+* Business-Friendly Excel Summary Matrix Exports
 * Enterprise Reporting
+
+
+
+```

@@ -1,0 +1,29 @@
+{
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/accessibility-tT145156641Z.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/accessibility-tT145156641Z.html",
+    "contentHash" : "8f69cc3aa9e39de03d13c1deb4fa935172f5c70ec4de1fad916fd2fe890cf967",
+    "status" : "FAILED",
+    "processedAt" : "2026-06-23T14:14:26.051473Z",
+    "errorMessage" : "5 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/Perfect Email_20260616T090658413Z 3.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/Perfect Email_20260616T090658413Z 3.html",
+    "contentHash" : "ce03ab568c5ed11bd16569441714bda4a7602d3d9e696a2040c8039cb54a3ffb",
+    "status" : "SUCCESS",
+    "processedAt" : "2026-06-23T14:14:28.369709Z",
+    "errorMessage" : null,
+    "successful" : true,
+    "failed" : false
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsl9233.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsl9233.html",
+    "contentHash" : "3377f90437205a5edcf70e5a37971b59381796c1c65193f3590cb979de5e8162",
+    "status" : "FAILED",
+    "processedAt" : "2026-06-23T14:14:25.156798Z",
+    "errorMessage" : "2 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

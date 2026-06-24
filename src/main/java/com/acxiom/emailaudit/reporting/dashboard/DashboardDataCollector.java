@@ -42,8 +42,10 @@ public final class DashboardDataCollector {
         final List<FileAuditData> fileAuditDataList =
                 new ArrayList<>();
 
-        int passedFiles = 0;
-        int failedFiles = 0;
+        int passedFiles  = 0;
+        int failedFiles  = 0;
+        int erroredFiles = 0;
+        int skippedFiles = 0;
 
         for (AuditContext context : summary.auditResults()) {
 
@@ -52,11 +54,11 @@ public final class DashboardDataCollector {
 
             fileAuditDataList.add(fileData);
 
-            if ("PASS".equalsIgnoreCase(
-                    fileData.overallStatus())) {
-                passedFiles++;
-            } else {
-                failedFiles++;
+            switch (context.getStatus()) {
+                case SUCCESS -> passedFiles++;
+                case FAILED  -> failedFiles++;
+                case ERROR   -> erroredFiles++;
+                case SKIPPED -> skippedFiles++;
             }
         }
 
@@ -64,6 +66,9 @@ public final class DashboardDataCollector {
                 fileAuditDataList.size(),
                 passedFiles,
                 failedFiles,
+                erroredFiles,
+                skippedFiles,
+                summary.executionTimeMs(),      // ← wired from RunSummary
                 Instant.now(),
                 fileAuditDataList);
     }
@@ -87,10 +92,13 @@ public final class DashboardDataCollector {
         final int failedChecks =
                 totalChecks - passedChecks;
 
-        final String overallStatus =
-                failedChecks > 0 ? "FAIL" : "PASS";
-
-        // ── Existing: section grouping (unchanged) ───────────────────────────
+        final String overallStatus = switch (context.getStatus()) {
+            case SUCCESS -> "PASS";
+            case FAILED  -> "FAIL";
+            case ERROR   -> "ERROR";
+            case SKIPPED -> "SKIPPED";
+            default      -> "UNKNOWN";
+        };
 
         final Map<ReportSection, List<RuleResult>> groupedResults =
                 new EnumMap<>(ReportSection.class);
@@ -121,12 +129,8 @@ public final class DashboardDataCollector {
                                         entry.getKey(),
                                         entry.getValue())));
 
-        // ── New: per-rule detail list ─────────────────────────────────────────
-
         final List<RuleAuditData> rules =
                 buildRuleAuditDataList(ruleResults);
-
-        // ── Screenshot path (null when no screenshot was captured) ────────────
 
         final String screenshotPath =
                 context.getScreenshotPath() != null
@@ -150,38 +154,29 @@ public final class DashboardDataCollector {
             final ReportSection section,
             final List<RuleResult> rules) {
 
-        int findingCount = 0;
-        String status = "PASS";
-        String severity = "INFO";
-        String businessImpact =
-                section.getDescription();
+        int    findingCount  = 0;
+        String status        = "PASS";
+        String severity      = "INFO";
+        String businessImpact = section.getDescription();
 
         for (RuleResult rule : rules) {
 
             if (!"PASS".equalsIgnoreCase(
                     rule.getStatus().name())) {
 
-                status = "FAIL";
-
-                severity =
-                        rule.getSeverity().name();
-
-                findingCount +=
-                        rule.getFindings().size();
+                status   = "FAIL";
+                severity = rule.getSeverity().name();
+                findingCount += rule.getFindings().size();
 
                 businessImpact =
                         BusinessImpactMapper.getImpact(
                                 rule.getRuleId(),
-                                String.join(
-                                        "; ",
-                                        rule.getFindings()));
+                                String.join("; ", rule.getFindings()));
 
                 if (!rule.getFindings().isEmpty()) {
-
                     businessImpact =
                             FindingSummarizer.summarize(
-                                    rule.getFindings()
-                                            .getFirst());
+                                    rule.getFindings().getFirst());
                 }
 
                 break;
@@ -196,16 +191,6 @@ public final class DashboardDataCollector {
                 businessImpact);
     }
 
-    // ── New private helper ────────────────────────────────────────────────────
-
-    /**
-     * Builds one {@link RuleAuditData} per {@link RuleResult}, populating
-     * all fields from the result and {@link BusinessImpactMapper}.
-     *
-     * <p>Rule name falls back to {@code ruleId} when {@code getDescription()}
-     * is blank or absent, as {@link RuleResult} exposes no separate
-     * {@code getRuleName()} method.</p>
-     */
     private static List<RuleAuditData> buildRuleAuditDataList(
             final List<RuleResult> ruleResults) {
 
@@ -214,10 +199,9 @@ public final class DashboardDataCollector {
 
         for (final RuleResult rule : ruleResults) {
 
-            final String ruleId = rule.getRuleId();
-
+            final String ruleId      = rule.getRuleId();
             final String description = rule.getDescription();
-            final String ruleName =
+            final String ruleName    =
                     (description != null && !description.isBlank())
                             ? description
                             : ruleId;

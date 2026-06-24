@@ -27,131 +27,54 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import java.nio.file.Path;
-
-/**
- * Single-threaded coordinator that executes the full email-audit pipeline
- * end-to-end for every HTML file discovered under the configured input
- * directory.
- *
- * <h2>Pipeline stages (per file, in order)</h2>
- * <ol>
- *   <li><strong>Discover</strong> – {@link FileScanner} returns all HTML files.</li>
- *   <li><strong>State check</strong> – {@link StateRegistry#isAlreadyProcessed}
- *       skips files already successfully processed with unchanged content.</li>
- *   <li><strong>Duplicate check</strong> – {@link DuplicateDetector} skips files
- *       whose content is identical to one already seen in this run.</li>
- *   <li><strong>Render</strong> – {@link HtmlRenderer} loads the file in a
- *       Playwright {@link Page}.</li>
- *   <li><strong>Execute rules</strong> – {@link RuleExecutor} runs every
- *       registered {@link com.acxiom.emailaudit.rules.AuditRule} against the page.</li>
- *   <li><strong>Capture evidence</strong> – {@link ScreenshotService} saves a
- *       full-page PNG.</li>
- *   <li><strong>Build context</strong> – {@link AuditContext} aggregates hash,
- *       screenshot, results, timing, and overall status.</li>
- *   <li><strong>Report</strong> – {@link ReportManager#recordFileResults}
- *       writes the file's section into the Spark dashboard.</li>
- *   <li><strong>Archive</strong> – {@link ArchiveManager} moves the file to the
- *       success or failed archive directory.</li>
- *   <li><strong>Update state</strong> – {@link StateRegistry#markSuccess} /
- *       {@link StateRegistry#markFailed} persists the outcome for future runs.</li>
- * </ol>
- *
- * <h2>Execution model</h2>
- * <p>This orchestrator is intentionally <strong>single-threaded</strong>: one
- * {@link HtmlRenderer} (and therefore one Playwright {@code Browser} instance)
- * is created and reused for the entire run, processing files
- * sequentially. This avoids the per-thread Playwright lifecycle management
- * required for parallel execution and is appropriate for scheduled batch
- * runs where wall-clock time is dominated by I/O (link probing, rendering)
- * rather than CPU.</p>
- *
- * <h2>Fault isolation</h2>
- * <p>An unexpected exception while processing one file is caught, logged,
- * recorded as a {@link AuditStatus#ERROR} context, and the file is archived
- * to the failed directory and marked failed in {@link StateRegistry}.
- * Processing then continues with the next file — one broken file never
- * aborts the run.</p>
- *
- * <h2>Configuration keys</h2>
- * <table>
- *   <tr><td>{@code ingestion.input.dir}</td>
- *       <td>Root directory to scan for HTML files (default: {@code input})</td></tr>
- * </table>
- */
 public final class AuditOrchestrator implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(AuditOrchestrator.class);
 
-    private static final String KEY_INPUT_DIR = "ingestion.input.dir";
+    private static final String KEY_INPUT_DIR   = "ingestion.input.dir";
     private static final String DEFAULT_INPUT_DIR = "input";
 
-    // -------------------------------------------------------------------------
-    // Collaborators
-    // -------------------------------------------------------------------------
-
-    private final FileScanner fileScanner;
-    private final StateRegistry stateRegistry;
+    private final FileScanner       fileScanner;
+    private final StateRegistry     stateRegistry;
     private final DuplicateDetector duplicateDetector;
-    private final HtmlRenderer htmlRenderer;
-    private final RuleExecutor ruleExecutor;
+    private final HtmlRenderer      htmlRenderer;
+    private final RuleExecutor      ruleExecutor;
     private final ScreenshotService screenshotService;
-    private final ReportManager reportManager;
-    private final ArchiveManager archiveManager;
+    private final ReportManager     reportManager;
+    private final ArchiveManager    archiveManager;
 
-    // -------------------------------------------------------------------------
-    // Construction
-    // -------------------------------------------------------------------------
-
-    /**
-     * Creates an {@code AuditOrchestrator} wiring all collaborators from
-     * {@link ConfigurationManager}, registering the default rule set.
-     *
-     * @throws OrchestrationException if any collaborator fails to initialise
-     */
     public AuditOrchestrator() {
         this(resolveInputDir(), defaultRuleRegistry());
     }
 
-    /**
-     * Creates an {@code AuditOrchestrator} for a specific input directory using
-     * the supplied rule registry. Primarily used in integration tests.
-     *
-     * @param inputDir     directory to scan for HTML files
-     * @param ruleRegistry pre-populated registry of audit rules
-     * @throws OrchestrationException if any collaborator fails to initialise
-     */
     public AuditOrchestrator(final Path inputDir, final RuleRegistry ruleRegistry) {
-        Objects.requireNonNull(inputDir, "inputDir must not be null");
-        Objects.requireNonNull(ruleRegistry, "ruleRegistry must not be null");
+        Objects.requireNonNull(inputDir,      "inputDir must not be null");
+        Objects.requireNonNull(ruleRegistry,  "ruleRegistry must not be null");
 
         log.info("Initialising AuditOrchestrator – input directory: '{}'", inputDir);
 
-        final FileScanner scanner;
-        final StateRegistry stateReg;
+        final FileScanner       scanner;
+        final StateRegistry     stateReg;
         final DuplicateDetector dupDetector;
-        HtmlRenderer renderer = null;
-        final RuleExecutor executor;
+        HtmlRenderer            renderer = null;
+        final RuleExecutor      executor;
         final ScreenshotService screenshotSvc;
-        final ReportManager reportMgr;
-        final ArchiveManager archiveMgr;
+        final ReportManager     reportMgr;
+        final ArchiveManager    archiveMgr;
 
         try {
-            scanner = new FileScanner(inputDir);
-            stateReg = new StateRegistry();
-            dupDetector = new DuplicateDetector();
-            renderer = new HtmlRenderer();
-            executor = new RuleExecutor(ruleRegistry);
+            scanner       = new FileScanner(inputDir);
+            stateReg      = new StateRegistry();
+            dupDetector   = new DuplicateDetector();
+            renderer      = new HtmlRenderer();
+            executor      = new RuleExecutor(ruleRegistry);
             screenshotSvc = new ScreenshotService();
-            reportMgr = new ReportManager();
-            archiveMgr = new ArchiveManager();
+            reportMgr     = new ReportManager();
+            archiveMgr    = new ArchiveManager();
         } catch (final Exception e) {
-            // Release the Playwright browser if it was launched before a later
-            // collaborator failed to initialise.
             if (renderer != null) {
-                try {
-                    renderer.close();
-                } catch (final Exception closeEx) {
+                try { renderer.close(); }
+                catch (final Exception closeEx) {
                     log.warn("Error closing HtmlRenderer during failed initialisation: {}",
                             closeEx.getMessage());
                 }
@@ -160,133 +83,101 @@ public final class AuditOrchestrator implements AutoCloseable {
                     "Failed to initialise AuditOrchestrator: " + e.getMessage(), e);
         }
 
-        this.fileScanner = scanner;
-        this.stateRegistry = stateReg;
+        this.fileScanner       = scanner;
+        this.stateRegistry     = stateReg;
         this.duplicateDetector = dupDetector;
-        this.htmlRenderer = renderer;
-        this.ruleExecutor = executor;
+        this.htmlRenderer      = renderer;
+        this.ruleExecutor      = executor;
         this.screenshotService = screenshotSvc;
-        this.reportManager = reportMgr;
-        this.archiveManager = archiveMgr;
+        this.reportManager     = reportMgr;
+        this.archiveManager    = archiveMgr;
 
         log.info("AuditOrchestrator ready – {} rule(s) registered",
                 ruleRegistry.getEnabledRules().size());
     }
 
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
-
-    /**
-     * Executes the full audit pipeline for every HTML file discovered under
-     * the configured input directory, then flushes the consolidated report.
-     *
-     * @return summary of the run; never {@code null}
-     */
     public RunSummary run() {
         final Instant runStart = Instant.now();
         log.info("=== Audit run starting ===");
 
-        // Reset within-run duplicate tracking so a prior run on this same
-        // orchestrator instance cannot cause false-positive duplicates here.
         duplicateDetector.reset();
 
-        final List<Path> htmlFiles = fileScanner.scan();
-        List<AuditContext> auditResults =
-                new ArrayList<>();
+        final List<Path>         htmlFiles    = fileScanner.scan();
+        final List<AuditContext> auditResults = new ArrayList<>();
+
         log.info("Discovered {} HTML file(s) under '{}'",
                 htmlFiles.size(), fileScanner.getRootDirectory());
 
         int processed = 0;
-        int skipped = 0;
+        int skipped   = 0;
         int succeeded = 0;
-        int failed = 0;
-        int errored = 0;
-
+        int failed    = 0;
+        int errored   = 0;
 
         for (final Path file : htmlFiles) {
-            FileProcessingResult result =
-                    processFile(file);
+            final FileProcessingResult result = processFile(file);
+            auditResults.add(result.context());
 
-            auditResults.add(
-                    result.context());
-
-            FileOutcome outcome =
-                    result.outcome();
-
-            switch (outcome) {
+            switch (result.outcome()) {
                 case SKIPPED -> skipped++;
-                case SUCCESS -> {
-                    processed++;
-                    succeeded++;
-                }
-                case FAILED -> {
-                    processed++;
-                    failed++;
-                }
-                case ERROR -> {
-                    processed++;
-                    errored++;
-                }
+                case SUCCESS -> { processed++; succeeded++; }
+                case FAILED  -> { processed++; failed++;    }
+                case ERROR   -> { processed++; errored++;   }
             }
         }
 
         final Path reportPath = reportManager.flush();
 
-        RunSummary runSummary =
-                new RunSummary(
-                        htmlFiles.size(),
-                        processed,
-                        skipped,
-                        succeeded,
-                        failed,
-                        errored,
-                        reportPath,
-                        null,
-                        auditResults);
+        // ── Compute duration HERE so it is available for both the dashboard
+        //    data and the log line below. Previously it was computed after
+        //    DashboardDataCollector.collect(), so it never reached the JSON.
+        final long runDurationMs =
+                Duration.between(runStart, Instant.now()).toMillis();
+
+        RunSummary runSummary = new RunSummary(
+                htmlFiles.size(),
+                processed,
+                skipped,
+                succeeded,
+                failed,
+                errored,
+                reportPath,
+                null,
+                auditResults,
+                runDurationMs);   // ← now carried into RunSummary
 
         try {
+            final RunAuditData dashboardData =
+                    DashboardDataCollector.collect(runSummary);  // picks up executionTimeMs
 
-            RunAuditData dashboardData =
-                    DashboardDataCollector.collect(runSummary);
-
-            CustomDashboardGenerator dashboardGenerator =
+            final CustomDashboardGenerator dashboardGenerator =
                     new CustomDashboardGenerator();
 
-            Path dashboardPath =
+            final Path dashboardPath =
                     dashboardGenerator.generate(dashboardData);
 
-            runSummary =
-                    new RunSummary(
-                            runSummary.totalDiscovered(),
-                            runSummary.processed(),
-                            runSummary.skipped(),
-                            runSummary.succeeded(),
-                            runSummary.failed(),
-                            runSummary.errored(),
-                            runSummary.reportPath(),
-                            dashboardPath,
-                            runSummary.auditResults());
+            runSummary = new RunSummary(
+                    runSummary.totalDiscovered(),
+                    runSummary.processed(),
+                    runSummary.skipped(),
+                    runSummary.succeeded(),
+                    runSummary.failed(),
+                    runSummary.errored(),
+                    runSummary.reportPath(),
+                    dashboardPath,
+                    runSummary.auditResults(),
+                    runSummary.executionTimeMs());   // ← preserve when rebuilding
 
-            log.info(
-                    "Custom dashboard generated successfully: {}",
+            log.info("Custom dashboard generated successfully: {}",
                     dashboardPath.toAbsolutePath());
 
-        } catch (Exception ex) {
-
-            log.error(
-                    "Failed to generate custom dashboard",
-                    ex);
+        } catch (final Exception ex) {
+            log.error("Failed to generate custom dashboard", ex);
         }
-
-        final Duration runDuration =
-                Duration.between(
-                        runStart,
-                        Instant.now());
 
         log.info(
                 "=== Audit run complete in {}ms – total: {}, processed: {}, skipped: {}, success: {}, failed: {}, error: {} – report: '{}' ===",
-                runDuration.toMillis(),
+                runDurationMs,
                 htmlFiles.size(),
                 processed,
                 skipped,
@@ -298,74 +189,40 @@ public final class AuditOrchestrator implements AutoCloseable {
         return runSummary;
     }
 
-    /**
-     * Releases the underlying Playwright browser and SLF4J resources held by
-     * this orchestrator. Safe to call multiple times.
-     */
     @Override
     public void close() {
         log.info("Shutting down AuditOrchestrator");
         htmlRenderer.close();
     }
 
-    // -------------------------------------------------------------------------
-    // Internal – per-file pipeline
-    // -------------------------------------------------------------------------
-
-    /**
-     * Runs the full pipeline for a single file and returns its outcome.
-     * All exceptions are caught internally — this method never throws.
-     */
-    private FileProcessingResult processFile(
-            final Path file) {
-        final String fileName = file.getFileName().toString();
+    private FileProcessingResult processFile(final Path file) {
+        final String  fileName  = file.getFileName().toString();
         final Instant fileStart = Instant.now();
 
         log.info("--- Processing: {} ---", fileName);
 
-        // ── Stage 2: State registry check (cross-run dedup) ──────────────────
         if (stateRegistry.isAlreadyProcessed(file)) {
             log.info("Skipping '{}' – already processed successfully with unchanged content", fileName);
-            AuditContext context =
-                    recordSkipped(
-                            file,
-                            fileStart,
-                            "Already processed (StateRegistry)");
-
             return new FileProcessingResult(
-                    context,
+                    recordSkipped(file, fileStart, "Already processed (StateRegistry)"),
                     FileOutcome.SKIPPED);
         }
 
-        // ── Stage 3: Duplicate check (within-run dedup) ──────────────────────
         if (duplicateDetector.isDuplicate(file)) {
             log.info("Skipping '{}' – duplicate content detected in this run", fileName);
-            AuditContext context =
-                    recordSkipped(
-                            file,
-                            fileStart,
-                            "Duplicate content (DuplicateDetector)");
-
             return new FileProcessingResult(
-                    context,
+                    recordSkipped(file, fileStart, "Duplicate content (DuplicateDetector)"),
                     FileOutcome.SKIPPED);
         }
 
         Page page = null;
-
         try {
-            // ── Stage 4: Render ───────────────────────────────────────────────
             page = htmlRenderer.render(file);
 
-            // ── Stage 5: Execute rules ────────────────────────────────────────
-            final List<RuleResult> ruleResults = ruleExecutor.execute(page);
-
-            // ── Stage 6: Capture evidence ─────────────────────────────────────
-            final Path screenshotPath = captureScreenshotSafely(page, fileName);
-
-            // ── Stage 7: Build AuditContext ───────────────────────────────────
-            final String fileHash = HashUtil.hashFileSafe(file);
-            final AuditStatus status = AuditStatus.fromResults(ruleResults);
+            final List<RuleResult> ruleResults    = ruleExecutor.execute(page);
+            final Path             screenshotPath = captureScreenshotSafely(page, fileName);
+            final String           fileHash       = HashUtil.hashFileSafe(file);
+            final AuditStatus      status         = AuditStatus.fromResults(ruleResults);
 
             final AuditContext context = AuditContext.builder(file)
                     .withFileHash(fileHash)
@@ -381,39 +238,25 @@ public final class AuditOrchestrator implements AutoCloseable {
         } catch (final Exception e) {
             log.error("Unexpected error while processing '{}': {}", fileName, e.getMessage(), e);
             return finalizeError(file, fileStart, e);
-
         } finally {
             closePageQuietly(page);
         }
     }
 
-    /**
-     * Records report entry, archives the file, and updates state based on a
-     * fully-built {@link AuditContext}.
-     */
-    private FileProcessingResult finalizeFile(
-            final AuditContext context) {
-        final String fileName = context.getFileName();
-        final AuditStatus status = context.getStatus();
+    private FileProcessingResult finalizeFile(final AuditContext context) {
+        final String      fileName = context.getFileName();
+        final AuditStatus status   = context.getStatus();
 
-        // ── Stage 8: Report ───────────────────────────────────────────────────
         reportManager.recordFileResults(
                 fileName, context.getRuleResults(), context.getScreenshotPath());
 
-        // ── Stage 9 & 10: State update + Archive ──────────────────────────────
-        // State must be updated BEFORE the file is archived/moved, otherwise
-        // StateRegistry's hash computation reads from a path that no longer
-        // exists (resulting in an "UNREADABLE" content hash). The hash already
-        // computed for AuditContext is reused here to avoid a second disk read.
         switch (status) {
             case SUCCESS -> {
                 stateRegistry.markSuccess(context.getHtmlFile(), context.getFileHash());
                 archiveSafely(context.getHtmlFile(), true);
                 log.info("'{}' completed: SUCCESS ({}ms, {} rule(s))",
                         fileName, context.getDuration().toMillis(), context.getRuleResults().size());
-                return new FileProcessingResult(
-                        context,
-                        FileOutcome.SUCCESS);
+                return new FileProcessingResult(context, FileOutcome.SUCCESS);
             }
             case FAILED -> {
                 stateRegistry.markFailed(context.getHtmlFile(), context.getFileHash(),
@@ -421,205 +264,123 @@ public final class AuditOrchestrator implements AutoCloseable {
                 archiveSafely(context.getHtmlFile(), false);
                 log.warn("'{}' completed: FAILED ({}ms, {} finding rule(s))",
                         fileName, context.getDuration().toMillis(), context.getAttentionCount());
-                return new FileProcessingResult(
-                        context,
-                        FileOutcome.FAILED);
+                return new FileProcessingResult(context, FileOutcome.FAILED);
             }
             case ERROR -> {
                 stateRegistry.markFailed(context.getHtmlFile(), context.getFileHash(),
                         "One or more rules threw an unexpected error");
                 archiveSafely(context.getHtmlFile(), false);
-                log.error("'{}' completed: ERROR ({}ms)",
-                        fileName, context.getDuration().toMillis());
-                return new FileProcessingResult(
-                        context,
-                        FileOutcome.ERROR);
+                log.error("'{}' completed: ERROR ({}ms)", fileName, context.getDuration().toMillis());
+                return new FileProcessingResult(context, FileOutcome.ERROR);
             }
             default -> {
-                log.warn("'{}' completed with unexpected status: {}",
-                        fileName,
-                        status);
-
-                return new FileProcessingResult(
-                        context,
-                        FileOutcome.ERROR);
+                log.warn("'{}' completed with unexpected status: {}", fileName, status);
+                return new FileProcessingResult(context, FileOutcome.ERROR);
             }
         }
     }
 
+    private FileProcessingResult finalizeError(
+            final Path file, final Instant fileStart, final Exception e) {
 
-/**
- * Handles an unexpected exception that escaped rule execution or rendering:
- * builds an ERROR context with no rule results, reports it, archives the
- * file as failed, and updates state.
- */
-private FileProcessingResult finalizeError(
-        final Path file,
-        final Instant fileStart,
-        final Exception e) {
-    final AuditContext context = AuditContext.builder(file)
-            .withRuleResults(List.of())
-            .withStartTime(fileStart)
-            .withStatus(AuditStatus.ERROR)
-            .completedNow()
-            .build();
+        final AuditContext context = AuditContext.builder(file)
+                .withRuleResults(List.of())
+                .withStartTime(fileStart)
+                .withStatus(AuditStatus.ERROR)
+                .completedNow()
+                .build();
 
-    reportManager.recordFileResults(context.getFileName(), context.getRuleResults(), null);
+        reportManager.recordFileResults(context.getFileName(), context.getRuleResults(), null);
 
-    // Compute the hash once, before archiving moves the file, and reuse it
-    // for the state update (see Issues 1 & 2).
-    final String fileHash = HashUtil.hashFileSafe(file);
-    stateRegistry.markFailed(file, fileHash, "Pipeline error: "
-            + e.getClass().getSimpleName() + ": " + e.getMessage());
-    archiveSafely(file, false);
+        final String fileHash = HashUtil.hashFileSafe(file);
+        stateRegistry.markFailed(file, fileHash,
+                "Pipeline error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+        archiveSafely(file, false);
 
-    return new FileProcessingResult(
-            context,
-            FileOutcome.ERROR);
-}
-
-/**
- * Records a skipped file in the report with an empty result set so the
- * dashboard reflects every discovered file, including skips.
- */
-private AuditContext recordSkipped(final Path file, final Instant fileStart, final String reason) {
-    final AuditContext context = AuditContext.builder(file)
-            .withRuleResults(List.of())
-            .withStartTime(fileStart)
-            .withStatus(AuditStatus.SKIPPED)
-            .completedNow()
-            .build();
-
-    log.debug("Recording skipped file '{}': {}", context.getFileName(), reason);
-    reportManager.recordFileResults(context.getFileName(), context.getRuleResults(), null);
-    return context;
-}
-
-// -------------------------------------------------------------------------
-// Internal – evidence / archive helpers (each fault-isolated)
-// -------------------------------------------------------------------------
-
-/**
- * Captures a screenshot, returning {@code null} (rather than throwing) if
- * capture fails — a screenshot failure must not abort rule reporting.
- */
-private Path captureScreenshotSafely(final Page page, final String fileName) {
-    final String sourceName = stripExtension(fileName);
-    try {
-        return screenshotService.capture(page, sourceName);
-    } catch (final ScreenshotService.ScreenshotException e) {
-        log.warn("Screenshot capture failed for '{}': {}", fileName, e.getMessage());
-        return null;
+        return new FileProcessingResult(context, FileOutcome.ERROR);
     }
-}
 
-/**
- * Archives a file, logging but not propagating failures — archival issues
- * must not prevent state updates or report flushing.
- */
-private void archiveSafely(final Path file, final boolean success) {
-    try {
-        if (success) {
-            archiveManager.archiveSuccess(file);
-        } else {
-            archiveManager.archiveFailed(file);
+    private AuditContext recordSkipped(
+            final Path file, final Instant fileStart, final String reason) {
+
+        final AuditContext context = AuditContext.builder(file)
+                .withRuleResults(List.of())
+                .withStartTime(fileStart)
+                .withStatus(AuditStatus.SKIPPED)
+                .completedNow()
+                .build();
+
+        log.debug("Recording skipped file '{}': {}", context.getFileName(), reason);
+        reportManager.recordFileResults(context.getFileName(), context.getRuleResults(), null);
+        return context;
+    }
+
+    private Path captureScreenshotSafely(final Page page, final String fileName) {
+        try {
+            return screenshotService.capture(page, stripExtension(fileName));
+        } catch (final ScreenshotService.ScreenshotException e) {
+            log.warn("Screenshot capture failed for '{}': {}", fileName, e.getMessage());
+            return null;
         }
-    } catch (final ArchiveManager.ArchiveException e) {
-        log.error("Archiving failed for '{}': {}", file, e.getMessage(), e);
     }
-}
 
-/**
- * Closes the Playwright page (and its parent context) after a file's
- * evaluation completes, regardless of success or failure.
- */
-private void closePageQuietly(final Page page) {
-    if (page == null) return;
-    try {
-        page.context().close();
-    } catch (final Exception e) {
-        log.debug("Error closing page/context: {}", e.getMessage());
+    private void archiveSafely(final Path file, final boolean success) {
+        try {
+            if (success) { archiveManager.archiveSuccess(file); }
+            else         { archiveManager.archiveFailed(file);  }
+        } catch (final ArchiveManager.ArchiveException e) {
+            log.error("Archiving failed for '{}': {}", file, e.getMessage(), e);
+        }
     }
-}
 
-// -------------------------------------------------------------------------
-// Internal – static configuration helpers
-// -------------------------------------------------------------------------
-
-private static Path resolveInputDir() {
-    final String configured = ConfigurationManager.getInstance()
-            .getOrDefault(KEY_INPUT_DIR, DEFAULT_INPUT_DIR);
-    return Paths.get(configured);
-}
-
-/**
- * Builds the default {@link RuleRegistry} containing the standard rule set
- * shipped with the audit engine.
- */
-private static RuleRegistry defaultRuleRegistry() {
-    final RuleRegistry registry = new RuleRegistry();
-    registry.register(new AccessibilityRule());
-    registry.register(new AltTextValidationRule());
-    registry.register(new BrokenAnchorRule());
-    registry.register(new CtaValidationRule());
-    registry.register(new ContentValidationRule());
-    registry.register(new DuplicateIdRule());
-    registry.register(new LinkTextValidationRule());
-    registry.register(new LinkValidationRule());
-    registry.register(new HeadingHierarchyRule());
-    return registry;
-}
-
-private static String stripExtension(final String fileName) {
-    final int dot = fileName.lastIndexOf('.');
-    return dot > 0 ? fileName.substring(0, dot) : fileName;
-}
-
-// -------------------------------------------------------------------------
-// Internal types
-// -------------------------------------------------------------------------
-
-/**
- * Per-file terminal outcome used for run-level aggregation.
- */
-public enum FileOutcome {
-    SKIPPED, SUCCESS, FAILED, ERROR
-}
-
-/**
- * Immutable summary of one orchestrator run, returned by {@link #run()}.
- *
- * @param totalDiscovered total HTML files found by {@link FileScanner}
- * @param processed       files that went through the full pipeline (not skipped)
- * @param skipped         files skipped due to state or duplicate checks
- * @param succeeded       files where every rule passed
- * @param failed          files where at least one rule reported a finding
- * @param errored         files where at least one rule (or the pipeline) threw
- * @param reportPath      absolute path to the generated HTML report
- */
-public record RunSummary(
-        int totalDiscovered,
-        int processed,
-        int skipped,
-        int succeeded,
-        int failed,
-        int errored,
-        Path reportPath,
-        Path dashboardPath,
-        List<AuditContext> auditResults) {
-}
-
-// -------------------------------------------------------------------------
-// Exception
-// -------------------------------------------------------------------------
-
-/**
- * Unchecked exception thrown when the orchestrator cannot be initialised.
- */
-public static final class OrchestrationException extends RuntimeException {
-
-    public OrchestrationException(final String message, final Throwable cause) {
-        super(message, cause);
+    private void closePageQuietly(final Page page) {
+        if (page == null) return;
+        try { page.context().close(); }
+        catch (final Exception e) { log.debug("Error closing page/context: {}", e.getMessage()); }
     }
-}
+
+    private static Path resolveInputDir() {
+        return Paths.get(ConfigurationManager.getInstance()
+                .getOrDefault(KEY_INPUT_DIR, DEFAULT_INPUT_DIR));
+    }
+
+    private static RuleRegistry defaultRuleRegistry() {
+        final RuleRegistry registry = new RuleRegistry();
+        registry.register(new AccessibilityRule());
+        registry.register(new AltTextValidationRule());
+        registry.register(new BrokenAnchorRule());
+        registry.register(new CtaValidationRule());
+        registry.register(new ContentValidationRule());
+        registry.register(new DuplicateIdRule());
+        registry.register(new LinkTextValidationRule());
+        registry.register(new LinkValidationRule());
+        registry.register(new HeadingHierarchyRule());
+        return registry;
+    }
+
+    private static String stripExtension(final String fileName) {
+        final int dot = fileName.lastIndexOf('.');
+        return dot > 0 ? fileName.substring(0, dot) : fileName;
+    }
+
+    public enum FileOutcome { SKIPPED, SUCCESS, FAILED, ERROR }
+
+    public record RunSummary(
+            int totalDiscovered,
+            int processed,
+            int skipped,
+            int succeeded,
+            int failed,
+            int errored,
+            Path reportPath,
+            Path dashboardPath,
+            List<AuditContext> auditResults,
+            long executionTimeMs) {   // ← added
+    }
+
+    public static final class OrchestrationException extends RuntimeException {
+        public OrchestrationException(final String message, final Throwable cause) {
+            super(message, cause);
+        }
+    }
 }

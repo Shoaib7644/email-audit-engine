@@ -13,17 +13,16 @@ import com.acxiom.emailaudit.reporting.ExcelExporter;
 
 public class MainController {
 
-    private final VBox root = new VBox();
+    private final VBox      root        = new VBox();
     private final ProgressBar progressBar = new ProgressBar();
-    private final TextArea logArea = new TextArea();
+    private final TextArea  logArea     = new TextArea();
 
     private AuditOrchestrator.RunSummary lastRunSummary;
     private Path generatedExcelPath;
 
-    // Control Elements
-    private final Button runButton = new Button("Run Audit Engine");
-    private final Button openSummaryButton = new Button("Open Summary Excel");
-    private final Button openReportButton = new Button("Open Report in Chrome");
+    private final Button runButton              = new Button("Run Audit Engine");
+    private final Button openSummaryButton      = new Button("Open Summary Excel");
+    private final Button openReportButton       = new Button("Open Report in Chrome");
     private final Button openReportsFolderButton = new Button("Open Directory");
 
     public MainController() {
@@ -31,7 +30,6 @@ public class MainController {
         root.setSpacing(20);
         root.getStyleClass().add("main-container");
 
-        // Header Panel Banner
         VBox headerPanel = new VBox(4);
         headerPanel.getStyleClass().add("header-panel");
         Label titleLabel = new Label("EMAIL AUDIT CONSOLE");
@@ -40,22 +38,18 @@ public class MainController {
         subtitleLabel.getStyleClass().add("header-subtitle");
         headerPanel.getChildren().addAll(titleLabel, subtitleLabel);
 
-        // Environment Information Cards (Horizontal)
         HBox environmentBox = new HBox(16);
         environmentBox.setAlignment(Pos.CENTER_LEFT);
-
-        VBox inputCard = createInfoCard("INPUT SOURCE DIRECTORY", "./input");
-        VBox outputCard = createInfoCard("OUTPUT DESTINATION", "./output");
-        HBox.setHgrow(inputCard, Priority.ALWAYS);
+        VBox inputCard  = createInfoCard("INPUT SOURCE DIRECTORY", "./input");
+        VBox outputCard = createInfoCard("OUTPUT DESTINATION",     "./output");
+        HBox.setHgrow(inputCard,  Priority.ALWAYS);
         HBox.setHgrow(outputCard, Priority.ALWAYS);
         environmentBox.getChildren().addAll(inputCard, outputCard);
 
-        // Action Buttons Grid Toolbar
         GridPane actionGrid = new GridPane();
         actionGrid.setHgap(12);
         actionGrid.setVgap(12);
 
-        // Style Buttons natively via CSS classes
         runButton.getStyleClass().add("btn-primary");
         openSummaryButton.getStyleClass().add("btn-secondary");
         openReportButton.getStyleClass().add("btn-secondary");
@@ -66,47 +60,40 @@ public class MainController {
         openReportButton.setMaxWidth(Double.MAX_VALUE);
         openReportsFolderButton.setMaxWidth(Double.MAX_VALUE);
 
-        actionGrid.add(runButton, 0, 0);
-        actionGrid.add(openSummaryButton, 1, 0);
-        actionGrid.add(openReportButton, 0, 1);
+        actionGrid.add(runButton,               0, 0);
+        actionGrid.add(openSummaryButton,       1, 0);
+        actionGrid.add(openReportButton,        0, 1);
         actionGrid.add(openReportsFolderButton, 1, 1);
 
-        ColumnConstraints colConstraints = new ColumnConstraints();
-        colConstraints.setPercentWidth(50);
-        actionGrid.getColumnConstraints().addAll(colConstraints, colConstraints);
+        ColumnConstraints col = new ColumnConstraints();
+        col.setPercentWidth(50);
+        actionGrid.getColumnConstraints().addAll(col, col);
 
-        // Execution Progress Bar Container
         progressBar.setMaxWidth(Double.MAX_VALUE);
         progressBar.setProgress(0);
         progressBar.getStyleClass().add("custom-progress-bar");
 
-        // Code Output Console Layout
         VBox consoleContainer = new VBox(8);
         consoleContainer.getStyleClass().add("console-container");
         Label consoleLabel = new Label("REAL-TIME AUTOMATION LOGS");
         consoleLabel.getStyleClass().add("console-header-label");
-
         logArea.setEditable(false);
         logArea.setPrefHeight(280);
         logArea.getStyleClass().add("modern-log-area");
         consoleContainer.getChildren().addAll(consoleLabel, logArea);
         VBox.setVgrow(consoleContainer, Priority.ALWAYS);
 
-        // Initial Interactive Locking States
         openSummaryButton.setDisable(true);
         openReportButton.setDisable(true);
         openReportsFolderButton.setDisable(true);
 
-        // Compile root stack layout
         root.getChildren().addAll(
                 headerPanel,
                 environmentBox,
                 actionGrid,
                 progressBar,
-                consoleContainer
-        );
+                consoleContainer);
 
-        // Event hooks
         runButton.setOnAction(e -> runAudit());
         openSummaryButton.setOnAction(e -> openSummaryExcel());
         openReportButton.setOnAction(e -> openReportInChrome());
@@ -133,12 +120,13 @@ public class MainController {
         openSummaryButton.setDisable(true);
         openReportButton.setDisable(true);
         openReportsFolderButton.setDisable(true);
+        logArea.clear();
 
         AuditTask task = new AuditTask();
         progressBar.progressProperty().bind(task.progressProperty());
 
-        task.messageProperty().addListener((obs, oldValue, newValue) ->
-                logArea.appendText("» " + newValue + "\n"));
+        task.messageProperty().addListener((obs, oldVal, newVal) ->
+                logArea.appendText("» " + newVal + "\n"));
 
         task.setOnSucceeded(event -> {
             runButton.setDisable(false);
@@ -146,30 +134,66 @@ public class MainController {
             openReportButton.setDisable(false);
             openReportsFolderButton.setDisable(false);
 
-            var summary = task.getValue();
-            lastRunSummary = summary;
+            final AuditOrchestrator.RunSummary summary = task.getValue();
+            lastRunSummary   = summary;
             generatedExcelPath = ExcelExporter.export(summary);
 
+            // ── Execution time formatting ──────────────────────────────────
+            final String execTime = formatDuration(summary.executionTimeMs());
+
+            // ── Dashboard path (prefer custom dashboard over spark report) ──
+            final String dashboardDisplay =
+                    summary.dashboardPath() != null
+                            ? summary.dashboardPath().toString()
+                            : summary.reportPath() != null
+                              ? summary.reportPath().toString()
+                              : "N/A";
+
             logArea.appendText(
-                    "\n=========================================\n" +
-                            " AUDIT STATUS SYSTEM PIPELINE COMPLETE\n" +
-                            "=========================================\n" +
-                            " Processed HTMLs : " + summary.processed() + "\n" +
-                            " Succeeded HTMLs    : " + summary.succeeded() + "\n" +
-                            " Critical Faults    : " + summary.failed() + "\n" +
-                            " Execution Dashboard     : " + summary.reportPath() + "\n"
+                    "\n=========================================\n"  +
+                            "  AUDIT PIPELINE COMPLETE\n"                    +
+                            "=========================================\n"    +
+                            " Total Discovered : " + summary.totalDiscovered()  + "\n" +
+                            " Processed        : " + summary.processed()        + "\n" +
+                            " Skipped          : " + summary.skipped()          + "\n" +
+                            " Succeeded        : " + summary.succeeded()        + "\n" +
+                            " Failed           : " + summary.failed()           + "\n" +
+                            " Errors           : " + summary.errored()          + "\n" +
+                            " Execution Time   : " + execTime                   + "\n" +
+                            "-----------------------------------------\n"    +
+                            " Dashboard        : " + dashboardDisplay           + "\n" +
+                            " Report           : " + summary.reportPath()       + "\n" +
+                            " Summary Sheet    : " + generatedExcelPath         + "\n" +
+                            "=========================================\n"
             );
-            logArea.appendText(" Execution Summary Sheet: " + generatedExcelPath + "\n");
         });
 
         task.setOnFailed(event -> {
             runButton.setDisable(false);
-            logArea.appendText("CRITICAL PIPELINE EXCEPTION: " + task.getException().getMessage() + "\n");
+            logArea.appendText("CRITICAL PIPELINE EXCEPTION: "
+                    + task.getException().getMessage() + "\n");
         });
 
         Thread thread = new Thread(task);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    /**
+     * Formats a millisecond duration into a human-readable string.
+     * e.g. 450 → "450ms", 3500 → "3s 500ms", 75000 → "1m 15s"
+     */
+    private static String formatDuration(long ms) {
+        if (ms < 1000) return ms + "ms";
+        long s   = ms / 1000;
+        long rem = ms % 1000;
+        if (s < 60) return s + "s" + (rem > 0 ? " " + rem + "ms" : "");
+        long m  = s / 60;
+        long rs = s % 60;
+        if (m < 60) return m + "m" + (rs > 0 ? " " + rs + "s" : "");
+        long h  = m / 60;
+        long rm = m % 60;
+        return h + "h" + (rm > 0 ? " " + rm + "m" : "") + (rs > 0 ? " " + rs + "s" : "");
     }
 
     private void openSummaryExcel() {
@@ -190,16 +214,21 @@ public class MainController {
     private void openReportInChrome() {
         try {
             if (lastRunSummary == null) return;
-            Path reportToOpen = lastRunSummary.dashboardPath() != null && lastRunSummary.dashboardPath().toFile().exists()
-                    ? lastRunSummary.dashboardPath() : lastRunSummary.reportPath();
+
+            // Prefer the custom dashboard; fall back to the spark report
+            Path reportToOpen =
+                    (lastRunSummary.dashboardPath() != null
+                            && lastRunSummary.dashboardPath().toFile().exists())
+                            ? lastRunSummary.dashboardPath()
+                            : lastRunSummary.reportPath();
 
             if (reportToOpen == null) {
                 logArea.appendText(" Missing visualization engine paths.\n");
                 return;
             }
 
-            String targetUri = reportToOpen.toUri().toString();
-            String os = System.getProperty("os.name").toLowerCase();
+            String        targetUri     = reportToOpen.toUri().toString();
+            String        os            = System.getProperty("os.name").toLowerCase();
             ProcessBuilder processBuilder = new ProcessBuilder();
 
             if (os.contains("win")) {

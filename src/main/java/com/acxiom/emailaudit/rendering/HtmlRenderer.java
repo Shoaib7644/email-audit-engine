@@ -145,8 +145,9 @@ public final class HtmlRenderer implements AutoCloseable {
                     .setTimeout(timeoutMs);
 
             page.navigate(fileUrl, options);
-            page.waitForLoadState(LoadState.LOAD,
-                    new Page.WaitForLoadStateOptions().setTimeout(timeoutMs));
+
+            // Email audits should operate on DOM readiness and must not wait for external resources
+            // such as images, stylesheets, tracking pixels, or third-party assets.
 
             log.info("Render complete – title: '{}', url: {}",
                     safeTitleOf(page), page.url());
