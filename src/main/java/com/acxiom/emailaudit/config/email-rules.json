@@ -1,0 +1,30 @@
+{
+  "privacyLink": {
+    "enabled": true,
+    "keywords": [
+      "privacy",
+      "privacy policy",
+      "privacy notice"
+    ]
+  },
+
+  "viewOnline": {
+    "enabled": true,
+    "keywords": [
+      "view online",
+      "view in browser",
+      "open in browser",
+      "web version"
+    ]
+  },
+
+  "replyToDisclaimer": {
+    "enabled": true,
+    "keywords": [
+      "do not reply",
+      "please do not reply",
+      "mailbox is not monitored",
+      "unmonitored mailbox"
+    ]
+  }
+}

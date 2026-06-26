@@ -112,6 +112,89 @@ public final class FindingSummarizer {
             return "Required email content elements are missing";
         }
 
+        // Privacy link issues
+        /*
+         * Privacy Link
+         */
+        if (normalized.contains("privacy policy")) {
+
+            if (normalized.contains("not found")) {
+                return "Privacy policy link is missing";
+            }
+
+            if (normalized.contains("unknownhostexception")) {
+                return "Privacy policy destination cannot be reached";
+            }
+
+            if (normalized.contains("http 404")) {
+                return "Privacy policy page not found";
+            }
+
+            if (normalized.contains("little or no content")) {
+                return "Privacy policy page is blank";
+            }
+
+            if (normalized.contains("does not exist")) {
+                return "Privacy policy page does not exist";
+            }
+
+            if (normalized.contains("broken")) {
+                return "Privacy policy link is present but not functional";
+            }
+
+            return "Privacy policy link issue detected";
+        }
+
+        /*
+         * View Online Link
+         */
+        if (normalized.contains("view online")) {
+
+            if (normalized.contains("not found")) {
+                return "View Online link not found";
+            }
+
+            if (normalized.contains("unknownhostexception")) {
+                return "View Online destination cannot be reached";
+            }
+
+            if (normalized.contains("http 404")) {
+                return "View Online page not found";
+            }
+
+            if (normalized.contains("little or no content")) {
+                return "View Online page is blank";
+            }
+
+            if (normalized.contains("does not exist")) {
+                return "View Online page does not exist";
+            }
+
+            if (normalized.contains("broken")) {
+                return "View Online link is present but not functional";
+            }
+
+            return "View Online link issue detected";
+        }
+
+
+        if (normalized.contains("disclaimer")
+                || normalized.contains("do not reply")
+                || normalized.contains("mailbox is not monitored")) {
+
+            return "Required disclaimer information missing";
+        }
+
+        if (normalized.contains("http 404")) {
+
+            return "Linked page not found";
+        }
+
+        if (normalized.contains("little or no content")) {
+
+            return "Linked page is blank or contains insufficient content";
+        }
+
         // Fallback
         return findings;
     }

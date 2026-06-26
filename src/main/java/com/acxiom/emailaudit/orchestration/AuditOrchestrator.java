@@ -355,6 +355,9 @@ public final class AuditOrchestrator implements AutoCloseable {
         registry.register(new LinkTextValidationRule());
         registry.register(new LinkValidationRule());
         registry.register(new HeadingHierarchyRule());
+        registry.register(new PrivacyLinkRule());
+        registry.register(new ViewOnlineLinkRule());
+        registry.register(new DisclaimerRule());
         return registry;
     }
 

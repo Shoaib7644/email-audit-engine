@@ -25,7 +25,13 @@ public final class ReportSectionMapper {
 
                     Map.entry("CONTENT_VALIDATION", ReportSection.CONTENT),
 
-                    Map.entry("DUPLICATE_ID", ReportSection.HTML_STRUCTURE)
+                    Map.entry("DUPLICATE_ID", ReportSection.HTML_STRUCTURE),
+
+                    Map.entry("PRIVACY_LINK", ReportSection.LINKS),
+
+                    Map.entry("VIEW_ONLINE_LINK", ReportSection.LINKS),
+
+                    Map.entry("DISCLAIMER_PRESENT", ReportSection.CONTENT)
             );
 
     private ReportSectionMapper() {

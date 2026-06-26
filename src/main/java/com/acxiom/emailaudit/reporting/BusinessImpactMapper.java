@@ -45,7 +45,18 @@ public final class BusinessImpactMapper {
 
             Map.entry(
                     "HEADING_HIERARCHY",
-                    "Heading structure does not follow accessibility standards")
+                    "Heading structure does not follow accessibility standards"),
+            Map.entry(
+                    "PRIVACY_LINK",
+                    "Privacy policy link is missing or not operational"),
+
+            Map.entry(
+                    "VIEW_ONLINE_LINK",
+                    "Customers may be unable to view email in browser"),
+
+            Map.entry(
+                    "DISCLAIMER_PRESENT",
+                    "Required email disclaimer information is missing")
     );
 
     private static final String DEFAULT_IMPACT =
@@ -74,8 +85,44 @@ public final class BusinessImpactMapper {
             return DEFAULT_IMPACT;
         }
 
-        return RULE_IMPACT_MAP.getOrDefault(
-                ruleName.trim(),
-                DEFAULT_IMPACT);
+        String normalized =
+                findings == null
+                        ? ""
+                        : findings.toLowerCase();
+
+        switch (ruleName) {
+
+            case "PRIVACY_LINK":
+
+                if (normalized.contains("broken")
+                        || normalized.contains("404")
+                        || normalized.contains("unknownhost")
+                        || normalized.contains("little or no content")
+                        || normalized.contains("does not exist")) {
+
+                    return "Privacy policy link is present but not functional";
+                }
+
+                return "Privacy policy link is missing";
+
+            case "VIEW_ONLINE_LINK":
+
+                if (normalized.contains("broken")
+                        || normalized.contains("404")
+                        || normalized.contains("unknownhost")
+                        || normalized.contains("little or no content")
+                        || normalized.contains("does not exist")) {
+
+                    return "View Online link is present but not functional";
+                }
+
+                return "View Online link not found";
+
+            default:
+
+                return RULE_IMPACT_MAP.getOrDefault(
+                        ruleName.trim(),
+                        DEFAULT_IMPACT);
+        }
     }
 }

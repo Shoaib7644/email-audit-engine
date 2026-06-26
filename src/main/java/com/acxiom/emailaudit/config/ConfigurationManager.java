@@ -163,6 +163,16 @@ public final class ConfigurationManager {
         return Optional.empty();
     }
 
+    /**/
+    public static final String KEY_RULES_CONFIG =
+            "rules.config.file";
+
+    public String getRulesConfigPath() {
+        return getOrDefault(
+                KEY_RULES_CONFIG,
+                "config/email-rules.json");
+    }
+
     /**
      * Returns the value for {@code key}, or {@code defaultValue} when absent.
      *
