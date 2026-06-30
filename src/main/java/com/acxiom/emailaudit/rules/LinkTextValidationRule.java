@@ -52,6 +52,19 @@ import java.util.regex.Pattern;
  * unsubscribe mechanism itself and is governed by
  * {@code LinkValidationRule}'s unsubscribe-presence check instead.</p>
  *
+ * <h2>PASS evidence</h2>
+ * <p>When the rule passes, it now also returns one evidence finding per
+ * checked link (excluding ignored footer-unsubscribe links) via
+ * {@link FindingFormatter#structuredFinding(String, String, String)}, so the
+ * dashboard can show exactly which links were reviewed, e.g.:</p>
+ * <pre>
+ * Link Text Validation
+ *   Element         : "Download Report"
+ *   Detail          : Validation: PASSED — Link text is descriptive.
+ * </pre>
+ * <p>Capped at {@value #MAX_PASS_EVIDENCE} to keep PASS evidence readable;
+ * an overflow summary is appended if exceeded.</p>
+ *
  * <h2>Static DOM analysis only</h2>
  * <p>All link text, href, and footer-ancestry information is read directly
  * from the live DOM in a single {@link Page#evaluate(String)} round-trip.
@@ -79,6 +92,12 @@ public final class LinkTextValidationRule implements AuditRule {
 
     /** Caps the number of individual findings to keep report output readable. */
     private static final int MAX_FINDINGS = 25;
+
+    /** Caps the number of PASS evidence findings to keep report output readable. */
+    private static final int MAX_PASS_EVIDENCE = 25;
+
+    /** Shared business-friendly title used for evidence findings from this rule. */
+    private static final String FINDING_TITLE = "Link Text Validation";
 
     /**
      * Generic link text values that fail this rule. Compared against the
@@ -144,6 +163,15 @@ public final class LinkTextValidationRule implements AuditRule {
     }
 
     @Override
+    public String passImpact() {
+        return "Link Validation is Passed";
+    }
+
+    @Override
+    public String failImpact() {
+        return "Link Validation is Failed";
+    }
+    @Override
     public RuleCategory category() {
         return RuleCategory.CONTENT;
     }
@@ -157,9 +185,9 @@ public final class LinkTextValidationRule implements AuditRule {
      * Runs link-text validation against {@code page}.
      *
      * @param page live, fully loaded Playwright page; must not be {@code null}
-     * @return PASS when no link uses generic text (outside the footer
-     *         unsubscribe exception), FAIL when one or more do,
-     *         ERROR when DOM extraction itself fails
+     * @return PASS (with evidence findings) when no link uses generic text
+     *         (outside the footer unsubscribe exception), FAIL when one or
+     *         more do, ERROR when DOM extraction itself fails
      */
     @Override
     public RuleResult execute(final Page page) {
@@ -182,7 +210,9 @@ public final class LinkTextValidationRule implements AuditRule {
 
         if (findings.isEmpty()) {
             log.info("[{}] No generic link text found", RULE_ID);
-            return RuleResult.pass(this, startMs);
+            return RuleResult.builder(this, RuleResult.Status.PASS, startMs)
+                    .withFindings(buildPassEvidence(links))
+                    .build();
         }
 
         log.warn("[{}] {} link(s) with generic text found", RULE_ID, findings.size());
@@ -222,6 +252,50 @@ public final class LinkTextValidationRule implements AuditRule {
         final List<String> capped = new ArrayList<>(findings.subList(0, MAX_FINDINGS));
         capped.add(String.format("… and %d more link(s) with generic text",
                 findings.size() - MAX_FINDINGS));
+        return capped;
+    }
+
+    /**
+     * Builds one PASS evidence finding per checked link (excluding ignored
+     * footer-unsubscribe links and links with blank text, since there is
+     * nothing meaningful to confirm for either). Capped at
+     * {@value #MAX_PASS_EVIDENCE} with an overflow summary appended if
+     * exceeded.
+     *
+     * <p>Example output:
+     * <pre>
+     * Link Text Validation
+     *   Element         : "Download Report"
+     *   Detail          : Validation: PASSED — Link text is descriptive.
+     * </pre>
+     */
+    private static List<String> buildPassEvidence(final List<LinkEntry> links) {
+        final List<String> evidence = new ArrayList<>();
+
+        for (final LinkEntry link : links) {
+            if (isIgnoredFooterUnsubscribeLink(link)) {
+                continue;
+            }
+
+            final String trimmedText = link.text().trim();
+            if (trimmedText.isEmpty()) {
+                continue;
+            }
+
+            evidence.add(FindingFormatter.structuredFinding(
+                    FINDING_TITLE,
+                    "\"" + trimmedText + "\"",
+                    "Validation: PASSED \u2014 Link text is descriptive."));
+        }
+
+        if (evidence.size() <= MAX_PASS_EVIDENCE) {
+            return evidence;
+        }
+
+        final List<String> capped = new ArrayList<>(evidence.subList(0, MAX_PASS_EVIDENCE));
+        capped.add(FindingFormatter.generic(RULE_ID,
+                String.format("… and %d more link(s) with descriptive text",
+                        evidence.size() - MAX_PASS_EVIDENCE)));
         return capped;
     }
 

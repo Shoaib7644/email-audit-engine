@@ -23,8 +23,9 @@ public final class ReportTemplateRenderer {
     private static final Logger log =
             LoggerFactory.getLogger(ReportTemplateRenderer.class);
 
+    // ── CHANGED: now points at the V2 template ────────────────────────────────
     private static final String TEMPLATE_PATH =
-            "reporting/dashboard.html";
+            "reporting/dashboard-v2.html";
 
     private static final String DATA_PLACEHOLDER =
             "{{DASHBOARD_DATA}}";

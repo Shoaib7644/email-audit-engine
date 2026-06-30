@@ -25,9 +25,24 @@ import java.util.Objects;
  *       trimming whitespace</strong> (e.g. {@code alt=""} or {@code alt="   "}).</li>
  * </ul>
  *
- * <p>Each offending image is reported as a separate finding identifying the
- * image's {@code src} value, so the content team can locate and fix the
- * specific image.</p>
+ * <h2>Findings format</h2>
+ * <p>Every image on the page — passing or failing — produces an individual
+ * structured finding via {@link FindingFormatter#altTextFinding(String, boolean, String)},
+ * e.g.:</p>
+ * <pre>
+ * Alt Text Validation
+ *   Image           : hero-banner.png
+ *   Validation      : PASSED
+ *   Reason          : Alt text is present.
+ * </pre>
+ * <pre>
+ * Alt Text Validation
+ *   Image           : hero-banner.png
+ *   Validation      : FAILED
+ *   Reason          : Missing alt attribute.
+ * </pre>
+ * <p>Multiple images are never aggregated into one long string — one finding
+ * per image, for both PASS and FAIL outcomes.</p>
  *
  * <h2>Extraction strategy</h2>
  * <p>All {@code <img>} elements are collected via a single
@@ -55,11 +70,23 @@ public final class AltTextValidationRule implements AuditRule {
             "Validates that every <img> element has a non-empty alt attribute "
                     + "for screen-reader accessibility.";
 
-    /** Caps the number of individual findings to keep report output readable. */
+    /** Caps the number of individual FAIL findings to keep report output readable. */
     private static final int MAX_FINDINGS = 25;
+
+    /** Caps the number of individual PASS findings to keep report output readable. */
+    private static final int MAX_PASS_EVIDENCE = 25;
 
     /** Placeholder used in findings when an <img> has no usable src value. */
     private static final String UNKNOWN_SRC = "(no src attribute)";
+
+    /** Reason text used when the alt attribute is missing entirely. */
+    private static final String REASON_MISSING_ALT = "Missing alt attribute.";
+
+    /** Reason text used when the alt attribute is present but empty. */
+    private static final String REASON_EMPTY_ALT = "Alt attribute is present but empty.";
+
+    /** Reason text used when the alt attribute is present and non-empty. */
+    private static final String REASON_ALT_PRESENT = "Alt text is present.";
 
     // -------------------------------------------------------------------------
     // JavaScript used to extract all <img> data in one round-trip
@@ -105,7 +132,15 @@ public final class AltTextValidationRule implements AuditRule {
     public String description() {
         return DESCRIPTION;
     }
+    @Override
+    public String passImpact() {
+        return "ALT Text is present.";
+    }
 
+    @Override
+    public String failImpact() {
+        return "ALT Text is missing or empty.";
+    }
     @Override
     public RuleCategory category() {
         return RuleCategory.ACCESSIBILITY;
@@ -120,9 +155,10 @@ public final class AltTextValidationRule implements AuditRule {
      * Runs the alt-text validation against {@code page}.
      *
      * @param page live, fully loaded Playwright page; must not be {@code null}
-     * @return PASS when every {@code <img>} has a non-empty {@code alt},
-     *         FAIL when one or more images are missing it,
-     *         ERROR when image extraction itself fails
+     * @return PASS (with one evidence finding per valid image) when every
+     *         {@code <img>} has a non-empty {@code alt}, FAIL (with one
+     *         finding per offending image) when one or more images are
+     *         missing it, ERROR when image extraction itself fails
      */
     @Override
     public RuleResult execute(final Page page) {
@@ -145,11 +181,15 @@ public final class AltTextValidationRule implements AuditRule {
 
         if (findings.isEmpty()) {
             log.info("[{}] All images have non-empty alt attributes", RULE_ID);
-            return RuleResult.pass(this, startMs);
+            return RuleResult.builder(this, RuleResult.Status.PASS, startMs)
+                    .withFindings(buildPassEvidence(images))
+                    .build();
         }
 
         log.warn("[{}] {} image(s) with missing or empty alt attribute(s)", RULE_ID, findings.size());
-        return RuleResult.fail(this, startMs, findings);
+        return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                .withFindings(findings)
+                .build();
     }
 
     // -------------------------------------------------------------------------
@@ -157,8 +197,10 @@ public final class AltTextValidationRule implements AuditRule {
     // -------------------------------------------------------------------------
 
     /**
-     * Builds one finding per offending image, capped at {@value #MAX_FINDINGS}
-     * with an overflow summary appended if exceeded.
+     * Builds one finding per offending image via
+     * {@link FindingFormatter#altTextFinding(String, boolean, String)},
+     * capped at {@value #MAX_FINDINGS} with an overflow summary appended if
+     * exceeded.
      */
     private static List<String> buildFindings(final List<ImageEntry> images) {
         final List<String> offending = new ArrayList<>();
@@ -167,9 +209,9 @@ public final class AltTextValidationRule implements AuditRule {
             final String src = image.src().isBlank() ? UNKNOWN_SRC : image.src();
 
             if (!image.hasAlt()) {
-                offending.add("Missing alt attribute on image: " + src);
+                offending.add(FindingFormatter.altTextFinding(src, false, REASON_MISSING_ALT));
             } else if (image.alt().trim().isEmpty()) {
-                offending.add("Empty alt attribute on image: " + src);
+                offending.add(FindingFormatter.altTextFinding(src, false, REASON_EMPTY_ALT));
             }
         }
 
@@ -178,8 +220,37 @@ public final class AltTextValidationRule implements AuditRule {
         }
 
         final List<String> capped = new ArrayList<>(offending.subList(0, MAX_FINDINGS));
-        capped.add(String.format("… and %d more image(s) with missing or empty alt attributes",
-                offending.size() - MAX_FINDINGS));
+        capped.add(FindingFormatter.generic(RULE_ID,
+                String.format("… and %d more image(s) with missing or empty alt attributes",
+                        offending.size() - MAX_FINDINGS)));
+        return capped;
+    }
+
+    /**
+     * Builds one PASS evidence finding per image with a valid (present,
+     * non-empty) alt attribute, via
+     * {@link FindingFormatter#altTextFinding(String, boolean, String)}.
+     * Capped at {@value #MAX_PASS_EVIDENCE} with an overflow summary
+     * appended if exceeded.
+     */
+    private static List<String> buildPassEvidence(final List<ImageEntry> images) {
+        final List<String> evidence = new ArrayList<>();
+
+        for (final ImageEntry image : images) {
+            if (image.hasAlt() && !image.alt().trim().isEmpty()) {
+                final String src = image.src().isBlank() ? UNKNOWN_SRC : image.src();
+                evidence.add(FindingFormatter.altTextFinding(src, true, REASON_ALT_PRESENT));
+            }
+        }
+
+        if (evidence.size() <= MAX_PASS_EVIDENCE) {
+            return evidence;
+        }
+
+        final List<String> capped = new ArrayList<>(evidence.subList(0, MAX_PASS_EVIDENCE));
+        capped.add(FindingFormatter.generic(RULE_ID,
+                String.format("… and %d more image(s) with valid alt text",
+                        evidence.size() - MAX_PASS_EVIDENCE)));
         return capped;
     }
 

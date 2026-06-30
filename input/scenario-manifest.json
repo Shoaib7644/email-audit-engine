@@ -1,0 +1,815 @@
+{
+  "generatedAt": "2026-01-15T09:30:00Z",
+  "campaignId": "CMP-2026-Q1-00042",
+  "totalScenarios": 101,
+  "scenarios": [
+  {
+    "scenarioId": "001-perfect-enterprise",
+    "filename": "001-perfect-enterprise.html",
+    "purpose": "Golden baseline: full enterprise newsletter layout that must pass every rule.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "002-perfect-newsletter",
+    "filename": "002-perfect-newsletter.html",
+    "purpose": "Golden baseline newsletter using a two-column layout.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "003-perfect-promotional",
+    "filename": "003-perfect-promotional.html",
+    "purpose": "Golden baseline promotional email with hero image layout.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "004-perfect-transactional",
+    "filename": "004-perfect-transactional.html",
+    "purpose": "Golden baseline transactional (order confirmation) email.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "010-missing-alt",
+    "filename": "010-missing-alt.html",
+    "purpose": "Image with no alt attribute at all.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ALT_TEXT"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "011-empty-alt",
+    "filename": "011-empty-alt.html",
+    "purpose": "Image with alt=\"\" on a non-decorative content image.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ALT_TEXT"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "012-decorative-alt",
+    "filename": "012-decorative-alt.html",
+    "purpose": "Decorative spacer image correctly using alt=\"\" with role=presentation; should PASS alt-text rule.",
+    "expectedPassRules": ["ALT_TEXT", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "013-duplicate-alt",
+    "filename": "013-duplicate-alt.html",
+    "purpose": "Two distinct images sharing identical, non-descriptive alt text.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ALT_TEXT"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "020-broken-anchor",
+    "filename": "020-broken-anchor.html",
+    "purpose": "Fragment link pointing at a non-existent target id.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["BROKEN_ANCHOR"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "021-missing-anchor-target",
+    "filename": "021-missing-anchor-target.html",
+    "purpose": "Same as 020 but isolated as its own dedicated regression case.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["BROKEN_ANCHOR"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "022-duplicate-anchor-target",
+    "filename": "022-duplicate-anchor-target.html",
+    "purpose": "Fragment link target id exists twice on the page.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["BROKEN_ANCHOR", "DUPLICATE_ID"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "023-wrong-id-anchor",
+    "filename": "023-wrong-id-anchor.html",
+    "purpose": "Fragment link uses different case than the actual target id (ids are case-sensitive).",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["BROKEN_ANCHOR"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "024-nested-anchor",
+    "filename": "024-nested-anchor.html",
+    "purpose": "Anchor element nested inside another anchor element — invalid HTML structure.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["BROKEN_ANCHOR", "HTML_VALIDITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "030-link-404",
+    "filename": "030-link-404.html",
+    "purpose": "Body link resolves to an HTTP 404 Not Found.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "031-link-timeout",
+    "filename": "031-link-timeout.html",
+    "purpose": "Body link points at a host that never responds.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "032-link-dns",
+    "filename": "032-link-dns.html",
+    "purpose": "Body link points at a non-resolving hostname.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "033-link-500",
+    "filename": "033-link-500.html",
+    "purpose": "Body link resolves to an HTTP 500 server error.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "034-link-relative",
+    "filename": "034-link-relative.html",
+    "purpose": "Body link uses a relative path instead of an absolute URL, which is invalid in email.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "035-link-malformed",
+    "filename": "035-link-malformed.html",
+    "purpose": "Body link href contains a syntactically invalid URL.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "036-link-301",
+    "filename": "036-link-301.html",
+    "purpose": "Body link resolves via a permanent redirect; flagged for follow-up.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "037-link-302",
+    "filename": "037-link-302.html",
+    "purpose": "Body link resolves via a temporary redirect; flagged for follow-up.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "038-link-ssl",
+    "filename": "038-link-ssl.html",
+    "purpose": "Body link points at a host with an invalid/expired TLS certificate.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "039-link-localhost",
+    "filename": "039-link-localhost.html",
+    "purpose": "Body link still points at a local development URL left in by mistake.",
+    "expectedPassRules": ["PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "040-generic-link-text",
+    "filename": "040-generic-link-text.html",
+    "purpose": "Body link uses non-descriptive 'Click Here' anchor text.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["LINK_TEXT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "041-empty-link-text",
+    "filename": "041-empty-link-text.html",
+    "purpose": "Body link has an href but no visible text.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["LINK_TEXT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "042-link-text-variants",
+    "filename": "042-link-text-variants.html",
+    "purpose": "Multiple low-quality anchor phrases (More, Read More, Open, Visit, Go, Learn More) in one page.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["LINK_TEXT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "050-missing-h1",
+    "filename": "050-missing-h1.html",
+    "purpose": "Page has no H1 element at all.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HEADING_STRUCTURE"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "051-skipped-heading",
+    "filename": "051-skipped-heading.html",
+    "purpose": "Heading order jumps directly from H1 to H4, skipping H2/H3.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HEADING_STRUCTURE"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "052-multiple-h1",
+    "filename": "052-multiple-h1.html",
+    "purpose": "Two H1 elements present on the same page.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HEADING_STRUCTURE"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "053-h3-after-h1",
+    "filename": "053-h3-after-h1.html",
+    "purpose": "Heading order skips H2, going from H1 straight to H3.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HEADING_STRUCTURE"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "054-h5-first",
+    "filename": "054-h5-first.html",
+    "purpose": "Document's first and only heading is an H5, with no H1 present.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HEADING_STRUCTURE"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "055-only-divs",
+    "filename": "055-only-divs.html",
+    "purpose": "Page uses styled <div> elements that look like headings but uses no real heading tags.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HEADING_STRUCTURE"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "060-duplicate-id",
+    "filename": "060-duplicate-id.html",
+    "purpose": "Three elements share the same id attribute value.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["DUPLICATE_ID"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "070-content-placeholder",
+    "filename": "070-content-placeholder.html",
+    "purpose": "Body copy still contains Lorem Ipsum filler text.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CONTENT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "071-content-template",
+    "filename": "071-content-template.html",
+    "purpose": "Body copy contains un-replaced merge-field style tokens.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CONTENT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "072-content-todo",
+    "filename": "072-content-todo.html",
+    "purpose": "Body copy contains a literal TODO note intended for internal review only.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CONTENT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "073-content-comingsoon",
+    "filename": "073-content-comingsoon.html",
+    "purpose": "Body copy still reads 'Coming Soon' rather than finished content.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CONTENT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "080-privacy-missing",
+    "filename": "080-privacy-missing.html",
+    "purpose": "Footer omits the privacy policy link entirely.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["PRIVACY_LINK"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "081-privacy-404",
+    "filename": "081-privacy-404.html",
+    "purpose": "Privacy policy link resolves to HTTP 404.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["PRIVACY_LINK"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "082-privacy-dns",
+    "filename": "082-privacy-dns.html",
+    "purpose": "Privacy policy link points at a non-resolving hostname.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["PRIVACY_LINK"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "083-privacy-pass",
+    "filename": "083-privacy-pass.html",
+    "purpose": "Privacy policy link resolves successfully — dedicated PASS regression case.",
+    "expectedPassRules": ["PRIVACY_LINK", "LINK_VALIDATION", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "090-view-online-missing",
+    "filename": "090-view-online-missing.html",
+    "purpose": "Footer omits the 'view in browser' link entirely.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["VIEW_ONLINE_LINK"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "091-view-online-404",
+    "filename": "091-view-online-404.html",
+    "purpose": "'View in browser' link resolves to HTTP 404.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["VIEW_ONLINE_LINK"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "092-view-online-redirect",
+    "filename": "092-view-online-redirect.html",
+    "purpose": "'View in browser' link enters a redirect loop.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["VIEW_ONLINE_LINK"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "093-view-online-pass",
+    "filename": "093-view-online-pass.html",
+    "purpose": "'View in browser' link resolves successfully — dedicated PASS regression case.",
+    "expectedPassRules": ["VIEW_ONLINE_LINK", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "100-disclaimer-missing",
+    "filename": "100-disclaimer-missing.html",
+    "purpose": "Mandatory legal disclaimer block is absent from the footer.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["CONTENT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "101-disclaimer-pass",
+    "filename": "101-disclaimer-pass.html",
+    "purpose": "Mandatory legal disclaimer present and visible — dedicated PASS regression case.",
+    "expectedPassRules": ["CONTENT_VALIDATION", "LINK_VALIDATION", "PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "102-disclaimer-hidden",
+    "filename": "102-disclaimer-hidden.html",
+    "purpose": "Disclaimer text is present in markup but hidden with display:none.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["CONTENT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "103-disclaimer-commented",
+    "filename": "103-disclaimer-commented.html",
+    "purpose": "Disclaimer markup exists only inside an HTML comment, never rendered.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["CONTENT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "110-cta-missing-href",
+    "filename": "110-cta-missing-href.html",
+    "purpose": "Primary CTA button has no href attribute.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CTA_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "111-cta-hidden",
+    "filename": "111-cta-hidden.html",
+    "purpose": "Primary CTA is present but visibility:hidden, invisible to recipients.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CTA_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "112-cta-empty",
+    "filename": "112-cta-empty.html",
+    "purpose": "Primary CTA has a valid href but no visible label text.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CTA_VALIDATION", "LINK_TEXT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "113-cta-pass",
+    "filename": "113-cta-pass.html",
+    "purpose": "Primary CTA is fully valid — descriptive text, visible, working href.",
+    "expectedPassRules": ["CTA_VALIDATION", "LINK_VALIDATION", "LINK_TEXT_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "114-cta-opacity-zero",
+    "filename": "114-cta-opacity-zero.html",
+    "purpose": "Primary CTA rendered with opacity:0, technically present but invisible.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CTA_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "115-cta-display-none",
+    "filename": "115-cta-display-none.html",
+    "purpose": "Primary CTA rendered with display:none, removed from the visual layout.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CTA_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "116-cta-button-element",
+    "filename": "116-cta-button-element.html",
+    "purpose": "CTA implemented as a non-anchor <button> with no client-side handler — clicking does nothing in email clients.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CTA_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "117-cta-js-href",
+    "filename": "117-cta-js-href.html",
+    "purpose": "CTA href uses a javascript: scheme instead of a real destination URL.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["CTA_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "120-accessibility-lang",
+    "filename": "120-accessibility-lang.html",
+    "purpose": "Root <html> element has no lang attribute.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ACCESSIBILITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "121-accessibility-color",
+    "filename": "121-accessibility-color.html",
+    "purpose": "Disclaimer-style text rendered with insufficient color contrast against its background.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ACCESSIBILITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "122-accessibility-landmark",
+    "filename": "122-accessibility-landmark.html",
+    "purpose": "Page content is wrapped in a plain <div> instead of a semantic landmark.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ACCESSIBILITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "123-accessibility-pass",
+    "filename": "123-accessibility-pass.html",
+    "purpose": "Page includes lang attribute, landmark region, sufficient contrast, and ARIA labeling — dedicated PASS case.",
+    "expectedPassRules": ["ACCESSIBILITY", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "124-accessibility-main",
+    "filename": "124-accessibility-main.html",
+    "purpose": "Page wraps content in a div[role=main] rather than a real <main> element.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ACCESSIBILITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "125-accessibility-aria",
+    "filename": "125-accessibility-aria.html",
+    "purpose": "Interactive div with role=button has no accessible name.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ACCESSIBILITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "126-accessibility-invalid-lang",
+    "filename": "126-accessibility-invalid-lang.html",
+    "purpose": "Root <html> lang attribute is set to a non-existent locale code.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ACCESSIBILITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "130-image-missing-alt",
+    "filename": "130-image-missing-alt.html",
+    "purpose": "Content image entirely lacking an alt attribute (duplicate of 010, scoped to IMAGE category).",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["ALT_TEXT"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "131-image-broken",
+    "filename": "131-image-broken.html",
+    "purpose": "Image src points at a corrupted/unreadable file.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "132-image-pass",
+    "filename": "132-image-pass.html",
+    "purpose": "Image has alt text, explicit width/height, and resolves successfully — dedicated PASS case.",
+    "expectedPassRules": ["ALT_TEXT", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "133-image-404",
+    "filename": "133-image-404.html",
+    "purpose": "Image src resolves to HTTP 404.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "134-image-missing-width",
+    "filename": "134-image-missing-width.html",
+    "purpose": "Image has alt text but no explicit width attribute, risking layout shift.",
+    "expectedPassRules": ["ALT_TEXT", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HTML_VALIDITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "135-image-missing-height",
+    "filename": "135-image-missing-height.html",
+    "purpose": "Image has alt text but no explicit height attribute, risking layout shift.",
+    "expectedPassRules": ["ALT_TEXT", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HTML_VALIDITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "136-image-cid",
+    "filename": "136-image-cid.html",
+    "purpose": "Image referenced via cid: scheme, typical of inline-attached email assets.",
+    "expectedPassRules": ["ALT_TEXT", "PRIVACY_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "137-image-base64",
+    "filename": "137-image-base64.html",
+    "purpose": "Image embedded as a base64 data URI tracking pixel.",
+    "expectedPassRules": ["ALT_TEXT", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "138-image-gif",
+    "filename": "138-image-gif.html",
+    "purpose": "Animated GIF used as content imagery, valid alt text present.",
+    "expectedPassRules": ["ALT_TEXT", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "139-image-webp",
+    "filename": "139-image-webp.html",
+    "purpose": "WebP-format content image, valid alt text present.",
+    "expectedPassRules": ["ALT_TEXT", "LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "140-broken-html",
+    "filename": "140-broken-html.html",
+    "purpose": "Bold and italic tags closed in the wrong order, producing invalid nesting.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HTML_VALIDITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "141-unclosed-tags",
+    "filename": "141-unclosed-tags.html",
+    "purpose": "Paragraph tag is left unclosed and swallows the following block element.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HTML_VALIDITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "142-invalid-table",
+    "filename": "142-invalid-table.html",
+    "purpose": "Table is missing closing </tr> and </table> tags.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HTML_VALIDITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "143-nested-forms",
+    "filename": "143-nested-forms.html",
+    "purpose": "A <form> element is nested inside another <form> element, which is invalid HTML.",
+    "expectedPassRules": ["LINK_VALIDATION", "PRIVACY_LINK"],
+    "expectedFailRules": ["HTML_VALIDITY"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "150-multi-failure",
+    "filename": "150-multi-failure.html",
+    "purpose": "Single email intentionally combining missing alt, broken anchor, duplicate id, generic CTA text, missing privacy link, and lorem ipsum content.",
+    "expectedPassRules": ["VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["ALT_TEXT", "BROKEN_ANCHOR", "DUPLICATE_ID", "LINK_TEXT_VALIDATION", "PRIVACY_LINK", "CONTENT_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "160-stress-large-email",
+    "filename": "160-stress-large-email.html",
+    "purpose": "Synthetic large email containing 1000 links and 500 images to validate engine performance and pagination under load.",
+    "expectedPassRules": ["ALT_TEXT", "PRIVACY_LINK", "VIEW_ONLINE_LINK"],
+    "expectedFailRules": ["LINK_VALIDATION"],
+    "expectedOverallStatus": "FAIL"
+  },
+  {
+    "scenarioId": "170-salesforce-layout",
+    "filename": "170-salesforce-layout.html",
+    "purpose": "Layout structured similarly to a Salesforce Marketing Cloud journey email (nested tables, VML-safe buttons).",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "171-adobe-layout",
+    "filename": "171-adobe-layout.html",
+    "purpose": "Layout structured similarly to an Adobe Campaign transactional template, two-column feature blocks.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "172-acoustic-layout",
+    "filename": "172-acoustic-layout.html",
+    "purpose": "Layout structured similarly to an Acoustic (Watson Marketing) responsive table newsletter.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "173-mailchimp-layout",
+    "filename": "173-mailchimp-layout.html",
+    "purpose": "Layout structured similarly to a Mailchimp campaign template using card-based product grids.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "174-hubspot-layout",
+    "filename": "174-hubspot-layout.html",
+    "purpose": "Layout structured similarly to a HubSpot marketing email with sidebar summary block.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "175-braze-layout",
+    "filename": "175-braze-layout.html",
+    "purpose": "Layout structured similarly to a Braze lifecycle/engagement email with feature-grid content.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "176-marketo-layout",
+    "filename": "176-marketo-layout.html",
+    "purpose": "Layout structured similarly to a Marketo nurture-stream email, single-column with strong CTA emphasis.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "177-eloqua-layout",
+    "filename": "177-eloqua-layout.html",
+    "purpose": "Layout structured similarly to an Oracle Eloqua program email, hero-image driven.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "180-perfect-accessible",
+    "filename": "180-perfect-accessible.html",
+    "purpose": "Golden baseline emphasizing full WCAG-aligned accessibility: lang, landmarks, contrast, alt text.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "181-perfect-minimal",
+    "filename": "181-perfect-minimal.html",
+    "purpose": "Golden baseline using the simplest possible valid single-column layout.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "182-perfect-responsive",
+    "filename": "182-perfect-responsive.html",
+    "purpose": "Golden baseline using a fully responsive table layout with media queries.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "190-invoice",
+    "filename": "190-invoice.html",
+    "purpose": "Realistic billing/invoice transactional email layout, fully passing.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "191-password-reset",
+    "filename": "191-password-reset.html",
+    "purpose": "Security-sensitive password reset transactional email, fully passing.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "192-welcome-email",
+    "filename": "192-welcome-email.html",
+    "purpose": "New-user welcome/onboarding email using an Outlook-compatible VML button.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "193-product-launch",
+    "filename": "193-product-launch.html",
+    "purpose": "Product-launch marketing email using a hero-image layout.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "194-corporate-announcement",
+    "filename": "194-corporate-announcement.html",
+    "purpose": "Company-wide announcement email using a sidebar layout.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "195-security-notification",
+    "filename": "195-security-notification.html",
+    "purpose": "Account security alert transactional email.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "196-support-case",
+    "filename": "196-support-case.html",
+    "purpose": "Customer support case status-update transactional email.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "197-feature-release",
+    "filename": "197-feature-release.html",
+    "purpose": "Product feature-release announcement using a feature-grid layout.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "198-maintenance-notice",
+    "filename": "198-maintenance-notice.html",
+    "purpose": "Scheduled-maintenance operational notice email.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  },
+  {
+    "scenarioId": "199-dark-mode-newsletter",
+    "filename": "199-dark-mode-newsletter.html",
+    "purpose": "Newsletter with dark-mode CSS media queries and mobile-responsive stacking, fully passing.",
+    "expectedPassRules": ["LINK_VALIDATION", "VIEW_ONLINE_LINK", "LINK_TEXT_VALIDATION", "CTA_VALIDATION", "PRIVACY_LINK", "BROKEN_ANCHOR", "DUPLICATE_ID", "CONTENT_VALIDATION", "ALT_TEXT", "HEADING_STRUCTURE", "ACCESSIBILITY", "HTML_VALIDITY"],
+    "expectedFailRules": [],
+    "expectedOverallStatus": "PASS"
+  }
+  ]
+}

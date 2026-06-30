@@ -41,6 +41,18 @@ import java.util.Objects;
  * <p>Every finding includes the exact, trimmed text of the heading element
  * that causes the violation.</p>
  *
+ * <h2>Skipped-level findings format</h2>
+ * <p>Every skipped heading level produces an individual structured finding
+ * via {@link FindingFormatter#structuredFinding(String, String, String)},
+ * e.g.:</p>
+ * <pre>
+ * Heading Hierarchy
+ *   Element         : Products
+ *   Detail          : Found: H3 — Expected: H2 — Heading levels should increase sequentially.
+ * </pre>
+ * <p>Multiple skipped-level violations are never aggregated into one long
+ * string.</p>
+ *
  * <h2>Static DOM parsing only</h2>
  * <p>All heading levels and text are read directly from the live DOM in a
  * single {@link Page#evaluate(String)} round-trip, in document order. No
@@ -69,6 +81,10 @@ public final class HeadingHierarchyRule implements AuditRule {
     private static final int MAX_FINDINGS = 25;
 
     private static final String EMPTY_HEADING_TEXT_PLACEHOLDER = "(empty heading text)";
+
+    /** Shared business-friendly explanation appended to every skipped-level finding. */
+    private static final String SKIPPED_LEVEL_REASON =
+            "Heading levels should increase sequentially.";
 
     // -------------------------------------------------------------------------
     // JavaScript used to extract all headings in one round-trip
@@ -109,6 +125,16 @@ public final class HeadingHierarchyRule implements AuditRule {
     @Override
     public String description() {
         return DESCRIPTION;
+    }
+
+    @Override
+    public String passImpact() {
+        return "Heading Hierarchy Is Passed.";
+    }
+
+    @Override
+    public String failImpact() {
+        return "Heading Hierarchy Is Failed.";
     }
 
     @Override
@@ -168,6 +194,9 @@ public final class HeadingHierarchyRule implements AuditRule {
     /**
      * Checks for a missing {@code <h1>} (Check 1) or multiple {@code <h1>}
      * elements (Check 2).
+     *
+     * <p>Unchanged by this enhancement — only skipped-level findings
+     * (Check 3, below) were converted to {@link FindingFormatter}.</p>
      */
     private static void checkH1Presence(
             final List<HeadingEntry> headings,
@@ -202,6 +231,15 @@ public final class HeadingHierarchyRule implements AuditRule {
      * Walks the heading list in document order and flags any transition where
      * the heading level increases by more than one (e.g. h1 → h3, h2 → h4).
      * Transitions that decrease or increase by exactly one are valid.
+     *
+     * <p>Each violation is reported via
+     * {@link FindingFormatter#structuredFinding(String, String, String)},
+     * e.g.:</p>
+     * <pre>
+     * Heading Hierarchy
+     *   Element         : Products
+     *   Detail          : Found: H3 — Expected: H2 — Heading levels should increase sequentially.
+     * </pre>
      */
     private static void checkSkippedLevels(
             final List<HeadingEntry> headings,
@@ -213,12 +251,13 @@ public final class HeadingHierarchyRule implements AuditRule {
 
             if (current.level() > previous.level() + 1) {
                 final int expectedLevel = previous.level() + 1;
-                findings.add(String.format(
-                        "Skipped heading level: <h%d> \"%s\" follows <h%d> \"%s\" "
-                                + "(expected <h%d>)",
-                        current.level(), displayText(current.text()),
-                        previous.level(), displayText(previous.text()),
-                        expectedLevel));
+
+                findings.add(FindingFormatter.structuredFinding(
+                        "Heading Hierarchy",
+                        displayText(current.text()),
+                        String.format(
+                                "Found: H%d \u2014 Expected: H%d \u2014 %s",
+                                current.level(), expectedLevel, SKIPPED_LEVEL_REASON)));
             }
         }
     }
@@ -237,8 +276,9 @@ public final class HeadingHierarchyRule implements AuditRule {
         }
 
         final List<String> capped = new ArrayList<>(findings.subList(0, MAX_FINDINGS));
-        capped.add(String.format("… and %d more heading hierarchy issue(s)",
-                findings.size() - MAX_FINDINGS));
+        capped.add(FindingFormatter.generic(RULE_ID,
+                String.format("… and %d more heading hierarchy issue(s)",
+                        findings.size() - MAX_FINDINGS)));
         return capped;
     }
 

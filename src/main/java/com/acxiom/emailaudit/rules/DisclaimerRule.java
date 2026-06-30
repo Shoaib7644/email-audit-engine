@@ -3,6 +3,8 @@ package com.acxiom.emailaudit.rules;
 import com.microsoft.playwright.Page;
 import com.acxiom.emailaudit.rules.util.LinkHealthChecker;
 import com.acxiom.emailaudit.rules.util.ValidationResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -11,6 +13,9 @@ import java.util.List;
 import java.util.Objects;
 
 public final class DisclaimerRule implements AuditRule {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(DisclaimerRule.class);
 
     public static final String RULE_ID =
             "DISCLAIMER_PRESENT";
@@ -33,6 +38,16 @@ public final class DisclaimerRule implements AuditRule {
     @Override
     public RuleSeverity severity() {
         return RuleSeverity.HIGH;
+    }
+
+    @Override
+    public String passImpact() {
+        return "Mandatory compliance messaging is present.";
+    }
+
+    @Override
+    public String failImpact() {
+        return "Mandatory compliance messaging is incomplete.";
     }
 
     @Override
@@ -97,11 +112,12 @@ public final class DisclaimerRule implements AuditRule {
 
             if (!Boolean.TRUE.equals(disclaimerFound)) {
 
-                return RuleResult.fail(
-                        this,
-                        startMs,
-                        List.of(
-                                "Reply-to disclaimer not found"));
+                String finding = FindingFormatter.disclaimerFinding(
+                        false, "Mandatory legal disclaimer not found.");
+
+                return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                        .withFindings(List.of(finding))
+                        .build();
             }
 
             List<String> findings =
@@ -119,9 +135,11 @@ public final class DisclaimerRule implements AuditRule {
 
                 if (!unsubscribeCheck.valid()) {
 
-                    findings.add(
-                            "Unsubscribe link is broken: "
-                                    + unsubscribeCheck.message());
+                    findings.add(FindingFormatter.linkFinding()
+                            .title("Unsubscribe Link")
+                            .href(unsubscribeHref)
+                            .failed(unsubscribeCheck.message())
+                            .build());
                 }
             }
 
@@ -137,25 +155,31 @@ public final class DisclaimerRule implements AuditRule {
 
                 if (!prefCheck.valid()) {
 
-                    findings.add(
-                            "Manage Preferences link is broken: "
-                                    + prefCheck.message());
+                    findings.add(FindingFormatter.linkFinding()
+                            .title("Manage Preferences Link")
+                            .href(preferencesHref)
+                            .failed(prefCheck.message())
+                            .build());
                 }
             }
 
             if (!findings.isEmpty()) {
 
-                return RuleResult.fail(
-                        this,
-                        startMs,
-                        findings);
+                return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                        .withFindings(findings)
+                        .build();
             }
 
-            return RuleResult.pass(
-                    this,
-                    startMs);
+            String passFinding = FindingFormatter.disclaimerFinding(
+                    true, "Required disclaimer text is present.");
+
+            return RuleResult.builder(this, RuleResult.Status.PASS, startMs)
+                    .withFindings(List.of(passFinding))
+                    .build();
 
         } catch (Exception ex) {
+
+            log.error("Disclaimer validation failed", ex);
 
             return RuleResult.error(
                     this,

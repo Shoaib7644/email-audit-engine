@@ -139,36 +139,33 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
-
                 <configuration>
-                    <mainClass>
-                        com.acxiom.emailaudit.gui.AuditApplication
-                    </mainClass>
+                    <!-- Keep this for development testing running 'mvn javafx:run' -->
+                    <mainClass>com.acxiom.emailaudit.gui.AuditApplication</mainClass>
                 </configuration>
             </plugin>
+
+            <!-- UNIFIED SINGLE ASSEMBLY PLUGIN DECLARATION -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${maven-assembly.version}</version>
-
                 <configuration>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-
                     <archive>
                         <manifest>
-                            <mainClass>
-                                com.acxiom.emailaudit.gui.AuditApplication
-                            </mainClass>
+                            <!-- Hardcoded fixed launcher that completely bypasses JavaFX modularity restrictions -->
+                            <mainClass>com.acxiom.emailaudit.gui.AppLauncher</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
-
                 <executions>
                     <execution>
                         <id>make-assembly</id>

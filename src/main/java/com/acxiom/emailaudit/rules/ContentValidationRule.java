@@ -25,6 +25,31 @@ import java.util.regex.Pattern;
  *       {@code [FIRST_NAME]}, {@code %7BFIRST_NAME%7D}, {@code $$TOKEN$$}).</li>
  * </ol>
  *
+ * <h2>Findings format</h2>
+ * <p>Every finding produced by this rule is built via
+ * {@link FindingFormatter#structuredFinding(String, String, String)}, giving
+ * each violation a consistent {@code Content Validation} title, an
+ * {@code Element} field identifying where the issue was found (e.g.
+ * {@code "Document Head"}, {@code "Body"}, {@code "Paragraph"}), and a
+ * {@code Detail} field with a concise, business-readable reason. For
+ * example:</p>
+ * <pre>
+ * Content Validation
+ *   Element         : Paragraph
+ *   Detail          : Lorem Ipsum placeholder detected.
+ * </pre>
+ * <p>Multiple violations are never aggregated into one long string — each
+ * check produces at most one finding, and the placeholder-token check still
+ * reports all distinct tokens within its single finding's detail text.</p>
+ *
+ * <p>When every check passes, a single PASS finding is reported, also via
+ * {@link FindingFormatter#structuredFinding(String, String, String)}:</p>
+ * <pre>
+ * Content Validation
+ *   Detail          : Validation: PASSED
+ *                      Reason: Required content present.
+ * </pre>
+ *
  * <h2>Extraction strategy</h2>
  * <p>All text is extracted via {@link Page#innerText(String, Page.InnerTextOptions)}
  * so only <em>visible</em> text participates in checks — hidden elements,
@@ -49,6 +74,26 @@ public final class ContentValidationRule implements AuditRule {
     private static final String DESCRIPTION =
             "Validates page content for missing title, empty body, lorem ipsum filler, "
                     + "and un-replaced placeholder tokens.";
+
+    // -------------------------------------------------------------------------
+    // Findings format constants
+    // -------------------------------------------------------------------------
+
+    /** Shared business-friendly title used for every finding from this rule. */
+    private static final String FINDING_TITLE = "Content Validation";
+
+    /** Element label used when the issue concerns the document's <title>/<head>. */
+    private static final String ELEMENT_DOCUMENT_HEAD = "Document Head";
+
+    /** Element label used when the issue concerns the overall <body> content. */
+    private static final String ELEMENT_BODY = "Body";
+
+    /** Element label used when the issue is filler text within a paragraph-level block. */
+    private static final String ELEMENT_PARAGRAPH = "Paragraph";
+
+    /** Detail text reported on the single PASS finding when all checks succeed. */
+    private static final String PASS_DETAIL =
+            "Validation: PASSED\nReason: Required content present.";
 
     // -------------------------------------------------------------------------
     // Thresholds
@@ -132,6 +177,16 @@ public final class ContentValidationRule implements AuditRule {
     }
 
     @Override
+    public String passImpact() {
+        return "Content Validation is Passed.";
+    }
+
+    @Override
+    public String failImpact() {
+        return "Content Validation is Failed.";
+    }
+
+    @Override
     public RuleCategory category() {
         return RuleCategory.CONTENT;
     }
@@ -175,11 +230,19 @@ public final class ContentValidationRule implements AuditRule {
 
         if (findings.isEmpty()) {
             log.info("[{}] All content checks passed", RULE_ID);
-            return RuleResult.pass(this, startMs);
+            final String passFinding = FindingFormatter.structuredFinding(
+                    FINDING_TITLE,
+                    null,
+                    PASS_DETAIL);
+            return RuleResult.builder(this, RuleResult.Status.PASS, startMs)
+                    .withFindings(List.of(passFinding))
+                    .build();
         }
 
         log.warn("[{}] {} content issue(s) found", RULE_ID, findings.size());
-        return RuleResult.fail(this, startMs, findings);
+        return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                .withFindings(findings)
+                .build();
     }
 
     // -------------------------------------------------------------------------
@@ -188,14 +251,23 @@ public final class ContentValidationRule implements AuditRule {
 
     /**
      * Check 1 – Missing or blank {@code <title>}.
+     *
+     * <p>Example output:
+     * <pre>
+     * Content Validation
+     *   Element         : Document Head
+     *   Detail          : Page title is missing or blank.
+     * </pre>
      */
     private static void checkMissingTitle(
             final String titleText,
             final List<String> findings) {
 
         if (titleText == null || titleText.isBlank()) {
-            final String finding = "Missing or blank <title> element – "
-                    + "every HTML email should have a descriptive title.";
+            final String finding = FindingFormatter.structuredFinding(
+                    FINDING_TITLE,
+                    ELEMENT_DOCUMENT_HEAD,
+                    "Page title is missing or blank.");
             findings.add(finding);
             log.debug("[CONTENT] {}", finding);
         }
@@ -203,6 +275,13 @@ public final class ContentValidationRule implements AuditRule {
 
     /**
      * Check 2 – Body with insufficient visible text content.
+     *
+     * <p>Example output:
+     * <pre>
+     * Content Validation
+     *   Element         : Body
+     *   Detail          : Page content appears empty or failed to render.
+     * </pre>
      */
     private static void checkEmptyContent(
             final String bodyText,
@@ -213,10 +292,10 @@ public final class ContentValidationRule implements AuditRule {
                 : "";
 
         if (stripped.length() < MIN_CONTENT_LENGTH) {
-            final String finding = String.format(
-                    "Body content too short: %d non-whitespace character(s) found "
-                            + "(minimum %d required) – page may be empty or failed to render.",
-                    stripped.length(), MIN_CONTENT_LENGTH);
+            final String finding = FindingFormatter.structuredFinding(
+                    FINDING_TITLE,
+                    ELEMENT_BODY,
+                    "Page content appears empty or failed to render.");
             findings.add(finding);
             log.debug("[CONTENT] {}", finding);
         }
@@ -224,6 +303,13 @@ public final class ContentValidationRule implements AuditRule {
 
     /**
      * Check 3 – Lorem Ipsum filler text.
+     *
+     * <p>Example output:
+     * <pre>
+     * Content Validation
+     *   Element         : Paragraph
+     *   Detail          : Lorem Ipsum placeholder detected.
+     * </pre>
      */
     private static void checkLoremIpsum(
             final String bodyText,
@@ -233,11 +319,10 @@ public final class ContentValidationRule implements AuditRule {
 
         final var matcher = LOREM_IPSUM_PATTERN.matcher(bodyText);
         if (matcher.find()) {
-            final String matched = matcher.group();
-            final String finding = String.format(
-                    "Lorem Ipsum placeholder text detected near '%s' – "
-                            + "replace with real content before publishing.",
-                    truncate(matched, 60));
+            final String finding = FindingFormatter.structuredFinding(
+                    FINDING_TITLE,
+                    ELEMENT_PARAGRAPH,
+                    "Lorem Ipsum placeholder detected.");
             findings.add(finding);
             log.debug("[CONTENT] {}", finding);
         }
@@ -245,7 +330,15 @@ public final class ContentValidationRule implements AuditRule {
 
     /**
      * Check 4 – Un-replaced template placeholder tokens.
-     * Collects all distinct matches (up to a cap) to give a complete picture.
+     * Collects all distinct matches (up to a cap) and reports them together
+     * in a single finding's detail text.
+     *
+     * <p>Example output:
+     * <pre>
+     * Content Validation
+     *   Element         : Body
+     *   Detail          : Un-replaced placeholder token(s) detected: {{firstName}}, [LAST_NAME]
+     * </pre>
      */
     private static void checkPlaceholders(
             final String bodyText,
@@ -266,13 +359,15 @@ public final class ContentValidationRule implements AuditRule {
 
         if (hits.isEmpty()) return;
 
-        final String finding = String.format(
-                "Un-replaced placeholder token(s) detected (%d unique): %s%s – "
-                        + "ensure all template variables are substituted before delivery.",
-                hits.size(),
+        final String detail = String.format(
+                "Un-replaced placeholder token(s) detected: %s%s",
                 String.join(", ", hits),
                 hits.size() >= cap ? " …" : "");
 
+        final String finding = FindingFormatter.structuredFinding(
+                FINDING_TITLE,
+                ELEMENT_BODY,
+                detail);
         findings.add(finding);
         log.debug("[CONTENT] {}", finding);
     }
@@ -325,11 +420,5 @@ public final class ContentValidationRule implements AuditRule {
         } catch (final Exception e) {
             return "<unavailable>";
         }
-    }
-
-    private static String truncate(final String value, final int maxLength) {
-        if (value == null)              return "";
-        if (value.length() <= maxLength) return value;
-        return value.substring(0, maxLength) + "…";
     }
 }

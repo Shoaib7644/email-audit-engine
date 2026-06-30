@@ -3,14 +3,14 @@
 INPUT_DIR="./input"
 mkdir -p "$INPUT_DIR"
 
-echo "Generating 10 highly diverse HTML files with randomized audit issues..."
+echo "Generating 5 highly diverse HTML files with randomized audit issues..."
 
 # --- KEYWORD ARRAYS FROM JSON ---
 PRIVACY_KEYWORDS=("privacy" "privacy policy" "privacy notice")
 VIEW_ONLINE_KEYWORDS=("view online" "view in browser" "open in browser" "web version")
 DISCLAIMER_KEYWORDS=("reply-to" "do not reply" "please do not reply" "this mailbox is not monitored" "unmonitored mailbox")
 
-for i in {1..10}
+for i in {1..5}
 do
     UUID=$(uuidgen 2>/dev/null || echo "ID-$RANDOM-$i")
     TIMESTAMP=$(date +"%Y-%m-%dT%H:%M:%S")
@@ -229,4 +229,4 @@ EOF
 
 done
 
-echo "Done! 10 unique documents matching multi-rule profiles successfully prepared."
+echo "Done! 5 unique documents matching multi-rule profiles successfully prepared."

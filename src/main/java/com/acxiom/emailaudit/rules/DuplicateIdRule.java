@@ -31,6 +31,25 @@ import java.util.Objects;
  * each including the duplicated {@code id} value and its total occurrence
  * count.</p>
  *
+ * <h2>Findings format</h2>
+ * <p>Every duplicated {@code id} produces an individual structured finding
+ * via {@link FindingFormatter#structuredFinding(String, String, String)},
+ * e.g.:</p>
+ * <pre>
+ * Duplicate HTML ID
+ *   Element         : duplicate-header
+ *   Detail          : Found 3 elements sharing this id.
+ * </pre>
+ * <p>Multiple duplicate IDs are never aggregated into one long string.</p>
+ *
+ * <p>When no duplicates are found, a single PASS finding is reported via
+ * {@link FindingFormatter#structuredFinding(String, String, String)}:</p>
+ * <pre>
+ * Duplicate ID Validation
+ *   Detail          : Validation: PASSED
+ *                      Reason: No duplicate IDs detected.
+ * </pre>
+ *
  * <h2>Extraction strategy</h2>
  * <p>This rule is <strong>DOM-parsing only</strong>: all {@code id} values are
  * read directly from the live DOM via a single {@link Page#evaluate(String)}
@@ -61,6 +80,16 @@ public final class DuplicateIdRule implements AuditRule {
 
     /** Caps the number of individual findings to keep report output readable. */
     private static final int MAX_FINDINGS = 25;
+
+    /** Title used for each duplicate-id finding. */
+    private static final String DUPLICATE_FINDING_TITLE = "Duplicate HTML ID";
+
+    /** Title used for the single PASS finding when no duplicates exist. */
+    private static final String PASS_FINDING_TITLE = "Duplicate ID Validation";
+
+    /** Detail text reported when no duplicate id values were found. */
+    private static final String PASS_DETAIL =
+            "Validation: PASSED\nReason: No duplicate IDs detected.";
 
     // -------------------------------------------------------------------------
     // JavaScript used to extract all id values in one round-trip
@@ -102,6 +131,15 @@ public final class DuplicateIdRule implements AuditRule {
     }
 
     @Override
+    public String passImpact() {
+        return "Duplicate Id Is Not Present.";
+    }
+
+    @Override
+    public String failImpact() {
+        return "Duplicate Id Is Present.";
+    }
+    @Override
     public RuleCategory category() {
         return RuleCategory.HTML;
     }
@@ -141,11 +179,19 @@ public final class DuplicateIdRule implements AuditRule {
 
         if (findings.isEmpty()) {
             log.info("[{}] No duplicate id values found", RULE_ID);
-            return RuleResult.pass(this, startMs);
+            final String passFinding = FindingFormatter.structuredFinding(
+                    PASS_FINDING_TITLE,
+                    null,
+                    PASS_DETAIL);
+            return RuleResult.builder(this, RuleResult.Status.PASS, startMs)
+                    .withFindings(List.of(passFinding))
+                    .build();
         }
 
         log.warn("[{}] {} duplicate id value(s) found", RULE_ID, findings.size());
-        return RuleResult.fail(this, startMs, findings);
+        return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                .withFindings(findings)
+                .build();
     }
 
     // -------------------------------------------------------------------------
@@ -165,9 +211,18 @@ public final class DuplicateIdRule implements AuditRule {
     }
 
     /**
-     * Builds one finding per duplicated {@code id} value, including the value
-     * and its total occurrence count. Capped at {@value #MAX_FINDINGS} with an
-     * overflow summary appended if exceeded.
+     * Builds one finding per duplicated {@code id} value via
+     * {@link FindingFormatter#structuredFinding(String, String, String)}.
+     * Each finding carries the duplicated {@code id} as the element and the
+     * occurrence count as the detail. Capped at {@value #MAX_FINDINGS} with
+     * an overflow summary appended if exceeded.
+     *
+     * <p>Example output for one duplicate:
+     * <pre>
+     * Duplicate HTML ID
+     *   Element         : duplicate-header
+     *   Detail          : Found 3 elements sharing this id.
+     * </pre>
      */
     private static List<String> buildFindings(final Map<String, Integer> occurrenceCounts) {
         final List<String> duplicates = new ArrayList<>();
@@ -175,8 +230,10 @@ public final class DuplicateIdRule implements AuditRule {
         for (final Map.Entry<String, Integer> entry : occurrenceCounts.entrySet()) {
             final int count = entry.getValue();
             if (count > 1) {
-                duplicates.add(String.format(
-                        "Duplicate id '%s' found %d times", entry.getKey(), count));
+                duplicates.add(FindingFormatter.structuredFinding(
+                        DUPLICATE_FINDING_TITLE,
+                        entry.getKey(),
+                        String.format("Found %d elements sharing this id.", count)));
             }
         }
 
@@ -185,8 +242,9 @@ public final class DuplicateIdRule implements AuditRule {
         }
 
         final List<String> capped = new ArrayList<>(duplicates.subList(0, MAX_FINDINGS));
-        capped.add(String.format("… and %d more duplicate id value(s)",
-                duplicates.size() - MAX_FINDINGS));
+        capped.add(FindingFormatter.generic(RULE_ID,
+                String.format("… and %d more duplicate id value(s)",
+                        duplicates.size() - MAX_FINDINGS)));
         return capped;
     }
 

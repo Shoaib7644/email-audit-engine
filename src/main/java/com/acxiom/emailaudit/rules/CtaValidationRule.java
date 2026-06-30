@@ -56,6 +56,22 @@ import java.util.Objects;
  * <p>A single CTA may produce more than one finding if it has multiple issues
  * (e.g. a hidden button with no text).</p>
  *
+ * <h2>PASS evidence</h2>
+ * <p>When the rule passes, it now also returns one evidence finding per
+ * valid CTA candidate via {@link FindingFormatter#linkFinding()}, so the
+ * dashboard can show exactly which CTAs were reviewed and confirmed
+ * functional, e.g.:</p>
+ * <pre>
+ * CTA Validation
+ *   Displayed Text  : Shop Now
+ *   Destination     : https://brand.com/shop
+ *   Validation      : PASSED
+ *   Reason          : CTA is visible with valid text and href
+ * </pre>
+ * <p>{@code <button>} elements (which have no href to validate) report
+ * {@code "(not applicable)"} as the destination, mirroring the FAIL-path
+ * convention already used in {@link #buildFindings(List)}.</p>
+ *
  * <h2>DOM and Playwright usage</h2>
  * <p>CTA detection, text extraction, and computed-style checks are all
  * performed via a single {@link Page#evaluate(String)} round-trip using
@@ -85,7 +101,8 @@ public final class CtaValidationRule implements AuditRule {
     /** Caps the number of individual findings to keep report output readable. */
     private static final int MAX_FINDINGS = 25;
 
-    private static final String EMPTY_TEXT_PLACEHOLDER = "(empty text)";
+    /** Caps the number of PASS evidence findings to keep report output readable. */
+    private static final int MAX_PASS_EVIDENCE = 25;
 
     // -------------------------------------------------------------------------
     // JavaScript used to detect CTA candidates and their state in one round-trip
@@ -177,6 +194,16 @@ public final class CtaValidationRule implements AuditRule {
     }
 
     @Override
+    public String passImpact() {
+        return "CTA Validation is Present";
+    }
+
+    @Override
+    public String failImpact() {
+        return "CTA Validation is Failed or Incomplete.";
+    }
+
+    @Override
     public RuleCategory category() {
         return RuleCategory.CONTENT;
     }
@@ -190,9 +217,10 @@ public final class CtaValidationRule implements AuditRule {
      * Runs CTA validation against {@code page}.
      *
      * @param page live, fully loaded Playwright page; must not be {@code null}
-     * @return PASS when every detected CTA has visible text, a valid href
-     *         (for links), and is not hidden; FAIL when one or more CTAs
-     *         violate these checks; ERROR when DOM extraction itself fails
+     * @return PASS (with evidence findings) when every detected CTA has
+     *         visible text, a valid href (for links), and is not hidden;
+     *         FAIL when one or more CTAs violate these checks; ERROR when
+     *         DOM extraction itself fails
      */
     @Override
     public RuleResult execute(final Page page) {
@@ -215,7 +243,9 @@ public final class CtaValidationRule implements AuditRule {
 
         if (findings.isEmpty()) {
             log.info("[{}] All CTAs are valid", RULE_ID);
-            return RuleResult.pass(this, startMs);
+            return RuleResult.builder(this, RuleResult.Status.PASS, startMs)
+                    .withFindings(buildPassEvidence(ctas))
+                    .build();
         }
 
         log.warn("[{}] {} CTA issue(s) found", RULE_ID, findings.size());
@@ -227,28 +257,55 @@ public final class CtaValidationRule implements AuditRule {
     // -------------------------------------------------------------------------
 
     /**
-     * Builds findings for every CTA that violates one or more checks. A single
-     * CTA may produce multiple findings. Capped at {@value #MAX_FINDINGS} with
-     * an overflow summary appended if exceeded.
+     * Builds individual non-aggregated findings for every CTA that violates structural validation.
+     * Each failure generates its own finding formatted via FindingFormatter.linkFinding().
+     * Capped at {@value #MAX_FINDINGS} with an overflow marker if exceeded.
      */
     private static List<String> buildFindings(final List<CtaEntry> ctas) {
         final List<String> findings = new ArrayList<>();
 
         for (final CtaEntry cta : ctas) {
-            final String label = describeCta(cta);
+            final String textValue = cta.text().isBlank() ? "(empty text)" : cta.text();
 
+            // Map the display parameters for the destination field
+            final String destinationValue;
+            if ("button".equals(cta.tag())) {
+                destinationValue = "(not applicable)";
+            } else {
+                destinationValue = (cta.href() == null || cta.href().isBlank()) ? "(empty href)" : cta.href();
+            }
+
+            // Check 1: CTA Visibility Rule Violation
             if (cta.hidden()) {
-                findings.add(String.format(
-                        "CTA is hidden: %s (display:none, visibility:hidden, or opacity:0)",
-                        label));
+                String finding = FindingFormatter.linkFinding()
+                        .title("CTA Validation")
+                        .displayText(textValue)
+                        .href(destinationValue)
+                        .failed("CTA hidden using display:none")
+                        .build();
+                findings.add(finding);
             }
 
+            // Check 2: Empty Content Rule Violation
             if (cta.text().isBlank()) {
-                findings.add(String.format("CTA has no visible text: %s", label));
+                String finding = FindingFormatter.linkFinding()
+                        .title("CTA Validation")
+                        .displayText(textValue)
+                        .href(destinationValue)
+                        .failed("CTA has no visible text")
+                        .build();
+                findings.add(finding);
             }
 
+            // Check 3: Missing Target Href Navigation Rule Violation (Only applies to anchor tags)
             if ("a".equals(cta.tag()) && (cta.href() == null || cta.href().isBlank())) {
-                findings.add(String.format("CTA link has no href: %s", label));
+                String finding = FindingFormatter.linkFinding()
+                        .title("CTA Validation")
+                        .displayText(textValue)
+                        .href("(empty href)")
+                        .failed("CTA has no href")
+                        .build();
+                findings.add(finding);
             }
         }
 
@@ -263,12 +320,60 @@ public final class CtaValidationRule implements AuditRule {
     }
 
     /**
-     * Builds a human-readable label identifying a CTA in findings, e.g.
-     * {@code "<a> \"Shop Now\""} or {@code "<button> (empty text)"}.
+     * Builds one PASS evidence finding per valid CTA candidate via
+     * {@link FindingFormatter#linkFinding()}, capped at
+     * {@value #MAX_PASS_EVIDENCE} with an overflow summary appended if
+     * exceeded.
+     *
+     * <p>Example output for an {@code <a>} CTA:
+     * <pre>
+     * CTA Validation
+     *   Displayed Text  : Shop Now
+     *   Destination     : https://brand.com/shop
+     *   Validation      : PASSED
+     *   Reason          : CTA is visible with valid text and href
+     * </pre>
+     * <p>Example output for a {@code <button>} CTA (no href to validate):
+     * <pre>
+     * CTA Validation
+     *   Displayed Text  : Submit
+     *   Destination     : (not applicable)
+     *   Validation      : PASSED
+     *   Reason          : CTA is visible with valid text
+     * </pre>
      */
-    private static String describeCta(final CtaEntry cta) {
-        final String text = cta.text().isBlank() ? EMPTY_TEXT_PLACEHOLDER : "\"" + cta.text() + "\"";
-        return String.format("<%s> %s", cta.tag(), text);
+    private static List<String> buildPassEvidence(final List<CtaEntry> ctas) {
+        final List<String> evidence = new ArrayList<>();
+
+        for (final CtaEntry cta : ctas) {
+            final String textValue = cta.text().isBlank() ? "(empty text)" : cta.text();
+
+            final boolean isButton = "button".equals(cta.tag());
+            final String destinationValue = isButton
+                    ? "(not applicable)"
+                    : (cta.href() == null || cta.href().isBlank() ? "(empty href)" : cta.href());
+
+            final String reason = isButton
+                    ? "CTA is visible with valid text"
+                    : "CTA is visible with valid text and href";
+
+            evidence.add(FindingFormatter.linkFinding()
+                    .title("CTA Validation")
+                    .displayText(textValue)
+                    .href(destinationValue)
+                    .passed(reason)
+                    .build());
+        }
+
+        if (evidence.size() <= MAX_PASS_EVIDENCE) {
+            return evidence;
+        }
+
+        final List<String> capped = new ArrayList<>(evidence.subList(0, MAX_PASS_EVIDENCE));
+        capped.add(FindingFormatter.generic(RULE_ID,
+                String.format("… and %d more valid CTA(s)",
+                        evidence.size() - MAX_PASS_EVIDENCE)));
+        return capped;
     }
 
     // -------------------------------------------------------------------------

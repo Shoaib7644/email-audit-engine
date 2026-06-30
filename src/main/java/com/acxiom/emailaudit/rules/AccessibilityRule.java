@@ -131,6 +131,16 @@ public final class AccessibilityRule implements AuditRule {
     }
 
     @Override
+    public String passImpact() {
+        return "Accessibility scan completed with no violations.";
+    }
+
+    @Override
+    public String failImpact() {
+        return "Accessibility scan found violations.";
+    }
+
+    @Override
     public RuleCategory category() {
         return RuleCategory.ACCESSIBILITY;
     }
@@ -148,11 +158,6 @@ public final class AccessibilityRule implements AuditRule {
     /**
      * Runs axe-core against {@code page} and returns a {@link RuleResult}
      * containing one finding per violation.
-     *
-     * <p>Each finding string follows the format:</p>
-     * <pre>
-     *   [impact] ruleId – description | nodes: selector1; selector2
-     * </pre>
      *
      * @param page live, fully loaded Playwright page; must not be {@code null}
      * @return PASS when no violations are found, FAIL when violations exist,
@@ -206,52 +211,45 @@ public final class AccessibilityRule implements AuditRule {
     // -------------------------------------------------------------------------
 
     /**
-     * Converts each axe {@link Rule} violation into a human-readable finding
-     * string suitable for display in ExtentReports.
+     * Converts each node of every axe {@link Rule} violation into a structured multi-line
+     * finding string using {@link FindingFormatter#linkFinding()}.
      */
     private static List<String> buildFindings(final List<Rule> violations) {
-        final List<String> findings = new ArrayList<>(violations.size());
+        final List<String> findings = new ArrayList<>();
 
         for (final Rule violation : violations) {
-            final String impact      = normaliseImpact(violation.getImpact());
-            final String axeRuleId   = nullSafe(violation.getId());
-            final String desc        = nullSafe(violation.getDescription());
-            final String nodeList    = buildNodeSummary(violation.getNodes());
-            final String helpUrl     = nullSafe(violation.getHelpUrl());
+            final String axeRuleId = nullSafe(violation.getId());
+            final String desc      = nullSafe(violation.getDescription());
+            final String helpUrl   = nullSafe(violation.getHelpUrl());
+            final List<CheckedNode> nodes = violation.getNodes();
 
-            final String finding = String.format(
-                    "[%s] %s – %s | nodes: %s | help: %s",
-                    impact, axeRuleId, desc, nodeList, helpUrl);
+            if (nodes == null || nodes.isEmpty()) {
+                // Keep the information intact if no individual element targets are provided
+                String finding = FindingFormatter.linkFinding()
+                        .title("Accessibility Violation")
+                        .displayText("(no nodes)")
+                        .href(helpUrl)
+                        .failed(desc)
+                        .build();
+                findings.add(finding);
+                log.debug("Violation: {}", axeRuleId);
+            } else {
+                for (final CheckedNode node : nodes) {
+                    final String elementSelector = extractSelector(node);
 
-            findings.add(finding);
-            log.debug("Violation: {}", finding);
+                    String finding = FindingFormatter.linkFinding()
+                            .title("Accessibility Violation")
+                            .displayText(elementSelector)
+                            .href(helpUrl)
+                            .failed(desc)
+                            .build();
+                    findings.add(finding);
+                }
+                log.debug("Violation rule extracted: {}, nodes unrolled: {}", axeRuleId, nodes.size());
+            }
         }
 
         return Collections.unmodifiableList(findings);
-    }
-
-    /**
-     * Builds a semicolon-separated list of affected CSS selectors, capped at
-     * five entries to keep finding strings readable.
-     */
-    private static String buildNodeSummary(final List<CheckedNode> nodes) {
-        if (nodes == null || nodes.isEmpty()) {
-            return "(no nodes)";
-        }
-
-        final int cap = Math.min(nodes.size(), 5);
-        final StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < cap; i++) {
-            if (i > 0) sb.append("; ");
-            sb.append(extractSelector(nodes.get(i)));
-        }
-
-        if (nodes.size() > cap) {
-            sb.append(" … (+").append(nodes.size() - cap).append(" more)");
-        }
-
-        return sb.toString();
     }
 
     /**
@@ -306,12 +304,6 @@ public final class AccessibilityRule implements AuditRule {
             case "minor"    -> RuleSeverity.LOW;
             default         -> RuleSeverity.INFO;
         };
-    }
-
-    private static String normaliseImpact(final String impact) {
-        return impact != null && !impact.isBlank()
-                ? impact.toUpperCase()
-                : "UNKNOWN";
     }
 
     private static List<Rule> safeViolations(final AxeResults results) {

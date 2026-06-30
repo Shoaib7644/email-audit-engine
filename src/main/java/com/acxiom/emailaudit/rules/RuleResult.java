@@ -16,6 +16,8 @@ import java.util.Objects;
  *   ├─ status          – PASS | FAIL | ERROR | SKIPPED
  *   ├─ severity        – inherited from the rule at creation time
  *   ├─ findings        – zero or more human-readable finding messages
+ *   ├─ businessImpact  – status-aware impact statement, from
+ *   │                    AuditRule#passImpact() or AuditRule#failImpact()
  *   ├─ errorMessage    – populated only when status == ERROR
  *   ├─ durationMs      – wall-clock execution time in milliseconds
  *   └─ evaluatedAt     – UTC instant the result was created
@@ -37,6 +39,15 @@ import java.util.Objects;
  * // Skipped (rule disabled or precondition not met)
  * return RuleResult.skipped(rule, "No images found on page");
  * }</pre>
+ *
+ * <h2>Business impact</h2>
+ * <p>Every {@link RuleResult} carries a status-aware business impact
+ * statement, resolved automatically at construction time from the
+ * originating {@link AuditRule}: {@link AuditRule#passImpact()} when
+ * {@code status == PASS}, otherwise {@link AuditRule#failImpact()} (this
+ * covers FAIL, ERROR, and SKIPPED). No call site needs to set this
+ * explicitly — it is derived the same way {@code ruleId}/{@code severity}
+ * already are, inside {@link Builder}'s constructor.</p>
  */
 public final class RuleResult {
 
@@ -68,6 +79,7 @@ public final class RuleResult {
     private final AuditRule.RuleSeverity  severity;
     private final Status             status;
     private final List<String>       findings;
+    private final String             businessImpact;
     private final String             errorMessage;
     private final long               durationMs;
     private final Instant            evaluatedAt;
@@ -77,15 +89,16 @@ public final class RuleResult {
     // -------------------------------------------------------------------------
 
     private RuleResult(final Builder builder) {
-        this.ruleId       = builder.ruleId;
-        this.description  = builder.description;
-        this.category     = builder.category;
-        this.severity     = builder.severity;
-        this.status       = builder.status;
-        this.findings     = Collections.unmodifiableList(new ArrayList<>(builder.findings));
-        this.errorMessage = builder.errorMessage;
-        this.durationMs   = builder.durationMs;
-        this.evaluatedAt  = builder.evaluatedAt;
+        this.ruleId         = builder.ruleId;
+        this.description    = builder.description;
+        this.category       = builder.category;
+        this.severity       = builder.severity;
+        this.status         = builder.status;
+        this.findings       = Collections.unmodifiableList(new ArrayList<>(builder.findings));
+        this.businessImpact = builder.businessImpact;
+        this.errorMessage   = builder.errorMessage;
+        this.durationMs     = builder.durationMs;
+        this.evaluatedAt    = builder.evaluatedAt;
     }
 
     // -------------------------------------------------------------------------
@@ -195,6 +208,7 @@ public final class RuleResult {
     public AuditRule.RuleSeverity getSeverity()  { return severity; }
     public Status getStatus()                    { return status; }
     public List<String> getFindings()            { return findings; }
+    public String getBusinessImpact()             { return businessImpact; }
     public String getErrorMessage()              { return errorMessage; }
     public long getDurationMs()                  { return durationMs; }
     public Instant getEvaluatedAt()              { return evaluatedAt; }
@@ -273,6 +287,7 @@ public final class RuleResult {
         private final Instant                 evaluatedAt;
 
         private final List<String> findings     = new ArrayList<>();
+        private       String       businessImpact;
         private       String       errorMessage = null;
 
         private Builder(final AuditRule rule, final Status status, final long startMs) {
@@ -283,6 +298,14 @@ public final class RuleResult {
             this.status      = status;
             this.evaluatedAt = Instant.now();
             this.durationMs  = Math.max(0L, evaluatedAt.toEpochMilli() - startMs);
+
+            // Status-aware business impact, resolved automatically from the
+            // rule. PASS uses passImpact(); FAIL, ERROR, and SKIPPED all use
+            // failImpact() (SKIPPED has no dedicated message support today,
+            // per the migration spec's "may use failImpact()" allowance).
+            this.businessImpact = (status == Status.PASS)
+                    ? rule.passImpact()
+                    : rule.failImpact();
         }
 
         public Builder withFinding(final String finding) {
@@ -297,6 +320,19 @@ public final class RuleResult {
                 findings.stream()
                         .filter(f -> f != null && !f.isBlank())
                         .forEach(this.findings::add);
+            }
+            return this;
+        }
+
+        /**
+         * Overrides the automatically-resolved business impact text for this
+         * specific result. Optional — most rules should rely on the
+         * automatic {@code passImpact()}/{@code failImpact()} resolution and
+         * never need to call this.
+         */
+        public Builder withBusinessImpact(final String businessImpact) {
+            if (businessImpact != null && !businessImpact.isBlank()) {
+                this.businessImpact = businessImpact;
             }
             return this;
         }

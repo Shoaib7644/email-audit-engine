@@ -1,6 +1,8 @@
 package com.acxiom.emailaudit.reporting;
 
 import com.acxiom.emailaudit.reporting.dashboard.RunAuditData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,33 +10,69 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Objects;
 
 /**
  * Generates the standalone audit dashboard and required static assets.
+ *
+ * <p>Output layout written to {@value #OUTPUT_DIRECTORY}:</p>
+ * <pre>
+ *   dashboard-v2.html        ← rendered template with injected JSON
+ *   dashboard-v2.css         ← stylesheet
+ *   js/
+ *     utils.js
+ *     parser.js
+ *     state.js
+ *     statistics.js
+ *     categories.js
+ *     findings.js
+ *     renderer.js
+ *     sidebar.js
+ *     emailSelector.js
+ *     integration.js
+ *     app.js
+ * </pre>
  */
 public final class CustomDashboardGenerator {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(CustomDashboardGenerator.class);
+
+    // ── Output paths ──────────────────────────────────────────────────────────
     private static final String OUTPUT_DIRECTORY =
             "output/reports/dashboard";
 
     private static final String DASHBOARD_HTML =
-            "dashboard.html";
+            "dashboard-v2.html";
 
     private static final String DASHBOARD_CSS =
-            "dashboard.css";
+            "dashboard-v2.css";
 
-    private static final String DASHBOARD_JS =
-            "dashboard.js";
-
+    // ── Classpath resource paths ──────────────────────────────────────────────
     private static final String RESOURCE_HTML =
-            "reporting/dashboard.html";
+            "reporting/dashboard-v2.html";
 
     private static final String RESOURCE_CSS =
-            "reporting/dashboard.css";
+            "reporting/dashboard-v2.css";
 
-    private static final String RESOURCE_JS =
-            "reporting/dashboard.js";
+    /**
+     * All JS modules under {@code reporting/js/} that must be copied alongside
+     * the HTML.  Order matches the script load order declared in the HTML.
+     */
+    private static final List<String> JS_MODULES = List.of(
+            "utils.js",
+            "parser.js",
+            "state.js",
+            "statistics.js",
+            "categories.js",
+            "findings.js",
+            "renderer.js",
+            "sidebar.js",
+            "emailSelector.js",
+            "integration.js",
+            "app.js"
+    );
 
     private final ReportTemplateRenderer templateRenderer;
 
@@ -45,84 +83,88 @@ public final class CustomDashboardGenerator {
     /**
      * Generates a complete standalone dashboard.
      *
+     * <p>Steps:</p>
+     * <ol>
+     *   <li>Create {@value #OUTPUT_DIRECTORY} and its {@code js/} subdirectory.</li>
+     *   <li>Copy {@code dashboard-v2.css} next to the HTML.</li>
+     *   <li>Copy all JS modules into the {@code js/} subdirectory.</li>
+     *   <li>Render the HTML template with injected JSON and write it.</li>
+     * </ol>
+     *
      * @param data dashboard data
-     * @return path to generated dashboard.html
+     * @return path to the generated {@code dashboard-v2.html}
      */
-    public Path generate(
-            final RunAuditData data) {
+    public Path generate(final RunAuditData data) {
 
-        Objects.requireNonNull(
-                data,
-                "RunAuditData must not be null");
+        Objects.requireNonNull(data, "RunAuditData must not be null");
 
         try {
+            // ── 1. Create output directories ──────────────────────────────────
+            final Path dashboardDirectory = Paths.get(OUTPUT_DIRECTORY);
+            final Path jsDirectory        = dashboardDirectory.resolve("js");
 
-            final Path dashboardDirectory =
-                    Paths.get(OUTPUT_DIRECTORY);
+            Files.createDirectories(dashboardDirectory);
+            Files.createDirectories(jsDirectory);
 
-            Files.createDirectories(
-                    dashboardDirectory);
-
+            // ── 2. Copy CSS ───────────────────────────────────────────────────
             copyResource(
                     RESOURCE_CSS,
-                    dashboardDirectory.resolve(
-                            DASHBOARD_CSS));
+                    dashboardDirectory.resolve(DASHBOARD_CSS));
 
-            copyResource(
-                    RESOURCE_JS,
-                    dashboardDirectory.resolve(
-                            DASHBOARD_JS));
+            // ── 3. Copy every JS module into js/ ──────────────────────────────
+            for (final String module : JS_MODULES) {
+                copyResource(
+                        "reporting/js/" + module,
+                        jsDirectory.resolve(module));
+            }
 
-            final String renderedHtml =
-                    templateRenderer.renderDashboard(
-                            data);
+            // ── 4. Render HTML with injected JSON and write it ────────────────
+            final String renderedHtml = templateRenderer.renderDashboard(data);
+            final Path   dashboardPath = dashboardDirectory.resolve(DASHBOARD_HTML);
 
-            final Path dashboardPath =
-                    dashboardDirectory.resolve(
-                            DASHBOARD_HTML);
+            Files.writeString(dashboardPath, renderedHtml);
 
-            Files.writeString(
-                    dashboardPath,
-                    renderedHtml);
+            log.info("Dashboard written to: {}", dashboardPath.toAbsolutePath());
 
             return dashboardPath;
 
         } catch (Exception ex) {
-
-            throw new RuntimeException(
-                    "Failed to generate dashboard",
-                    ex);
+            throw new RuntimeException("Failed to generate dashboard", ex);
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Copies a classpath resource to a target file on disk,
+     * replacing it if it already exists.
+     *
+     * @param resourcePath classpath-relative resource path
+     * @param targetFile   destination on the filesystem
+     */
     private void copyResource(
             final String resourcePath,
-            final Path targetFile) {
+            final Path   targetFile) {
 
         try (InputStream inputStream =
                      Thread.currentThread()
                              .getContextClassLoader()
-                             .getResourceAsStream(
-                                     resourcePath)) {
+                             .getResourceAsStream(resourcePath)) {
 
             if (inputStream == null) {
-
                 throw new IllegalStateException(
-                        "Resource not found: "
-                                + resourcePath);
+                        "Resource not found on classpath: " + resourcePath);
             }
 
-            Files.copy(
-                    inputStream,
-                    targetFile,
-                    StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(inputStream, targetFile, StandardCopyOption.REPLACE_EXISTING);
+
+            log.debug("Copied resource {} → {}", resourcePath, targetFile);
 
         } catch (IOException ex) {
-
             throw new RuntimeException(
-                    "Failed to copy resource: "
-                            + resourcePath,
-                    ex);
+                    "Failed to copy resource: " + resourcePath, ex);
         }
     }
 }

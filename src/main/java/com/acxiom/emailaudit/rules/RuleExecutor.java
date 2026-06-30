@@ -209,6 +209,10 @@ public final class RuleExecutor {
      * Minimal no-op {@link AuditRule} used only to satisfy {@link RuleResult}
      * construction when a requested rule ID is absent from the registry.
      */
+    /**
+     * Minimal no-op {@link AuditRule} used only to satisfy {@link RuleResult}
+     * construction when a requested rule ID is absent from the registry.
+     */
     private record MissingRuleStub(String ruleId) implements AuditRule {
 
         @Override
@@ -224,6 +228,16 @@ public final class RuleExecutor {
         @Override
         public RuleSeverity severity() {
             return RuleSeverity.INFO;
+        }
+
+        @Override
+        public String passImpact() {
+            return "No impact — this rule ID could not be resolved in the registry.";
+        }
+
+        @Override
+        public String failImpact() {
+            return "Rule '" + ruleId + "' could not be found, so this check was not evaluated.";
         }
 
         @Override

@@ -38,6 +38,17 @@ public final class PrivacyLinkRule implements AuditRule {
     }
 
     @Override
+    public String passImpact() {
+        return "Privacy Link is present.";
+    }
+
+    @Override
+    public String failImpact() {
+        return "Privacy Link is missing or invalid.";
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
     public RuleResult execute(Page page) {
 
         Objects.requireNonNull(page);
@@ -69,47 +80,64 @@ public final class PrivacyLinkRule implements AuditRule {
 
                         return {
                             text: link.innerText || '',
-                            href: link.href || ''
+                            href: link.getAttribute('href') || ''
                         };
                     }
                     """);
 
+            // Case 1: Privacy link is entirely missing
             if (privacyLink == null) {
-
-                return RuleResult.fail(
-                        this,
-                        startMs,
-                        List.of(
-                                "Privacy Policy link not found"));
+                String finding = FindingFormatter.missingPrivacyLink("privacy policy");
+                return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                        .withFindings(List.of(finding))
+                        .build();
             }
 
+            String text = privacyLink.get("text");
             String href = privacyLink.get("href");
 
+            // Case 2: Link exists but has an empty href target string
             if (href == null || href.isBlank()) {
-
-                return RuleResult.fail(
-                        this,
-                        startMs,
-                        List.of(
-                                "Privacy Policy link found but href is empty"));
+                String finding = FindingFormatter.linkFinding()
+                        .title("Privacy Policy Link")
+                        .displayText(text)
+                        .href("(empty href)")
+                        .failed("Missing href")
+                        .build();
+                return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                        .withFindings(List.of(finding))
+                        .build();
             }
 
-            ValidationResult result =
-                    LinkHealthChecker.validate(href);
-
+            // Case 3: Link exists but remote check invalidates the target destination
+            ValidationResult result = LinkHealthChecker.validate(href);
             if (!result.valid()) {
-
-                return RuleResult.fail(
-                        this,
-                        startMs,
-                        List.of(
-                                "Privacy Policy link present but broken: "
-                                        + result.message()));
+                String finding = FindingFormatter.linkFinding()
+                        .title("Privacy Policy Link")
+                        .displayText(text)
+                        .href(href)
+                        .failed(result.message())
+                        .build();
+                return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                        .withFindings(List.of(finding))
+                        .build();
             }
 
-            return RuleResult.pass(
-                    this,
-                    startMs);
+
+
+            // Case 4: Privacy link found and valid
+            String passFinding = FindingFormatter.linkFinding()
+                    .title("Privacy Policy Link")
+                    .displayText(text)
+                    .href(href)
+                    .passed(result.message())
+                    .build();
+
+            return RuleResult.builder(this, RuleResult.Status.PASS, startMs)
+                    .withFindings(List.of(passFinding))
+                    .build();
+
+
 
         } catch (Exception ex) {
 

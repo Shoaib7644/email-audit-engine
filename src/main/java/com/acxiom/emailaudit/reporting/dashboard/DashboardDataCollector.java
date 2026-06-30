@@ -2,7 +2,6 @@ package com.acxiom.emailaudit.reporting.dashboard;
 
 import com.acxiom.emailaudit.core.AuditContext;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
-import com.acxiom.emailaudit.reporting.BusinessImpactMapper;
 import com.acxiom.emailaudit.reporting.FindingSummarizer;
 import com.acxiom.emailaudit.reporting.ReportSection;
 import com.acxiom.emailaudit.reporting.ReportSectionMapper;
@@ -168,10 +167,11 @@ public final class DashboardDataCollector {
                 severity = rule.getSeverity().name();
                 findingCount += rule.getFindings().size();
 
-                businessImpact =
-                        BusinessImpactMapper.getImpact(
-                                rule.getRuleId(),
-                                String.join("; ", rule.getFindings()));
+                // Status-aware impact now comes directly from the rule
+                // result (resolved automatically from AuditRule#failImpact()
+                // at RuleResult construction time) instead of a static
+                // ruleId → message lookup.
+                businessImpact = rule.getBusinessImpact();
 
                 if (!rule.getFindings().isEmpty()) {
                     businessImpact =
@@ -209,10 +209,10 @@ public final class DashboardDataCollector {
             final List<String> findings =
                     new ArrayList<>(rule.getFindings());
 
-            final String businessImpact =
-                    BusinessImpactMapper.getImpact(
-                            ruleId,
-                            String.join("; ", findings));
+            // Status-aware impact: PASS results carry the rule's
+            // passImpact() text, FAIL/ERROR/SKIPPED carry failImpact() —
+            // both already resolved on RuleResult at construction time.
+            final String businessImpact = rule.getBusinessImpact();
 
             list.add(new RuleAuditData(
                     ruleName,

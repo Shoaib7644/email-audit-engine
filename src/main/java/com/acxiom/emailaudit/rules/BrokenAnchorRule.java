@@ -32,6 +32,8 @@ import java.util.Set;
  * <ul>
  *   <li>{@code href="#section"} — <strong>FAIL</strong> if no element with
  *       {@code id="section"} exists anywhere on the page.</li>
+ *   <li>{@code href=""} (empty/blank href) — <strong>FAIL</strong>; reported
+ *       with destination {@code (empty href)}.</li>
  *   <li>{@code href="#"} (empty fragment) — <strong>ignored</strong>. This is
  *       the conventional "scroll to top of page" pattern and has no target
  *       {@code id} to validate.</li>
@@ -39,6 +41,8 @@ import java.util.Set;
  *       case-insensitive) — <strong>ignored</strong>. These are script-driven
  *       placeholder links, not fragment navigation, and never start with
  *       {@code #}.</li>
+ *   <li>{@code href="#section"} where {@code id="section"} exists —
+ *       <strong>PASS</strong>; reported as a structured pass finding.</li>
  * </ul>
  *
  * <h2>Static DOM validation</h2>
@@ -81,19 +85,27 @@ public final class BrokenAnchorRule implements AuditRule {
     /** Prefix used to detect (and ignore) script-driven placeholder links. */
     private static final String JAVASCRIPT_SCHEME_PREFIX = "javascript:";
 
+    /** Title used for every finding produced by this rule. */
+    private static final String FINDING_TITLE = "Broken Anchor";
+
+    /** Placeholder used when an anchor's href attribute is empty or blank. */
+    private static final String EMPTY_HREF_PLACEHOLDER = "(empty href)";
+
+    /** Placeholder used when an anchor has no readable display text. */
+    private static final String NO_TEXT_PLACEHOLDER = "(no visible text)";
+
     // -------------------------------------------------------------------------
     // JavaScript used to extract anchors and ids in one round-trip
     // -------------------------------------------------------------------------
 
     /**
-     * Returns {@code { ids: string[], anchors: string[] } } where:
+     * Returns { ids: string[], anchors: Array<{text: string, href: string}> } where:
      * <ul>
      *   <li>{@code ids} is every non-empty {@code id} attribute value present
      *       on the page (duplicates collapsed via a {@code Set}), and</li>
-     *   <li>{@code anchors} is the raw {@code href} attribute value of every
-     *       {@code <a href>} element, in document order.</li>
+     *   <li>{@code anchors} captures objects containing the {@code text} and {@code href}
+     *       attributes of every {@code <a href>} element, in document order.</li>
      * </ul>
-     * Collecting both in a single call avoids two separate page round-trips.
      */
     private static final String EXTRACT_ANCHORS_AND_IDS_JS = """
             () => {
@@ -106,8 +118,11 @@ public final class BrokenAnchorRule implements AuditRule {
                 );
 
                 const anchors = Array.from(document.querySelectorAll('a[href]'))
-                    .map(a => a.getAttribute('href'))
-                    .filter(href => href !== null);
+                    .map(a => ({
+                        text: a.innerText || '',
+                        href: a.getAttribute('href')
+                    }))
+                    .filter(a => a.href !== null);
 
                 return { ids, anchors };
             }
@@ -135,7 +150,15 @@ public final class BrokenAnchorRule implements AuditRule {
     public String description() {
         return DESCRIPTION;
     }
+    @Override
+    public String passImpact() {
+        return "Broken Anchor Not Found";
+    }
 
+    @Override
+    public String failImpact() {
+        return "Broken Anchor Found";
+    }
     @Override
     public RuleCategory category() {
         return RuleCategory.LINKS;
@@ -172,15 +195,19 @@ public final class BrokenAnchorRule implements AuditRule {
         log.info("[{}] {} id(s) and {} anchor(s) found",
                 RULE_ID, extraction.ids().size(), extraction.anchors().size());
 
-        final List<String> findings = buildFindings(extraction);
+        final AnchorFindings results = buildFindings(extraction);
 
-        if (findings.isEmpty()) {
+        if (results.brokenFindings().isEmpty()) {
             log.info("[{}] All fragment links resolve to an existing id", RULE_ID);
-            return RuleResult.pass(this, startMs);
+            return RuleResult.builder(this, RuleResult.Status.PASS, startMs)
+                    .withFindings(results.passFindings())
+                    .build();
         }
 
-        log.warn("[{}] {} broken anchor(s) found", RULE_ID, findings.size());
-        return RuleResult.fail(this, startMs, findings);
+        log.warn("[{}] {} broken anchor(s) found", RULE_ID, results.brokenFindings().size());
+        return RuleResult.builder(this, RuleResult.Status.FAIL, startMs)
+                .withFindings(results.brokenFindings())
+                .build();
     }
 
     // -------------------------------------------------------------------------
@@ -189,26 +216,65 @@ public final class BrokenAnchorRule implements AuditRule {
 
     /**
      * Evaluates every fragment anchor against the set of known ids and builds
-     * one finding per broken link. Capped at {@value #MAX_FINDINGS} with an
-     * overflow summary appended if exceeded.
+     * one structured finding per anchor (PASS or FAIL) using
+     * {@link FindingFormatter#linkFinding()}. Broken findings are capped at
+     * {@value #MAX_FINDINGS} with an overflow summary appended if exceeded.
      */
-    private static List<String> buildFindings(final ExtractionResult extraction) {
+    private static AnchorFindings buildFindings(final ExtractionResult extraction) {
         final Set<String> ids = new HashSet<>(extraction.ids());
-        final List<String> findings = new ArrayList<>();
+        final List<String> brokenFindings = new ArrayList<>();
+        final List<String> passFindings = new ArrayList<>();
 
-        for (final String href : extraction.anchors()) {
+        for (final Map<String, String> anchorMap : extraction.anchors()) {
+            final String href = anchorMap.get("href");
+            final String text = anchorMap.get("text");
+            final String displayText = (text != null && !text.isBlank())
+                    ? text
+                    : NO_TEXT_PLACEHOLDER;
+
+            // Empty/blank href is always reported as broken, independent of
+            // fragment-link detection below.
+            if (href == null || href.isBlank()) {
+                brokenFindings.add(
+                        FindingFormatter.linkFinding()
+                                .title(FINDING_TITLE)
+                                .displayText(displayText)
+                                .href(EMPTY_HREF_PLACEHOLDER)
+                                .failed("Missing href")
+                                .build());
+                continue;
+            }
+
             final String target = fragmentTarget(href);
             if (target == null) {
                 continue; // not a fragment link, or ignored per rule contract
             }
 
-            if (!ids.contains(target)) {
-                findings.add(String.format(
-                        "Broken anchor: href=\"#%s\" has no element with id=\"%s\"",
-                        target, target));
+            if (ids.contains(target)) {
+                passFindings.add(
+                        FindingFormatter.linkFinding()
+                                .title(FINDING_TITLE)
+                                .displayText(displayText)
+                                .href(href)
+                                .passed("Anchor target exists.")
+                                .build());
+            } else {
+                brokenFindings.add(
+                        FindingFormatter.linkFinding()
+                                .title(FINDING_TITLE)
+                                .displayText(displayText)
+                                .href(href)
+                                .failed(String.format(
+                                        "Target element with id=\"%s\" does not exist.", target))
+                                .build());
             }
         }
 
+        return new AnchorFindings(capFindings(brokenFindings), passFindings);
+    }
+
+    /** Caps {@code findings} at {@value #MAX_FINDINGS}, appending an overflow summary if exceeded. */
+    private static List<String> capFindings(final List<String> findings) {
         if (findings.size() <= MAX_FINDINGS) {
             return findings;
         }
@@ -223,21 +289,13 @@ public final class BrokenAnchorRule implements AuditRule {
      * Returns the fragment identifier (text after {@code #}) that {@code href}
      * should resolve to, or {@code null} if {@code href} is not a fragment
      * link that requires validation.
-     *
-     * <p>Returns {@code null} for:</p>
-     * <ul>
-     *   <li>{@code href} that does not start with {@code #} (including
-     *       {@code javascript:void(0)} and absolute/relative URLs),</li>
-     *   <li>{@code href="#"} (empty fragment — "scroll to top" convention).</li>
-     * </ul>
      */
     private static String fragmentTarget(final String href) {
         if (href == null) return null;
 
         final String trimmed = href.trim();
 
-        // Explicitly ignore javascript: placeholder links (defensive — these
-        // never start with '#', but guarded here per the rule contract).
+        // Explicitly ignore javascript: placeholder links
         if (trimmed.toLowerCase().startsWith(JAVASCRIPT_SCHEME_PREFIX)) {
             return null;
         }
@@ -258,8 +316,7 @@ public final class BrokenAnchorRule implements AuditRule {
     // -------------------------------------------------------------------------
 
     /**
-     * Evaluates JavaScript in the page to extract the id set and anchor href
-     * list in a single round-trip.
+     * Evaluates JavaScript in the page to extract the id set and anchor data map list.
      */
     @SuppressWarnings("unchecked")
     private static ExtractionResult extractAnchorsAndIds(final Page page) {
@@ -272,8 +329,17 @@ public final class BrokenAnchorRule implements AuditRule {
                 return new ExtractionResult(List.of(), List.of());
             }
 
-            final List<String> ids     = extractStringList(map.get("ids"));
-            final List<String> anchors = extractStringList(map.get("anchors"));
+            final List<String> ids = extractStringList(map.get("ids"));
+
+            // Extract the anchor list structures safely
+            final List<Map<String, String>> anchors = new ArrayList<>();
+            if (map.get("anchors") instanceof List<?> rawList) {
+                for (final Object item : rawList) {
+                    if (item instanceof Map<?, ?> anchorMap) {
+                        anchors.add((Map<String, String>) anchorMap);
+                    }
+                }
+            }
 
             return new ExtractionResult(ids, anchors);
 
@@ -313,11 +379,19 @@ public final class BrokenAnchorRule implements AuditRule {
     // -------------------------------------------------------------------------
 
     /**
-     * Result of extracting both the page's {@code id} values and its anchor
-     * {@code href} values in one evaluation.
+     * Result of extracting both the page's {@code id} values and its complex anchor properties.
      *
      * @param ids     all non-empty {@code id} attribute values on the page
-     * @param anchors raw {@code href} attribute values of every {@code <a href>}
+     * @param anchors maps containing raw text and href attributes for every anchor
      */
-    private record ExtractionResult(List<String> ids, List<String> anchors) {}
+    private record ExtractionResult(List<String> ids, List<Map<String, String>> anchors) {}
+
+    /**
+     * Structured findings produced while evaluating every anchor on the page.
+     *
+     * @param brokenFindings FAIL findings, one per anchor whose target id is missing
+     *                       (or whose href is empty), capped at {@value #MAX_FINDINGS}
+     * @param passFindings   PASS findings, one per anchor that resolved successfully
+     */
+    private record AnchorFindings(List<String> brokenFindings, List<String> passFindings) {}
 }

@@ -3,8 +3,25 @@ package com.acxiom.emailaudit.reporting;
 import java.util.Locale;
 
 /**
- * Converts verbose technical findings into concise,
- * business-friendly summaries suitable for Excel reports.
+ * Converts verbose technical findings into concise, business-friendly
+ * summaries for use in the Business Impact column of the Excel report.
+ *
+ * <p>Changes from previous version:</p>
+ * <ul>
+ *   <li>All return strings rewritten to avoid technical terminology
+ *       (no exception class names, no HTTP status codes, no HTML tag
+ *       names, no WCAG rule IDs, no axe rule IDs).</li>
+ *   <li>New patterns added: color-contrast, lorem ipsum / placeholder
+ *       content, skipped heading level, URL defense wrappers.</li>
+ *   <li>Existing patterns tightened to match more real-world variants.</li>
+ *   <li>Order of checks preserved where precedence matters
+ *       (e.g. privacy-specific checks before generic broken-link check).</li>
+ * </ul>
+ *
+ * <p>The Technical Details column always receives the original raw
+ * findings string — this class is only responsible for the summary.</p>
+ *
+ * <p>Stateless and thread-safe.</p>
  */
 public final class FindingSummarizer {
 
@@ -13,189 +30,206 @@ public final class FindingSummarizer {
     }
 
     /**
-     * Converts technical findings into a simplified summary.
+     * Converts a raw technical findings string into a concise
+     * business-friendly summary.
      *
-     * @param findings Raw technical findings
-     * @return Business-friendly summary
+     * @param findings raw technical findings (may be {@code null} or blank)
+     * @return business-friendly summary, or an empty string if no findings
      */
-    public static String summarize(
-            String findings) {
+    public static String summarize(final String findings) {
 
         if (findings == null || findings.isBlank()) {
             return "";
         }
 
-        String normalized =
-                findings.toLowerCase(Locale.ROOT);
+        final String n = findings.toLowerCase(Locale.ROOT);
 
-        // Broken anchor issues
-        if (normalized.contains("broken anchor")
-                || normalized.contains("has no element with id")) {
+        /* ── Privacy policy (check before generic broken-link) ── */
+        if (n.contains("privacy policy") || n.contains("privacy link")) {
 
-            return "Internal navigation link is broken";
-        }
-
-        // Missing ALT text
-        if (normalized.contains("missing alt")
-                || normalized.contains("missing alt attribute")
-                || normalized.contains("image-alt")
-                || normalized.contains("alternate text")) {
-
-            return "Image accessibility issue detected";
-        }
-
-        // Broken links / URL failures
-        if (normalized.contains("404")
-                || normalized.contains("broken link")
-                || normalized.contains("broken url")
-                || normalized.contains("unknownhostexception")
-                || normalized.contains("http 404")
-                || normalized.contains("link(s) detected")) {
-
-            return "One or more hyperlinks are broken";
-        }
-
-        // Missing H1
-        if (normalized.contains("missing <h1>")
-                || normalized.contains("no top-level heading")
-                || normalized.contains("page-has-heading-one")) {
-
-            return "Missing primary heading";
-        }
-
-        // Missing title
-        if (normalized.contains("missing or blank <title>")
-                || normalized.contains("missing title")
-                || normalized.contains("document-title")
-                || normalized.contains("<title> element")) {
-
-            return "Missing email title";
-        }
-
-        // Accessibility issues
-        if (normalized.contains("accessibility")
-                || normalized.contains("axe")
-                || normalized.contains("wcag")
-                || normalized.contains("color-contrast")
-                || normalized.contains("html-has-lang")
-                || normalized.contains("landmark-one-main")
-                || normalized.contains("region")) {
-
-            return "Accessibility compliance issues detected";
-        }
-
-        // CTA issues
-        if (normalized.contains("call-to-action")
-                || normalized.contains("cta")) {
-
-            return "Call-to-action issue detected";
-        }
-
-        // Duplicate IDs
-        if (normalized.contains("duplicate id")
-                || normalized.contains("duplicate identifier")) {
-
-            return "Duplicate HTML identifiers detected";
-        }
-
-        // Link text issues
-        if (normalized.contains("generic link text")
-                || normalized.contains("descriptive text")) {
-
-            return "Links use unclear or non-descriptive text";
-        }
-
-        // Content validation
-        if (normalized.contains("content validation")
-                || normalized.contains("required content")) {
-
-            return "Required email content elements are missing";
-        }
-
-        // Privacy link issues
-        /*
-         * Privacy Link
-         */
-        if (normalized.contains("privacy policy")) {
-
-            if (normalized.contains("not found")) {
-                return "Privacy policy link is missing";
+            if (n.contains("not found") || n.contains("missing")) {
+                return "Privacy policy link is missing.";
             }
-
-            if (normalized.contains("unknownhostexception")) {
-                return "Privacy policy destination cannot be reached";
+            if (_isUnreachable(n)) {
+                return "Privacy policy destination cannot be reached.";
             }
-
-            if (normalized.contains("http 404")) {
-                return "Privacy policy page not found";
+            if (_isNotFound(n)) {
+                return "Privacy policy page not found.";
             }
-
-            if (normalized.contains("little or no content")) {
-                return "Privacy policy page is blank";
+            if (_isEmptyPage(n)) {
+                return "Privacy policy page appears empty.";
             }
-
-            if (normalized.contains("does not exist")) {
-                return "Privacy policy page does not exist";
-            }
-
-            if (normalized.contains("broken")) {
-                return "Privacy policy link is present but not functional";
-            }
-
-            return "Privacy policy link issue detected";
+            return "Privacy policy link requires attention.";
         }
 
-        /*
-         * View Online Link
-         */
-        if (normalized.contains("view online")) {
+        /* ── View Online link (check before generic broken-link) ── */
+        if (n.contains("view online") || n.contains("view in browser")) {
 
-            if (normalized.contains("not found")) {
-                return "View Online link not found";
+            if (n.contains("not found") || n.contains("missing")) {
+                return "View in Browser link is missing.";
             }
-
-            if (normalized.contains("unknownhostexception")) {
-                return "View Online destination cannot be reached";
+            if (_isUnreachable(n)) {
+                return "View in Browser destination cannot be reached.";
             }
-
-            if (normalized.contains("http 404")) {
-                return "View Online page not found";
+            if (_isNotFound(n)) {
+                return "View in Browser page not found.";
             }
-
-            if (normalized.contains("little or no content")) {
-                return "View Online page is blank";
+            if (_isEmptyPage(n)) {
+                return "View in Browser page appears empty.";
             }
-
-            if (normalized.contains("does not exist")) {
-                return "View Online page does not exist";
-            }
-
-            if (normalized.contains("broken")) {
-                return "View Online link is present but not functional";
-            }
-
-            return "View Online link issue detected";
+            return "View in Browser link requires attention.";
         }
 
-
-        if (normalized.contains("disclaimer")
-                || normalized.contains("do not reply")
-                || normalized.contains("mailbox is not monitored")) {
-
-            return "Required disclaimer information missing";
+        /* ── Broken anchor / unsubscribe navigation ── */
+        if (n.contains("broken anchor")
+                || n.contains("has no element with id")
+                || n.contains("anchor target")) {
+            return "Internal email navigation link is broken.";
         }
 
-        if (normalized.contains("http 404")) {
-
-            return "Linked page not found";
+        /* ── Missing ALT text ── */
+        if (n.contains("missing alt")
+                || n.contains("image-alt")
+                || n.contains("alternate text")
+                || n.contains("alt attribute")) {
+            return "One or more images are missing descriptive text.";
         }
 
-        if (normalized.contains("little or no content")) {
-
-            return "Linked page is blank or contains insufficient content";
+        /* ── URL defense wrappers ── */
+        if (n.contains("url defense")
+                || n.contains("urldefense")
+                || n.contains("proofpoint")
+                || n.contains("safelinks")) {
+            return "Destination link is wrapped by a security filter.";
         }
 
-        // Fallback
+        /* ── Unreachable destination (generic) ── */
+        if (_isUnreachable(n)
+                || n.contains("broken link")
+                || n.contains("broken url")
+                || n.contains("link(s) detected")) {
+            return "Campaign destination cannot be reached.";
+        }
+
+        /* ── Page not found (generic) ── */
+        if (_isNotFound(n)) {
+            return "Destination page not found.";
+        }
+
+        /* ── Empty / thin page ── */
+        if (_isEmptyPage(n)) {
+            return "Destination page appears empty.";
+        }
+
+        /* ── Placeholder / lorem ipsum content ── */
+        if (n.contains("lorem ipsum")
+                || n.contains("placeholder")
+                || n.contains("draft content")
+                || n.contains("test content")) {
+            return "Placeholder content detected — review before sending.";
+        }
+
+        /* ── Duplicate HTML identifiers ── */
+        if (n.contains("duplicate id")
+                || n.contains("duplicate identifier")) {
+            return "Duplicate HTML identifier detected.";
+        }
+
+        /* ── Skipped / broken heading structure ── */
+        if (n.contains("skipped heading")
+                || n.contains("heading level")
+                || n.contains("heading structure")
+                || n.contains("heading hierarchy")) {
+            return "Heading structure is not accessible.";
+        }
+
+        /* ── Missing primary heading ── */
+        if (n.contains("missing <h1>")
+                || n.contains("no top-level heading")
+                || n.contains("page-has-heading-one")) {
+            return "Email is missing a primary heading.";
+        }
+
+        /* ── Missing document title ── */
+        if (n.contains("missing or blank <title>")
+                || n.contains("missing title")
+                || n.contains("document-title")) {
+            return "Email is missing a document title.";
+        }
+
+        /* ── Colour contrast / readability ── */
+        if (n.contains("color-contrast")
+                || n.contains("colour contrast")
+                || n.contains("contrast ratio")) {
+            return "Text may not be readable for all recipients.";
+        }
+
+        /* ── Accessibility (generic — after specific axe checks above) ── */
+        if (n.contains("accessibility")
+                || n.contains("wcag")
+                || n.contains("html-has-lang")
+                || n.contains("landmark")
+                || n.contains("region")
+                || n.contains("aria")) {
+            return "Email accessibility issue requires attention.";
+        }
+
+        /* ── CTA / call-to-action ── */
+        if (n.contains("call-to-action")
+                || n.contains("cta")) {
+            return "Call-to-action destination requires attention.";
+        }
+
+        /* ── Generic link text ── */
+        if (n.contains("generic link text")
+                || n.contains("descriptive text")
+                || n.contains("click here")
+                || n.contains("read more")) {
+            return "Links use unclear or non-descriptive text.";
+        }
+
+        /* ── Disclaimer / do-not-reply ── */
+        if (n.contains("disclaimer")
+                || n.contains("do not reply")
+                || n.contains("mailbox is not monitored")) {
+            return "Required disclaimer information is missing.";
+        }
+
+        /* ── Content / macro placeholders ── */
+        if (n.contains("content validation")
+                || n.contains("required content")
+                || n.contains("macro")) {
+            return "Required email content is missing or unresolved.";
+        }
+
+        /* ── Fallback: return as-is so no finding is silently dropped ── */
         return findings;
+    }
+
+    /* ── Private pattern helpers ─────────────────────────────────── */
+
+    /** True when the findings text suggests an unreachable host. */
+    private static boolean _isUnreachable(final String n) {
+        return n.contains("unknownhostexception")
+                || n.contains("connection refused")
+                || n.contains("connection timed out")
+                || n.contains("unable to reach")
+                || n.contains("network error");
+    }
+
+    /** True when the findings text suggests an HTTP 404 / not found. */
+    private static boolean _isNotFound(final String n) {
+        return n.contains("http 404")
+                || n.contains("404 not found")
+                || n.contains("status 404")
+                || n.contains("page not found");
+    }
+
+    /** True when the findings text suggests an empty or thin page. */
+    private static boolean _isEmptyPage(final String n) {
+        return n.contains("little or no content")
+                || n.contains("empty page")
+                || n.contains("blank page")
+                || n.contains("no visible content");
     }
 }

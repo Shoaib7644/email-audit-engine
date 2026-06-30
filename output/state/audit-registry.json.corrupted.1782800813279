@@ -1,0 +1,47 @@
+{
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_5.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_5.html",
+    "contentHash" : "af427fe2d345d93657038ffe6da672e80b00172a20bf143971ada324170ca3c3",
+    "status" : "FAILED",
+    "processedAt" : "2026-06-30T05:21:31.467093Z",
+    "errorMessage" : "4 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_1.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_1.html",
+    "contentHash" : "57c15cc66e25497719fbb7e9593102d19fc3ad9a18ecef2069bafd3b5e21b6c2",
+    "status" : "FAILED",
+    "processedAt" : "2026-06-30T05:21:33.497787Z",
+    "errorMessage" : "6 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_3.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_3.html",
+    "contentHash" : "2c294613d1da8ff68ebae81a79f89d8af53ea8660dc3e4a1444d58d624bdca95",
+    "status" : "FAILED",
+    "processedAt" : "2026-06-30T05:21:28.499832Z",
+    "errorMessage" : "8 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_2.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_2.html",
+    "contentHash" : "973da723ac48d7b1060aceaea42e9cfbdca11562ba3cb6a666f244670b17d441",
+    "status" : "FAILED",
+    "processedAt" : "2026-06-30T05:21:27.168561Z",
+    "errorMessage" : "8 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_4.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/enterprise-newsletter_test_run_4.html",
+    "contentHash" : "4223c0ff2f8bf3f63d38ee035755921042d8befc4ecf1089562816fc6578be21",
+    "status" : "FAILED",
+    "processedAt" : "2026-06-30T05:21:29.948199Z",
+    "errorMessage" : "8 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

@@ -3,8 +3,63 @@
 /* ================================================================
    STATE
 ================================================================ */
-let _allFiles   = [];
-let _activeIdx  = -1;
+let _allFiles       = [];
+let _activeIdx      = -1;
+let _activeCategory = "overview";
+
+/* ================================================================
+   CATEGORY MAP  — maps sidebar keys → rule IDs
+   "*" in the array means "all rules"
+================================================================ */
+const CATEGORY_MAP = {
+    overview:       ["*"],
+    inventoryLinks: ["LINK_VALIDATION"],
+    tracking:       ["CTA_VALIDATION", "LINK_TEXT_VALIDATION"],
+    brokenHtml:     ["DUPLICATE_ID", "HEADING_HIERARCHY"],
+    images:         ["ALT_TEXT_VALIDATION"],
+    urlDefense:     ["URL_DEFENSE"],
+    accessibility:  ["ACCESSIBILITY_AXE"],
+    privacy:        ["PRIVACY_LINK"],
+    viewOnline:     ["VIEW_ONLINE_LINK"],
+    disclaimer:     ["DISCLAIMER_PRESENT"],
+    unsubscribe:    ["BROKEN_ANCHOR", "CTA_VALIDATION"]
+};
+
+/* ================================================================
+   SIDEBAR LABELS  — human-readable names for each category key
+================================================================ */
+const SIDEBAR_LABELS = {
+    overview:       "Overview",
+    inventoryLinks: "Inventory & Inspect Link",
+    tracking:       "Tracking Links & CTAs",
+    brokenHtml:     "Broken HTML Codes",
+    images:         "Image Inventory & Rendering Accuracy",
+    urlDefense:     "URL Defense Wrappers Cleanup",
+    accessibility:  "Accessibility Violations",
+    privacy:        "Privacy Link Validation",
+    viewOnline:     "Disclosure / View in Browser",
+    disclaimer:     "Reply-to Text / Disclaimer",
+    unsubscribe:    "Legal – Unsubscribe Link"
+};
+
+/* ================================================================
+   RECOMMENDATION MAP  — one recommendation per rule ID
+================================================================ */
+const RECOMMENDATIONS = {
+    PRIVACY_LINK:       "Verify that the Privacy Policy destination URL is correct and accessible.",
+    VIEW_ONLINE_LINK:   "Verify the View Online macro and confirm the hosted URL resolves correctly.",
+    LINK_VALIDATION:    "Correct the broken hyperlink and ensure the destination URL is live.",
+    CTA_VALIDATION:     "Verify the CTA destination URL and review button wording for clarity.",
+    LINK_TEXT_VALIDATION: "Update link text to be descriptive and meaningful for all readers.",
+    ALT_TEXT_VALIDATION:"Add descriptive ALT text to all images for accessibility and deliverability.",
+    ACCESSIBILITY_AXE:  "Resolve the flagged accessibility violations to meet WCAG 2.1 AA standards.",
+    BROKEN_ANCHOR:      "Correct the broken internal anchor so unsubscribe navigation works reliably.",
+    HEADING_HIERARCHY:  "Fix the heading structure so H1→H2→H3 levels are used in the correct order.",
+    DUPLICATE_ID:       "Remove or rename duplicate HTML element IDs to prevent rendering issues.",
+    CONTENT_VALIDATION: "Correct all content placeholders before deployment.",
+    DISCLAIMER_PRESENT: "Verify the legal disclaimer is present and matches the approved copy.",
+    URL_DEFENSE:        "Remove or update URL defense wrappers that may be breaking destination links."
+};
 
 /* ================================================================
    BOOT
@@ -31,8 +86,8 @@ document.addEventListener("DOMContentLoaded", function () {
     _allFiles = Array.isArray(data.files) ? data.files : [];
 
     renderTopbar(data);
-    buildSidebar(_allFiles);
-    initSearch();
+    populateEmailDropdown(_allFiles);
+    initializeSidebar();
 
     if (_allFiles.length > 0) {
         var firstFailIdx = findIndex(_allFiles, function (f) {
@@ -43,13 +98,12 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /* ================================================================
-   TOPBAR
+   TOPBAR  (preserved exactly)
 ================================================================ */
 function renderTopbar(data) {
     setText("tb-passed",  data.passedFiles  || 0);
     setText("tb-failed",  data.failedFiles  || 0);
 
-    /* ── Skipped file count ── */
     var skippedFiles =
         (data.skippedFiles != null)
             ? data.skippedFiles
@@ -59,7 +113,6 @@ function renderTopbar(data) {
     var tbSkipWrap = document.getElementById("tb-skipped-wrap");
     if (tbSkipWrap && skippedFiles > 0) { tbSkipWrap.style.display = ""; }
 
-    /* ── Generated-at timestamp ── */
     var egEl = document.getElementById("tb-generated");
     if (egEl && data.generatedAt) {
         try {
@@ -69,16 +122,6 @@ function renderTopbar(data) {
         }
     }
 
-    /* ── Execution time ──
-         Priority order (first non-null wins):
-           1. data.executionTimeMs   — ms number in the JSON payload (add to your DTO)
-           2. data.durationMs        — alias
-           3. data.executionTimeSec  — seconds float in JSON
-           4. data.executionTime     — raw value; >1000 treated as ms, else seconds
-           5. data.duration          — alias for executionTime
-           6. AUDIT_EXECUTION_TIME_MS — injected via {{EXECUTION_TIME_MS}} placeholder
-              in the HTML template (fallback when you cannot change the DTO)
-    */
     var ms = null;
     if      (data.executionTimeMs  != null) { ms = Number(data.executionTimeMs);  }
     else if (data.durationMs       != null) { ms = Number(data.durationMs);       }
@@ -86,11 +129,10 @@ function renderTopbar(data) {
     else if (data.executionTime    != null) {
         var raw = Number(data.executionTime);
         ms = raw > 1000 ? raw : raw * 1000;
-    } else if (data.duration       != null) {
+    } else if (data.duration != null) {
         var rawDur = Number(data.duration);
         ms = rawDur > 1000 ? rawDur : rawDur * 1000;
     } else if (typeof AUDIT_EXECUTION_TIME_MS !== "undefined" && AUDIT_EXECUTION_TIME_MS !== null) {
-        /* Populated from {{EXECUTION_TIME_MS}} placeholder in dashboard.html */
         ms = Number(AUDIT_EXECUTION_TIME_MS);
     }
 
@@ -103,64 +145,63 @@ function renderTopbar(data) {
 }
 
 /* ================================================================
-   SIDEBAR — file list
+   EMAIL DROPDOWN  — NEW (replaces old sidebar file list)
 ================================================================ */
-function buildSidebar(files) {
-    var list = document.getElementById("sidebar-list");
-    if (!list) { return; }
+function populateEmailDropdown(files) {
+    var sel = document.getElementById("email-selector");
+    if (!sel) { return; }
+
+    sel.innerHTML = "";
 
     if (!files || files.length === 0) {
-        list.innerHTML = '<div class="sidebar-empty">No emails audited.</div>';
+        var opt = document.createElement("option");
+        opt.textContent = "No emails audited";
+        sel.appendChild(opt);
         return;
     }
 
-    list.innerHTML = "";
-
     files.forEach(function (file, i) {
-        var item     = document.createElement("div");
-        var isPassed = normaliseStatus(file.overallStatus) === "PASS";
-        var failCnt  = file.failedChecks || 0;
+        var opt = document.createElement("option");
+        opt.value       = String(i);
+        opt.textContent = file.fileName || ("Email " + (i + 1));
+        sel.appendChild(opt);
+    });
 
-        item.className     = "sidebar-item";
-        item.dataset.index = String(i);
-        item.setAttribute("tabindex", "0");
-        item.setAttribute("role", "button");
-        item.setAttribute("aria-label", file.fileName + " \u2013 " + (isPassed ? "PASS" : "FAIL"));
-
-        item.innerHTML =
-            '<span class="sidebar-item-dot ' + (isPassed ? "pass" : "fail") + '"></span>' +
-            '<span class="sidebar-item-name" title="' + esc(file.fileName) + '">' + esc(file.fileName) + "</span>" +
-            (failCnt > 0 ? '<span class="sidebar-item-count">' + failCnt + "\u2717</span>" : "");
-
-        item.addEventListener("click",   function () { selectFile(i); });
-        item.addEventListener("keydown", function (e) {
-            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectFile(i); }
-        });
-
-        list.appendChild(item);
+    sel.addEventListener("change", function () {
+        selectFile(parseInt(sel.value, 10));
     });
 }
 
 /* ================================================================
-   SIDEBAR — search / filter
-   BUG FIX: removed stray closing parenthesis on style.display line
+   CATEGORY SIDEBAR  — NEW
 ================================================================ */
-function initSearch() {
-    var input = document.getElementById("sidebar-search");
-    if (!input) { return; }
+function initializeSidebar() {
+    var nav = document.getElementById("category-nav");
+    if (!nav) { return; }
 
-    input.addEventListener("input", function () {
-        var q = input.value.toLowerCase().trim();
-        var items = document.querySelectorAll(".sidebar-item");
+    nav.innerHTML = "";
 
-        items.forEach(function (item) {
-            var name = (item.querySelector(".sidebar-item-name") || {}).textContent || "";
-            item.style.display = name.toLowerCase().indexOf(q) >= 0 ? "" : "none";
-            /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-               FIXED: was  "none";)   — extra closing paren caused a
-               SyntaxError that silently killed the entire search feature.
-            */
+    Object.keys(SIDEBAR_LABELS).forEach(function (key) {
+        var btn = document.createElement("button");
+        btn.className        = "cat-nav-btn" + (key === "overview" ? " active" : "");
+        btn.dataset.category = key;
+        btn.textContent      = SIDEBAR_LABELS[key];
+
+        btn.addEventListener("click", function () {
+            _activeCategory = key;
+
+            /* Update active state */
+            nav.querySelectorAll(".cat-nav-btn").forEach(function (b) {
+                b.classList.toggle("active", b === btn);
+            });
+
+            /* Re-render content panel for currently selected email */
+            if (_activeIdx >= 0 && _activeIdx < _allFiles.length) {
+                renderCategory(_activeCategory, _allFiles[_activeIdx]);
+            }
         });
+
+        nav.appendChild(btn);
     });
 }
 
@@ -172,48 +213,66 @@ function selectFile(idx) {
 
     _activeIdx = idx;
 
-    var items = document.querySelectorAll(".sidebar-item");
-    items.forEach(function (item, i) {
-        var isActive = (i === idx);
-        item.classList.toggle("active", isActive);
-        item.setAttribute("aria-selected", isActive ? "true" : "false");
-    });
+    /* Sync dropdown */
+    var sel = document.getElementById("email-selector");
+    if (sel) { sel.value = String(idx); }
 
-    if (items[idx]) {
-        items[idx].scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-
+    /* Show content panel */
     var welcome = document.getElementById("welcome-state");
     var detail  = document.getElementById("detail-view");
     if (welcome) { welcome.style.display = "none"; }
     if (detail)  { detail.style.display  = "block"; }
 
-    renderDetail(_allFiles[idx]);
+    renderCategory(_activeCategory, _allFiles[idx]);
 }
 
 /* ================================================================
-   DETAIL VIEW
-   BUG FIX: pass rule arrays (not counts) to buildValidationSection
+   RENDER CATEGORY  — NEW main rendering entry point
 ================================================================ */
-function renderDetail(file) {
-    var detail = document.getElementById("detail-view");
-    if (!detail) { return; }
+function renderCategory(category, file) {
+    if (!file) { return; }
 
-    var rules = Array.isArray(file.rules) ? file.rules : [];
+    var panel = document.getElementById("content-panel");
+    if (!panel) {
+        /* Fallback: write into legacy detail-view if content-panel is absent */
+        panel = document.getElementById("detail-view");
+    }
+    if (!panel) { return; }
 
+    if (category === "overview") {
+        panel.innerHTML = renderOverview(file);
+    } else {
+        var ruleIds = CATEGORY_MAP[category] || [];
+        var rules   = Array.isArray(file.rules) ? file.rules : [];
+
+        /* Filter rules matching this category */
+        var filtered = rules.filter(function (r) {
+            return ruleIds.indexOf(r.ruleId) >= 0;
+        });
+
+        panel.innerHTML = renderCategoryCards(category, filtered);
+    }
+
+    wireExpandCollapse(panel);
+}
+
+/* ================================================================
+   RENDER OVERVIEW  — NEW
+================================================================ */
+function renderOverview(file) {
+    var rules        = Array.isArray(file.rules) ? file.rules : [];
     var passedRules  = rules.filter(function (r) { return normaliseStatus(r.status) === "PASS";    });
     var failedRules  = rules.filter(function (r) { return normaliseStatus(r.status) === "FAIL";    });
     var errorRules   = rules.filter(function (r) { return normaliseStatus(r.status) === "ERROR";   });
     var skippedRules = rules.filter(function (r) { return normaliseStatus(r.status) === "SKIPPED"; });
 
-    var totalRules   = rules.length;
-    var passedCount  = passedRules.length;
-    var failedCount  = failedRules.length + errorRules.length;
-    var skippedCount = skippedRules.length;
+    var totalRules  = rules.length;
+    var passedCount = passedRules.length;
+    var failedCount = failedRules.length + errorRules.length;
+    var skippedCount= skippedRules.length;
+    var status      = normaliseStatus(file.overallStatus);
 
-    var status = normaliseStatus(file.overallStatus);
-
-    /* execution time per file (ms) — optional field */
+    /* File execution time */
     var fileMs = null;
     if      (file.executionTimeMs  != null) { fileMs = Number(file.executionTimeMs);  }
     else if (file.durationMs       != null) { fileMs = Number(file.durationMs);       }
@@ -223,77 +282,194 @@ function renderDetail(file) {
         fileMs = rawFile > 1000 ? rawFile : rawFile * 1000;
     }
 
-    detail.innerHTML =
-        buildDetailHeader(file, passedCount, totalRules, status, fileMs) +
-        buildSummaryStrip(totalRules, passedCount, failedCount, skippedCount) +
-        buildScreenshotSection(file)                                          +
-        buildValidationSection(passedRules, failedRules, errorRules, skippedRules);
-
-    wireExpandCollapse(detail);
-    wireScreenshotExpand(detail);
-}
-
-/* ================================================================
-   SECTION: DETAIL HEADER
-================================================================ */
-function buildDetailHeader(file, passed, total, status, execMs) {
-    var badgeCls  = statusBadgeClass(status);
-    var timeChip  = (execMs !== null && execMs != null && !isNaN(execMs))
-        ? '<span class="detail-meta-item">' +
-        '<span style="color:var(--text-muted)">\u23F1</span> ' +
-        formatDuration(execMs) +
-        "</span>"
+    var timeChip = (fileMs !== null && !isNaN(fileMs))
+        ? '<span class="overview-meta-chip">\u23F1 ' + formatDuration(fileMs) + "</span>"
         : "";
 
-    return (
-        '<div class="detail-header">' +
-        '<div class="detail-header-left">' +
-        '<div class="detail-filename">' + esc(file.fileName) + "</div>" +
-        '<div class="detail-meta">' +
-        '<span class="status-badge ' + badgeCls + '">' + esc(status) + "</span>" +
-        '<span class="detail-meta-item">' +
-        '<span style="color:var(--text-muted)">\u25a3</span> ' +
-        total + " checks" +
-        "</span>" +
+    /* Build category status pills for quick-scan table */
+    var categoryRows = Object.keys(SIDEBAR_LABELS).filter(function (k) { return k !== "overview"; }).map(function (key) {
+        var ruleIds = CATEGORY_MAP[key] || [];
+        var catRules = rules.filter(function (r) { return ruleIds.indexOf(r.ruleId) >= 0; });
+        var catFail  = catRules.filter(function (r) {
+            var s = normaliseStatus(r.status);
+            return s === "FAIL" || s === "ERROR";
+        });
+        var catStatus = catRules.length === 0 ? "SKIPPED"
+            : catFail.length > 0 ? "FAIL" : "PASS";
+
+        return (
+            '<tr class="overview-row" data-category="' + esc(key) + '">' +
+            '<td class="overview-cat-name">' + esc(SIDEBAR_LABELS[key]) + "</td>" +
+            '<td><span class="status-badge ' + statusBadgeClass(catStatus) + '">' + esc(catStatus) + "</span></td>" +
+            '<td class="overview-finding-count">' +
+            (catFail.length > 0 ? catFail.length + " issue" + (catFail.length !== 1 ? "s" : "") : "—") +
+            "</td>" +
+            "</tr>"
+        );
+    }).join("");
+
+    var html =
+        '<div class="overview-header">' +
+        '<div class="overview-filename">' + esc(file.fileName) + "</div>" +
+        '<div class="overview-meta">' +
+        '<span class="status-badge ' + statusBadgeClass(status) + '">' + esc(status) + "</span>" +
+        '<span class="overview-meta-chip">' + totalRules + " checks</span>" +
         timeChip +
         "</div>" +
         "</div>" +
-        '<div class="detail-header-right">' +
-        buildGauge(passed, total) +
+
+        '<div class="overview-tiles">' +
+        buildOverviewTile("Total Checks",  totalRules,   "rules evaluated", "tile-total")   +
+        buildOverviewTile("Passed",        passedCount,  "no findings",     "tile-passed")  +
+        buildOverviewTile("Failed",        failedCount,  "need review",     "tile-failed")  +
+        (skippedCount > 0 ? buildOverviewTile("Skipped", skippedCount, "not evaluated", "tile-skipped") : "") +
+        "</div>" +
+
+        buildScreenshotSection(file) +
+
+        '<div class="overview-table-section">' +
+        '<div class="section-label">Audit Summary by Category</div>' +
+        '<table class="overview-table">' +
+        '<thead><tr><th>Category</th><th>Status</th><th>Issues</th></tr></thead>' +
+        '<tbody>' + categoryRows + "</tbody>" +
+        "</table>" +
+        "</div>";
+
+    return '<div class="overview-wrap">' + html + "</div>";
+}
+
+function buildOverviewTile(label, value, sub, modifier) {
+    return (
+        '<div class="summary-tile ' + modifier + '">' +
+        '<div class="summary-tile-label">' + esc(label)  + "</div>" +
+        '<div class="summary-tile-value">' + value        + "</div>" +
+        '<div class="summary-tile-sub">'   + esc(sub)    + "</div>" +
+        "</div>"
+    );
+}
+
+/* ================================================================
+   RENDER CATEGORY CARDS  — NEW
+================================================================ */
+function renderCategoryCards(category, filteredRules) {
+    var label = SIDEBAR_LABELS[category] || category;
+
+    var html = '<div class="category-panel">' +
+        '<div class="category-panel-header">' +
+        '<h2 class="category-panel-title">' + esc(label) + "</h2>" +
+        "</div>";
+
+    if (filteredRules.length === 0) {
+        html +=
+            '<div class="no-results-msg">' +
+            '<div class="no-results-icon">\u2713</div>' +
+            '<div class="no-results-title">No checks found for this category</div>' +
+            '<div class="no-results-sub">This email may not include rules mapped to this section, or the audit did not run these checks.</div>' +
+            "</div>";
+    } else {
+        html += '<div class="biz-cards-list">';
+        filteredRules.forEach(function (rule) {
+            html += createValidationCard(rule);
+        });
+        html += "</div>";
+    }
+
+    html += "</div>";
+    return html;
+}
+
+/* ================================================================
+   VALIDATION CARD  — NEW business-friendly card layout
+================================================================ */
+function createValidationCard(rule) {
+    var ruleId        = rule.ruleId        || "";
+    var ruleName      = rule.ruleName      || ruleId;
+    var status        = normaliseStatus(rule.status);
+    var severity      = rule.severity      || "";
+    var findings      = Array.isArray(rule.findings) ? rule.findings : [];
+    var businessImpact= rule.businessImpact || "";
+    var technicalNote = findings.length > 0 ? findings[0] : (rule.message || "");
+
+    var badgeCls = statusBadgeClass(status);
+    var sevCls   = severityChipClass(severity);
+    var rec      = getRecommendation(ruleId);
+
+    var statusLabel = createStatusBadge(status);
+    var sevLabel    = severity ? createSeverityBadge(severity, sevCls) : "";
+    var recHtml     = rec
+        ? '<div class="biz-card-row"><span class="biz-card-label">Recommendation</span><span class="biz-card-value biz-card-rec">' + esc(rec) + "</span></div>"
+        : "";
+    var businessHtml= businessImpact
+        ? '<div class="biz-card-row"><span class="biz-card-label">Business Result</span><span class="biz-card-value">' + esc(businessImpact) + "</span></div>"
+        : "";
+    var techHtml    = technicalNote
+        ? '<div class="biz-card-row"><span class="biz-card-label">Technical Finding</span><span class="biz-card-value biz-card-tech">' + esc(technicalNote) + "</span></div>"
+        : "";
+
+    /* Extra findings beyond first */
+    var extraFindings = "";
+    if (findings.length > 1) {
+        extraFindings = '<div class="biz-card-extra-findings">';
+        for (var i = 1; i < findings.length; i++) {
+            extraFindings +=
+                '<div class="biz-card-extra-item">' +
+                '<span class="biz-card-extra-num">' + (i + 1) + "</span>" +
+                '<span class="biz-card-extra-text">' + esc(findings[i]) + "</span>" +
+                "</div>";
+        }
+        extraFindings += "</div>";
+    }
+
+    var isExpanded = (status === "FAIL" || status === "ERROR");
+
+    return (
+        '<div class="biz-card' + (isExpanded ? " expanded" : "") + '">' +
+        '<button class="biz-card-header" aria-expanded="' + isExpanded + '">' +
+        '<span class="biz-card-chevron">\u25b6</span>' +
+        '<span class="biz-card-title">' + esc(ruleName) + "</span>" +
+        '<div class="biz-card-badges">' +
+        sevLabel +
+        statusLabel +
+        "</div>" +
+        "</button>" +
+        '<div class="biz-card-body">' +
+        businessHtml +
+        techHtml +
+        extraFindings +
+        recHtml +
         "</div>" +
         "</div>"
     );
 }
 
 /* ================================================================
-   SECTION: SUMMARY STRIP
+   BADGE HELPERS  — NEW
 ================================================================ */
-function buildSummaryStrip(total, passed, failed, skipped) {
-    var skippedTile = (skipped > 0)
-        ? buildTile("Skipped", skipped, "not evaluated", "tile-skipped")
-        : "";
-    return (
-        '<div class="summary-strip">' +
-        buildTile("Total Checks", total,  "rules evaluated", "tile-total")  +
-        buildTile("Passed",       passed, "no findings",     "tile-passed") +
-        buildTile("Failed",       failed, "need review",     "tile-failed") +
-        skippedTile +
-        "</div>"
-    );
+function createStatusBadge(status) {
+    return '<span class="status-badge ' + statusBadgeClass(status) + '">' + esc(status) + "</span>";
 }
 
-function buildTile(label, value, sub, modifier) {
-    return (
-        '<div class="summary-tile ' + modifier + '">' +
-        '<div class="summary-tile-label">' + esc(label) + "</div>" +
-        '<div class="summary-tile-value">' + value       + "</div>" +
-        '<div class="summary-tile-sub">'   + esc(sub)   + "</div>" +
-        "</div>"
-    );
+function createSeverityBadge(severity, sevCls) {
+    return '<span class="severity-chip ' + (sevCls || severityChipClass(severity)) + '">' + esc(severity) + "</span>";
 }
 
 /* ================================================================
-   SECTION: SCREENSHOT
+   RECOMMENDATION LOOKUP  — NEW
+================================================================ */
+function getRecommendation(ruleId) {
+    return RECOMMENDATIONS[ruleId] || null;
+}
+
+/* ================================================================
+   CLEAR CONTENT  — NEW
+================================================================ */
+function clearContent() {
+    var panel = document.getElementById("content-panel") || document.getElementById("detail-view");
+    if (panel) { panel.innerHTML = ""; }
+}
+
+/* ================================================================
+   SECTION: SCREENSHOT  (preserved exactly)
 ================================================================ */
 function buildScreenshotSection(file) {
     var rawPath        = file.screenshotPath;
@@ -353,170 +529,70 @@ function buildScreenshotUnavailable() {
 
 function handleScreenshotError(img) {
     var wrap = img.closest(".screenshot-img-wrap");
-    if (wrap) {
-        wrap.innerHTML = buildScreenshotUnavailable();
-    }
-}
-
-function wireScreenshotExpand(container) {
-    var btn = container.querySelector(".screenshot-expand-trigger");
-    if (!btn) { return; }
-
-    btn.addEventListener("click", function () {
-        var wrap    = container.querySelector(".screenshot-img-wrap");
-        var overlay = container.querySelector(".screenshot-expand-btn");
-        if (wrap)    { wrap.style.maxHeight = "none"; wrap.style.overflow = "visible"; }
-        if (overlay) { overlay.style.display = "none"; }
-    });
+    if (wrap) { wrap.innerHTML = buildScreenshotUnavailable(); }
 }
 
 /* ================================================================
-   SECTION: VALIDATION CARDS
-   BUG FIX: parameters are now arrays (not numbers).
-            Added SKIPPED section with its own heading and expanded cards.
-================================================================ */
-function buildValidationSection(passedRules, failedRules, errorRules, skippedRules) {
-    var html =
-        '<div class="section-label">Validation Results</div>' +
-        '<div class="validation-list">';
-
-    var hasAny =
-        passedRules.length  > 0 ||
-        failedRules.length  > 0 ||
-        errorRules.length   > 0 ||
-        skippedRules.length > 0;
-
-    if (!hasAny) {
-        html += '<div class="sidebar-empty">No rule results available.</div>';
-    } else {
-
-        /* ── Failed ── */
-        if (failedRules.length > 0) {
-            html += '<div class="section-label" style="margin-bottom:12px">Failed Rules (' + failedRules.length + ')</div>';
-            failedRules.forEach(function (rule) { html += buildValCard(rule, true); });
-        }
-
-        /* ── Error ── */
-        if (errorRules.length > 0) {
-            html += '<div class="section-label" style="margin-top:20px;margin-bottom:12px">Error Rules (' + errorRules.length + ')</div>';
-            errorRules.forEach(function (rule) { html += buildValCard(rule, true); });
-        }
-
-        /* ── Skipped  (was silently omitted before this fix) ── */
-        if (skippedRules.length > 0) {
-            html += '<div class="section-label" style="margin-top:20px;margin-bottom:12px">Skipped Rules (' + skippedRules.length + ')</div>';
-            skippedRules.forEach(function (rule) { html += buildValCard(rule, true); });
-        }
-
-        /* ── Passed ── */
-        if (passedRules.length > 0) {
-            html += '<div class="section-label" style="margin-top:20px;margin-bottom:12px">Passed Rules (' + passedRules.length + ')</div>';
-            passedRules.forEach(function (rule) { html += buildValCard(rule, false); });
-        }
-    }
-
-    html += "</div>";
-    return html;
-}
-
-/* ================================================================
-   VAL CARD
-   BUG FIX: no-findings and no-findings-pass divs were never closed.
-================================================================ */
-function buildValCard(rule, autoExpand) {
-    var ruleId   = rule.ruleId        || "";
-    var ruleName = rule.ruleName      || ruleId;
-    var status   = normaliseStatus(rule.status);
-    var severity = rule.severity      || "";
-    var findings = Array.isArray(rule.findings) ? rule.findings : [];
-    var impact   = rule.businessImpact || "";
-
-    var badgeCls     = statusBadgeClass(status);
-    var sevCls       = severityChipClass(severity);
-    var isFail       = status !== "PASS";
-    var findingCount = findings.length;
-
-    /* ── Header ── */
-    var headerHtml =
-        '<button class="val-card-header" aria-expanded="' + autoExpand + '">' +
-        '<span class="val-card-chevron">\u25b6</span>' +
-        '<span class="val-card-rule-id">' + esc(ruleId)   + "</span>" +
-        '<span class="val-card-name">'    + esc(ruleName)  + "</span>" +
-        '<div class="val-card-right">' +
-        (findingCount > 0
-            ? '<span class="finding-count-pill">' + findingCount + " finding" + (findingCount !== 1 ? "s" : "") + "</span>"
-            : "") +
-        (severity
-            ? '<span class="severity-chip ' + sevCls + '">' + esc(severity) + "</span>"
-            : "") +
-        '<span class="status-badge ' + badgeCls + '">' + esc(status) + "</span>" +
-        "</div>" +
-        "</button>";
-
-    /* ── Body ── */
-    var bodyHtml;
-
-    if (!isFail) {
-        /* FIXED: was missing closing </div> */
-        bodyHtml = '<div class="no-findings">All checks passed for this rule.</div>';
-
-    } else if (findings.length === 0 && !impact) {
-        /* FIXED: was missing closing </div> */
-        bodyHtml = '<div class="no-findings">No finding details available.</div>';
-
-    } else {
-        bodyHtml = '<div class="findings-list">';
-
-        if (findings.length > 0) {
-            findings.forEach(function (findingText, i) {
-                bodyHtml +=
-                    '<div class="finding-item">' +
-                    '<div class="finding-index">#' + (i + 1) + "</div>" +
-                    '<div class="finding-content">' +
-                    (i === 0 && impact
-                        ? '<div class="finding-impact">' + esc(impact) + "</div>"
-                        : "") +
-                    '<div class="finding-text">' + esc(findingText) + "</div>" +
-                    "</div>" +
-                    "</div>";
-            });
-        } else {
-            bodyHtml +=
-                '<div class="finding-item">' +
-                '<div class="finding-index">#1</div>' +
-                '<div class="finding-content">' +
-                '<div class="finding-impact">' + esc(impact) + "</div>" +
-                "</div>" +
-                "</div>";
-        }
-
-        bodyHtml += "</div>";
-    }
-
-    return (
-        '<div class="val-card' + (autoExpand ? " expanded" : "") + '">' +
-        headerHtml +
-        '<div class="val-card-body">' + bodyHtml + "</div>" +
-        "</div>"
-    );
-}
-
-/* ================================================================
-   EXPAND / COLLAPSE WIRING
+   EXPAND / COLLAPSE WIRING  — updated to cover both card types
 ================================================================ */
 function wireExpandCollapse(container) {
-    var headers = container.querySelectorAll(".val-card-header");
-    headers.forEach(function (header) {
+    /* Legacy val-cards */
+    var valHeaders = container.querySelectorAll(".val-card-header");
+    valHeaders.forEach(function (header) {
         header.addEventListener("click", function () {
             var card     = header.closest(".val-card");
             var expanded = card.classList.toggle("expanded");
             header.setAttribute("aria-expanded", expanded ? "true" : "false");
         });
     });
+
+    /* New business cards */
+    var bizHeaders = container.querySelectorAll(".biz-card-header");
+    bizHeaders.forEach(function (header) {
+        header.addEventListener("click", function () {
+            var card     = header.closest(".biz-card");
+            var expanded = card.classList.toggle("expanded");
+            header.setAttribute("aria-expanded", expanded ? "true" : "false");
+        });
+    });
+
+    /* Overview table rows — clicking a row navigates to that category */
+    var overviewRows = container.querySelectorAll(".overview-row");
+    overviewRows.forEach(function (row) {
+        row.style.cursor = "pointer";
+        row.addEventListener("click", function () {
+            var cat = row.dataset.category;
+            if (!cat) { return; }
+            _activeCategory = cat;
+
+            /* Sync sidebar active state */
+            var nav = document.getElementById("category-nav");
+            if (nav) {
+                nav.querySelectorAll(".cat-nav-btn").forEach(function (b) {
+                    b.classList.toggle("active", b.dataset.category === cat);
+                });
+            }
+
+            if (_activeIdx >= 0 && _activeIdx < _allFiles.length) {
+                renderCategory(cat, _allFiles[_activeIdx]);
+            }
+        });
+    });
+
+    /* Screenshot expand */
+    var expandBtn = container.querySelector(".screenshot-expand-trigger");
+    if (expandBtn) {
+        expandBtn.addEventListener("click", function () {
+            var wrap    = container.querySelector(".screenshot-img-wrap");
+            var overlay = container.querySelector(".screenshot-expand-btn");
+            if (wrap)    { wrap.style.maxHeight = "none"; wrap.style.overflow = "visible"; }
+            if (overlay) { overlay.style.display = "none"; }
+        });
+    }
 }
 
 /* ================================================================
-   GAUGE
+   GAUGE  (preserved exactly — still used implicitly via overview)
 ================================================================ */
 function buildGauge(passed, total) {
     var pct    = total > 0 ? Math.round((passed / total) * 100) : 0;
@@ -543,7 +619,7 @@ function buildGauge(passed, total) {
 }
 
 /* ================================================================
-   CSS CLASS HELPERS
+   CSS CLASS HELPERS  (preserved exactly)
 ================================================================ */
 function statusBadgeClass(status) {
     switch (normaliseStatus(status)) {
@@ -567,15 +643,8 @@ function severityChipClass(severity) {
 }
 
 /* ================================================================
-   UTILITIES
+   UTILITIES  (preserved exactly)
 ================================================================ */
-/**
- * Format a millisecond duration into a human-readable string.
- * Examples:  450 ms → "450 ms"
- *            3 500 ms → "3s 500ms"
- *            75 000 ms → "1m 15s"
- *            3 665 000 ms → "1h 1m 5s"
- */
 function formatDuration(ms) {
     ms = Math.round(ms);
     if (ms < 1000)  { return ms + " ms"; }
@@ -618,16 +687,6 @@ function setText(id, value) {
     if (el) { el.textContent = String(value); }
 }
 
-/* ================================================================
-   esc()
-   BUG FIX: original used JS string literals that contained the
-   already-escaped entity text (e.g. the source code said "&amp;"
-   literally).  The function therefore output "&amp;" into the DOM
-   instead of "&", so e.g. a filename containing & would render as
-   "&amp;" visible to the user.  Fixed to use the correct Unicode
-   escape sequences so the replacement strings are the real HTML
-   entity characters.
-================================================================ */
 function esc(value) {
     if (value == null) { return ""; }
     return String(value)
@@ -646,7 +705,7 @@ function findIndex(arr, predicate) {
 }
 
 function showFatalError(msg) {
-    var panel = document.getElementById("main-panel");
+    var panel = document.getElementById("main-panel") || document.getElementById("content-panel");
     if (panel) {
         panel.innerHTML =
             "<div style='padding:40px 32px;color:var(--red);font-size:14px;line-height:1.6'>" +
