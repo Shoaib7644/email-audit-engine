@@ -14,6 +14,8 @@ public record FileAuditData(
         int failedChecks,
         List<SectionCheckResult> sections,
         List<RuleAuditData> rules,
+        List<LinkAuditData> links,
+        List<ImageAuditData> images,
         String screenshotPath) {
 
     public FileAuditData {
@@ -21,6 +23,8 @@ public record FileAuditData(
         Objects.requireNonNull(overallStatus, "overallStatus must not be null");
         Objects.requireNonNull(sections,      "sections must not be null");
         Objects.requireNonNull(rules,         "rules must not be null");
+        Objects.requireNonNull(links,         "links must not be null");
+        Objects.requireNonNull(images,        "images must not be null");
         // screenshotPath is intentionally nullable — absent when no screenshot was captured.
 
         if (totalChecks < 0) {
@@ -35,5 +39,7 @@ public record FileAuditData(
 
         sections = List.copyOf(sections);
         rules    = List.copyOf(rules);
+        links    = List.copyOf(links);
+        images   = List.copyOf(images);
     }
 }

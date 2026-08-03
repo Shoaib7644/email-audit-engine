@@ -14,13 +14,54 @@
       overallStatus   : "PASS" | "FAIL" | "ERROR" | "SKIPPED",
       failedChecks    : number,
       screenshotPath  : string | null,
+      links: [{
+        visibleText     : string,
+        originalUrl     : string,
+        finalUrl        : string,
+        linkType        : string,
+        validationNote  : string,
+	        validationStatus: "PASS" | "FAIL" | "SKIPPED" | "PROTECTED",
+	        reason          : string,
+	        pageTitle       : string,
+	        httpStatus      : number | null,
+	        statusText      : string,
+	        redirectCount   : number | null,
+	        redirectChain   : string[],
+	        responseTimeMs  : number | null,
+	        screenshotPath  : string | null,
+	        element         : string,
+	        ariaLabel       : string,
+	        title           : string,
+	        target          : string,
+	        domIndex        : number | null,
+	        bounds          : string
+	      }],
+      images: [{
+        imageUrl        : string,
+        altText         : string,
+        httpStatus      : number | null,
+        validationStatus: "PASS" | "FAIL" | "WARNING",
+        warning         : boolean,
+        naturalWidth    : number | null,
+        naturalHeight   : number | null,
+        displayWidth    : number | null,
+        displayHeight   : number | null,
+        imageLoaded     : boolean,
+        rendered        : boolean,
+        screenshotPath  : string | null,
+        thumbnailPath   : string | null,
+        notes           : string,
+        bounds          : string,
+        imageType       : string
+      }],
       rules: [{
         ruleId          : string,
         ruleName        : string,
         status          : "PASS" | "FAIL" | "ERROR" | "SKIPPED",
         severity        : "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO",
         findings        : string[],
-        businessImpact  : string
+        businessImpact  : string,
+        errorMessage    : string
       }]
     }]
   }
@@ -143,6 +184,22 @@
                 </button>
             </li>
 
+            <li class="nav-item" data-category="LINKS" role="listitem">
+                <button class="nav-btn" aria-current="false" data-category="LINKS">
+                    <span class="nav-icon" aria-hidden="true">&#128279;</span>
+                    <span class="nav-label">Links</span>
+                    <span class="nav-badge" id="badge-LINKS" aria-label="Links audit status"></span>
+                </button>
+            </li>
+
+            <li class="nav-item" data-category="IMAGES" role="listitem">
+                <button class="nav-btn" aria-current="false" data-category="IMAGES">
+                    <span class="nav-icon" aria-hidden="true">&#128444;</span>
+                    <span class="nav-label">Images</span>
+                    <span class="nav-badge" id="badge-IMAGES" aria-label="Images audit status"></span>
+                </button>
+            </li>
+
             <li class="nav-item" data-category="LINK_VALIDATION" role="listitem">
                 <button class="nav-btn" aria-current="false" data-category="LINK_VALIDATION">
                     <span class="nav-icon" aria-hidden="true">&#128279;</span>
@@ -222,8 +279,16 @@
                     <span class="nav-badge" id="badge-UNSUBSCRIBE" aria-label="Unsubscribe link status"></span>
                 </button>
             </li>
+            <li class="nav-item" data-category="HEADER_DETAILS" role="listitem">
+                <button class="nav-btn" aria-current="false" data-category="HEADER_DETAILS">
+                    <span class="nav-icon" aria-hidden="true">&#9993;</span>
+                    <span class="nav-label">Header / Sender Details</span>
+                    <span class="nav-badge" id="badge-HEADER_DETAILS" aria-label="Header and sender details status"></span>
+                </button>
+            </li>
 
         </ul>
+
 
     </nav>
 

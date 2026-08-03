@@ -21,6 +21,11 @@ public enum ReportSection {
             "Validation of hyperlinks, anchor references, and link text quality."
     ),
 
+    IMAGES(
+            "Images",
+            "Validation of rendered email images, load state, alt attributes, and image screenshots."
+    ),
+
     CTA(
             "Call To Action",
             "Validation of call-to-action elements and user engagement pathways."

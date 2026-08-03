@@ -1,5 +1,6 @@
 package com.acxiom.emailaudit.rules;
 
+import com.acxiom.emailaudit.config.ConfigurationManager;
 import com.acxiom.emailaudit.rules.AuditRule;
 import com.acxiom.emailaudit.rules.RuleResult;
 import com.deque.html.axecore.playwright.AxeBuilder;
@@ -25,7 +26,8 @@ import java.util.Objects;
  * <p>Uses {@link AxeBuilder} from {@code com.deque.html.axe-core:playwright}
  * (declared in {@code pom.xml}).  The builder injects the axe-core JS library
  * into the page and returns structured {@link AxeResults} without any
- * additional browser configuration.</p>
+ * additional browser configuration. If Deque's finishRun window mechanism fails
+ * in the active browser profile, the rule can retry in axe legacy mode.</p>
  *
  * <h2>WCAG targeting</h2>
  * <p>By default the rule runs all axe tags that map to
@@ -78,6 +80,7 @@ public final class AccessibilityRule implements AuditRule {
     private final List<String> tags;
     private final RuleSeverity severityOverride;
     private final boolean      enabled;
+    private final boolean      legacyFallbackEnabled;
 
     // -------------------------------------------------------------------------
     // Construction
@@ -89,7 +92,10 @@ public final class AccessibilityRule implements AuditRule {
      * (accessibility failures are blocking).
      */
     public AccessibilityRule() {
-        this(DEFAULT_TAGS, RuleSeverity.CRITICAL, true);
+        this(DEFAULT_TAGS,
+                RuleSeverity.CRITICAL,
+                true,
+                ConfigurationManager.getInstance().isAccessibilityAxeLegacyFallbackEnabled());
     }
 
     /**
@@ -103,6 +109,22 @@ public final class AccessibilityRule implements AuditRule {
             final List<String> tags,
             final RuleSeverity severityOverride,
             final boolean enabled) {
+        this(tags, severityOverride, enabled, false);
+    }
+
+    /**
+     * Creates the rule with a custom tag set and configurable axe legacy fallback.
+     *
+     * @param tags                  axe-core tags to include; must not be null or empty
+     * @param severityOverride      overall rule severity reported in the dashboard
+     * @param enabled               whether this rule participates in execution
+     * @param legacyFallbackEnabled whether to retry known axe finishRun failures in legacy mode
+     */
+    public AccessibilityRule(
+            final List<String> tags,
+            final RuleSeverity severityOverride,
+            final boolean enabled,
+            final boolean legacyFallbackEnabled) {
 
         Objects.requireNonNull(tags,             "tags must not be null");
         Objects.requireNonNull(severityOverride, "severityOverride must not be null");
@@ -114,6 +136,7 @@ public final class AccessibilityRule implements AuditRule {
         this.tags             = List.copyOf(tags);
         this.severityOverride = severityOverride;
         this.enabled          = enabled;
+        this.legacyFallbackEnabled = legacyFallbackEnabled;
     }
 
     // -------------------------------------------------------------------------
@@ -171,12 +194,26 @@ public final class AccessibilityRule implements AuditRule {
         log.info("[{}] Starting axe-core scan (tags: {}) on: {}",
                 RULE_ID, tags, safeUrl(page));
 
-        final AxeResults axeResults;
+        AxeResults axeResults;
         try {
-            axeResults = buildAxe(page).analyze();
+            axeResults = buildAxe(page, false).analyze();
         } catch (final Exception e) {
-            log.error("[{}] axe-core analysis threw an exception: {}", RULE_ID, e.getMessage(), e);
-            return RuleResult.error(this, startMs, e);
+            if (legacyFallbackEnabled && isFinishRunFailure(e)) {
+                log.warn("[{}] axe-core finishRun failed; retrying accessibility scan in legacy mode: {}",
+                        RULE_ID, e.getMessage());
+                try {
+                    axeResults = buildAxe(page, true).analyze();
+                    log.info("[{}] axe-core legacy fallback completed successfully", RULE_ID);
+                } catch (final Exception legacyException) {
+                    legacyException.addSuppressed(e);
+                    log.error("[{}] axe-core legacy fallback also threw an exception: {}",
+                            RULE_ID, legacyException.getMessage(), legacyException);
+                    return RuleResult.error(this, startMs, legacyException);
+                }
+            } else {
+                log.error("[{}] axe-core analysis threw an exception: {}", RULE_ID, e.getMessage(), e);
+                return RuleResult.error(this, startMs, e);
+            }
         }
 
         final List<Rule> violations = safeViolations(axeResults);
@@ -201,9 +238,22 @@ public final class AccessibilityRule implements AuditRule {
      * configured tag set.  A new instance is required per call because
      * {@link AxeBuilder} holds mutable page-level state.
      */
-    private AxeBuilder buildAxe(final Page page) {
-        return new AxeBuilder(page)
+    private AxeBuilder buildAxe(final Page page, final boolean legacyMode) {
+        final AxeBuilder builder = new AxeBuilder(page)
                 .withTags(tags);
+        return legacyMode ? builder.setLegacyMode(true) : builder;
+    }
+
+    private static boolean isFinishRunFailure(final Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            final String message = current.getMessage();
+            if (message != null && message.contains("finishRun failed")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     // -------------------------------------------------------------------------
@@ -226,7 +276,7 @@ public final class AccessibilityRule implements AuditRule {
             if (nodes == null || nodes.isEmpty()) {
                 // Keep the information intact if no individual element targets are provided
                 String finding = FindingFormatter.linkFinding()
-                        .title("Accessibility Violation")
+                        .title(accessibilityTitle(axeRuleId))
                         .displayText("(no nodes)")
                         .href(helpUrl)
                         .failed(desc)
@@ -238,7 +288,7 @@ public final class AccessibilityRule implements AuditRule {
                     final String elementSelector = extractSelector(node);
 
                     String finding = FindingFormatter.linkFinding()
-                            .title("Accessibility Violation")
+                            .title(accessibilityTitle(axeRuleId))
                             .displayText(elementSelector)
                             .href(helpUrl)
                             .failed(desc)
@@ -250,6 +300,12 @@ public final class AccessibilityRule implements AuditRule {
         }
 
         return Collections.unmodifiableList(findings);
+    }
+
+    private static String accessibilityTitle(final String axeRuleId) {
+        return axeRuleId == null || axeRuleId.isBlank()
+                ? "Accessibility Violation"
+                : "Accessibility Violation - " + axeRuleId;
     }
 
     /**

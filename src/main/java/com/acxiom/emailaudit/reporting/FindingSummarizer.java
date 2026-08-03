@@ -12,10 +12,13 @@ import java.util.Locale;
  *       (no exception class names, no HTTP status codes, no HTML tag
  *       names, no WCAG rule IDs, no axe rule IDs).</li>
  *   <li>New patterns added: color-contrast, lorem ipsum / placeholder
- *       content, skipped heading level, URL defense wrappers.</li>
+ *       content, skipped heading level, URL defense wrappers, broken
+ *       image source (IMAGE_SRC_VALIDATION).</li>
  *   <li>Existing patterns tightened to match more real-world variants.</li>
  *   <li>Order of checks preserved where precedence matters
- *       (e.g. privacy-specific checks before generic broken-link check).</li>
+ *       (e.g. privacy-specific checks before generic broken-link check;
+ *       broken-image-source checked before the missing-alt-text check so
+ *       the two distinct image failure modes don't collide).</li>
  * </ul>
  *
  * <p>The Technical Details column always receives the original raw
@@ -85,6 +88,18 @@ public final class FindingSummarizer {
                 || n.contains("has no element with id")
                 || n.contains("anchor target")) {
             return "Internal email navigation link is broken.";
+        }
+
+        /* ── Broken image source (IMAGE_SRC_VALIDATION) — check before the
+           missing-alt-text pattern below, since a broken src and a missing
+           alt attribute are different failure modes that can both mention
+           "image". ── */
+        if (n.contains("image source validation")
+                || n.contains("image failed to load")
+                || n.contains("does not resolve to a valid image")
+                || n.contains("0-width natural size")
+                || n.contains("broken image")) {
+            return "One or more images will not display for recipients.";
         }
 
         /* ── Missing ALT text ── */

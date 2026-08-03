@@ -1,0 +1,11 @@
+{
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.Champion.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.Champion.html",
+    "contentHash" : "267a2e9ea39f2b980ba5aeea544234171f1f12d3eda98f2c314726369a5d00e8",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-24T12:55:09.786914Z",
+    "errorMessage" : "6 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

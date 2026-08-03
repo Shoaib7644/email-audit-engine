@@ -3,7 +3,9 @@ package com.acxiom.emailaudit.rules;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -83,6 +85,7 @@ public final class RuleResult {
     private final String             errorMessage;
     private final long               durationMs;
     private final Instant            evaluatedAt;
+    private final Map<String, Object> metadata;
 
     // -------------------------------------------------------------------------
     // Private constructor – use static factories or Builder
@@ -99,6 +102,7 @@ public final class RuleResult {
         this.errorMessage   = builder.errorMessage;
         this.durationMs     = builder.durationMs;
         this.evaluatedAt    = builder.evaluatedAt;
+        this.metadata       = Collections.unmodifiableMap(new LinkedHashMap<>(builder.metadata));
     }
 
     // -------------------------------------------------------------------------
@@ -212,6 +216,7 @@ public final class RuleResult {
     public String getErrorMessage()              { return errorMessage; }
     public long getDurationMs()                  { return durationMs; }
     public Instant getEvaluatedAt()              { return evaluatedAt; }
+    public Map<String, Object> getMetadata()      { return metadata; }
 
     // -------------------------------------------------------------------------
     // Derived helpers
@@ -287,6 +292,7 @@ public final class RuleResult {
         private final Instant                 evaluatedAt;
 
         private final List<String> findings     = new ArrayList<>();
+        private final Map<String, Object> metadata = new LinkedHashMap<>();
         private       String       businessImpact;
         private       String       errorMessage = null;
 
@@ -339,6 +345,20 @@ public final class RuleResult {
 
         public Builder withErrorMessage(final String errorMessage) {
             this.errorMessage = errorMessage;
+            return this;
+        }
+
+        public Builder withMetadata(final String key, final Object value) {
+            if (key != null && !key.isBlank() && value != null) {
+                this.metadata.put(key, value);
+            }
+            return this;
+        }
+
+        public Builder withMetadata(final Map<String, Object> metadata) {
+            if (metadata != null) {
+                metadata.forEach(this::withMetadata);
+            }
             return this;
         }
 

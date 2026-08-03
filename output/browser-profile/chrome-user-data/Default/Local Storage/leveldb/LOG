@@ -1,0 +1,24 @@
+2026/08/03-19:39:00.415 c1b17d Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/08/03-19:39:00.417 c1b17d Recovering log #221
+2026/08/03-19:39:00.417 c1b17d Reusing old log /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Local Storage/leveldb/000221.log 
+2026/08/03-19:39:21.188 c1b17d Level-0 table #225: started
+2026/08/03-19:39:21.195 c1b17d Level-0 table #225: 42708 bytes OK
+2026/08/03-19:39:21.198 c1b17d Delete type=0 #221
+2026/08/03-19:39:24.495 c1b180 Level-0 table #227: started
+2026/08/03-19:39:24.498 c1b180 Level-0 table #227: 29328 bytes OK
+2026/08/03-19:39:24.499 c1b180 Delete type=0 #224
+2026/08/03-19:39:24.500 c1b180 Compacting 4@0 + 1@1 files
+2026/08/03-19:39:24.502 c1b180 Generated table #228@0: 198 keys, 62117 bytes
+2026/08/03-19:39:24.502 c1b180 Compacted 4@0 + 1@1 files => 62117 bytes
+2026/08/03-19:39:24.502 c1b180 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/03-19:39:24.503 c1b180 Delete type=2 #222
+2026/08/03-19:39:24.503 c1b180 Delete type=2 #220
+2026/08/03-19:39:24.503 c1b180 Delete type=2 #218
+2026/08/03-19:39:24.503 c1b180 Delete type=2 #225
+2026/08/03-19:39:24.503 c1b180 Delete type=2 #227
+2026/08/03-19:39:33.877 c1b180 Level-0 table #230: started
+2026/08/03-19:39:33.882 c1b180 Level-0 table #230: 35053 bytes OK
+2026/08/03-19:39:33.883 c1b180 Delete type=0 #226
+2026/08/03-19:39:37.860 c1b180 Level-0 table #232: started
+2026/08/03-19:39:37.862 c1b180 Level-0 table #232: 29623 bytes OK
+2026/08/03-19:39:37.864 c1b180 Delete type=0 #229

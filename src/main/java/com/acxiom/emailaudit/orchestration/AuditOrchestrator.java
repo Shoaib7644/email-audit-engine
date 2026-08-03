@@ -12,6 +12,7 @@ import com.acxiom.emailaudit.reporting.ReportManager;
 import com.acxiom.emailaudit.rules.*;
 import com.acxiom.emailaudit.state.StateRegistry;
 import com.acxiom.emailaudit.utilities.HashUtil;
+import com.acxiom.emailaudit.utilities.PerformanceMetrics;
 import com.microsoft.playwright.Page;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,6 +99,7 @@ public final class AuditOrchestrator implements AutoCloseable {
 
     public RunSummary run() {
         final Instant runStart = Instant.now();
+        PerformanceMetrics.reset();
         log.info("=== Audit run starting ===");
 
         duplicateDetector.reset();
@@ -185,6 +187,7 @@ public final class AuditOrchestrator implements AutoCloseable {
                 failed,
                 errored,
                 reportPath);
+        PerformanceMetrics.logSummary(runDurationMs);
 
         return runSummary;
     }
@@ -354,10 +357,16 @@ public final class AuditOrchestrator implements AutoCloseable {
         registry.register(new DuplicateIdRule());
         registry.register(new LinkTextValidationRule());
         registry.register(new LinkValidationRule());
+        registry.register(new HeaderEmojiEncodingRule());
         registry.register(new HeadingHierarchyRule());
+        registry.register(new PreheaderPunctuationRule());
+        registry.register(new PreheaderTrimRule());
         registry.register(new PrivacyLinkRule());
         registry.register(new ViewOnlineLinkRule());
         registry.register(new DisclaimerRule());
+        registry.register(new ImageValidationRule());
+        registry.register(new ImageSourceValidationRule());
+        registry.register(new HeaderEmojiEncodingRule());
         return registry;
     }
 

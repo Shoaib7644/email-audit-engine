@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- DEMO EMAIL #1 — INTENTIONALLY BROKEN
+     Every issue below is labeled with which audit rule it should trigger.
+     No <title>, no lang attribute (see <html> tag above) — triggers:
+       - Content Validation (missing title)
+       - Accessibility: document-title, html-has-lang
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style type="text/css">
+  body { margin:0; padding:0; width:100% !important; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif; background-color:#ffffff; }
+  table { border-collapse:collapse; }
+  a { color:#0067ba; }
+  .btn { display:inline-block; background:#0067ba; color:#ffffff; padding:12px 28px; text-decoration:none; font-weight:bold; border-radius:4px; }
+  .lowcontrast { color:#e0e0e0; } /* triggers axe color-contrast */
+</style>
+</head>
+<body bgcolor="#ffffff">
+
+<!-- NOTE: no "View Online" link anywhere in this email — triggers View Online Link rule FAIL -->
+
+<table width="600" align="center" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff">
+  <tr>
+    <td bgcolor="#0F3D70" align="center" style="padding:20px;">
+      <!-- Logo image WITHOUT alt attribute — triggers Alt Text Validation FAIL -->
+      <img src="images/EM_NFCU_LogoBar_Desk.png" width="220">
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:30px 20px 10px 20px;">
+      <!-- No heading tags anywhere in the document — triggers Heading Hierarchy FAIL
+           and axe page-has-heading-one FAIL -->
+      <span style="font-size:22px; font-weight:bold; color:#0F3D70;">Member benefits add up.</span>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:10px 30px 20px 30px; font-size:14px; line-height:22px; color:#262626;">
+      As a member, you get real perks: <span class="lowcontrast">380+ branches worldwide</span>,
+      24/7 assistance from our US-based member support team, and a full-service mobile app for
+      easy, secure banking. Call us at 1-888-842-6328 any time.
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center" style="padding:10px 30px 30px 30px;">
+      <!-- Two elements sharing the SAME id — triggers Duplicate ID Validation FAIL -->
+      <a id="cta-button" class="btn" href="https://www.navyfederal.org/campaigns/membership/62470-mrm-prospecting-w2t1.html">Become a Member</a>
+      &nbsp;&nbsp;
+      <!-- CTA link with NO visible text (image only, no alt) — triggers CTA/Button Text Validation FAIL -->
+      <a id="cta-button" href="https://www.navyfederal.org/services/mobile-online-banking/apps.html"><img src="images/CTA_JoinToday_2x.png" width="140"></a>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 30px 20px 30px; font-size:14px;">
+      <!-- Generic, non-descriptive link text — triggers Link Text Validation FAIL -->
+      Want to see more of what membership includes? <a href="https://www.navyfederal.org/">Click here</a>.
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 30px 20px 30px; font-size:14px;">
+      <!-- In-page fragment link pointing to an id that does not exist anywhere on the page —
+           triggers Fragment/In-Page Link Validation FAIL -->
+      <a href="#membership-details">Jump to membership details</a>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 30px 20px 30px; font-size:14px;">
+      <!-- Link pointing to a page that returns 404 — triggers Broken Link Validation FAIL -->
+      Read more in our <a href="https://www.navyfederal.org/this-page-does-not-exist-404">membership guide</a>.
+    </td>
+  </tr>
+
+  <tr>
+    <td bgcolor="#ECEAE7" style="padding:20px 30px; font-size:12px; color:#68696A;">
+      Please do not reply to this email. This is an advertisement from Navy Federal. This email is
+      being sent from: Navy Federal Credit Union, P.O. Box 3000, Merrifield, VA 22119-3000.<br><br>
+      Navy Federal is insured by NCUA. &nbsp;|&nbsp;
+      <!-- Unsubscribe href is an UNRESOLVED merge tag, same as production template —
+           triggers Disclaimer/Unsubscribe Rule FAIL.
+           NOTE FOR DEMO: this is the SAME token style that Broken Link Validation
+           treats as a pass ("Unsubscribe link present") — this is the inconsistency to show live. -->
+      <a href="{{ADV_UNSUB_LINK}}">Unsubscribe</a> &nbsp;|&nbsp;
+      <a href="https://www.navyfederal.org/policy/privacy.html">Privacy Policy</a>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

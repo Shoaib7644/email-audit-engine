@@ -1,12 +1,14 @@
 package com.acxiom.emailaudit.rendering;
 
 import com.acxiom.emailaudit.config.ConfigurationManager;
+import com.acxiom.emailaudit.utilities.PerformanceMetrics;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.options.ColorScheme;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitUntilState;
 import org.slf4j.Logger;
@@ -14,6 +16,9 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.ZoneId;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -21,13 +26,11 @@ import java.util.Objects;
  * fully loaded {@link Page} object for downstream rule evaluation.
  *
  * <h2>Lifecycle contract</h2>
- * <p>{@code HtmlRenderer} owns a single {@link Playwright} instance and a
- * single {@link Browser} instance for its entire lifetime.  Each call to
- * {@link #render(Path)} creates a <em>new</em> {@link BrowserContext} and
- * {@link Page}, isolating every audit run from the previous one (cookies,
- * local storage, cached resources).  The caller is responsible for closing
- * the returned {@link Page} (and its parent context) after rule evaluation
- * completes.</p>
+ * <p>{@code HtmlRenderer} owns a single {@link Playwright} instance for its
+ * lifetime. Each call to {@link #render(Path)} launches a persistent browser
+ * context from the configured Chrome user data directory and creates a new
+ * {@link Page}. The caller is responsible for closing the returned
+ * {@link Page} (and its parent context) after rule evaluation completes.</p>
  *
  * <h2>Thread safety</h2>
  * <p>Playwright's Java bindings are <strong>not</strong> thread-safe: each
@@ -40,12 +43,17 @@ import java.util.Objects;
  * <h2>Configuration keys</h2>
  * <table>
  *   <tr><td>{@code playwright.browser}</td>
- *       <td>Browser engine: {@code chromium} (default), {@code firefox},
- *           {@code webkit}</td></tr>
+ *       <td>Browser engine: {@code chrome} (default), {@code chromium},
+ *           {@code firefox}, {@code webkit}</td></tr>
+ *   <tr><td>{@code playwright.browser.channel}</td>
+ *       <td>Browser channel for Chromium-family browsers (default:
+ *           {@code chrome})</td></tr>
  *   <tr><td>{@code playwright.headless}</td>
- *       <td>{@code true} (default) / {@code false}</td></tr>
+ *       <td>{@code true} / {@code false} (default)</td></tr>
  *   <tr><td>{@code playwright.timeout.ms}</td>
  *       <td>Navigation + action timeout in milliseconds (default: 30 000)</td></tr>
+ *   <tr><td>{@code browser.profile.directory}</td>
+ *       <td>Persistent browser profile directory</td></tr>
  * </table>
  */
 public final class HtmlRenderer implements AutoCloseable {
@@ -59,8 +67,17 @@ public final class HtmlRenderer implements AutoCloseable {
     // -------------------------------------------------------------------------
 
     private final Playwright playwright;
-    private final Browser    browser;
+    private Browser          browser;
     private final long       timeoutMs;
+    private final String     browserName;
+    private final String     browserChannel;
+    private final boolean    headless;
+    private final Path       profileDirectory;
+    private final String     locale;
+    private final String     timezoneId;
+    private final int        viewportWidth;
+    private final int        viewportHeight;
+    private final double     deviceScaleFactor;
 
     // -------------------------------------------------------------------------
     // Construction
@@ -87,18 +104,24 @@ public final class HtmlRenderer implements AutoCloseable {
         Objects.requireNonNull(config, "config must not be null");
 
         this.timeoutMs = config.getTimeoutMs();
-        final String  browserName = config.getBrowser();
-        final boolean headless    = config.isHeadless();
+        this.browserName = config.getBrowser();
+        this.browserChannel = config.getBrowserChannel();
+        this.headless = config.isHeadless();
+        this.profileDirectory = resolveProfileDirectory(config.getBrowserProfileDirectory());
+        this.locale = config.getBrowserLocale();
+        this.timezoneId = configuredTimezone(config.getBrowserTimezone());
+        this.viewportWidth = config.getBrowserViewportWidth();
+        this.viewportHeight = config.getBrowserViewportHeight();
+        this.deviceScaleFactor = config.getBrowserDeviceScaleFactor();
 
-        log.info("Launching {} browser (headless={}, timeout={}ms)",
-                browserName, headless, timeoutMs);
+        log.info("Preparing {} browser (channel={}, headless={}, timeout={}ms, profile={})",
+                browserName, browserChannel, headless, timeoutMs, profileDirectory);
 
         try {
             this.playwright = Playwright.create();
-            this.browser    = launchBrowser(playwright, browserName, headless);
         } catch (PlaywrightException e) {
             throw new RenderException(
-                    "Failed to launch browser '" + browserName + "': " + e.getMessage(), e);
+                    "Failed to initialise Playwright: " + e.getMessage(), e);
         }
 
         log.info("HtmlRenderer ready – browser: {}", browserName);
@@ -130,10 +153,11 @@ public final class HtmlRenderer implements AutoCloseable {
         Objects.requireNonNull(filePath, "filePath must not be null");
         validateFile(filePath);
 
+        final long renderStartNanos = System.nanoTime();
         final String fileUrl = toFileUrl(filePath);
         log.info("Rendering: {}", fileUrl);
 
-        final BrowserContext context = browser.newContext();
+        final BrowserContext context = newPersistentContext();
         configureContext(context);
 
         final Page page = context.newPage();
@@ -151,6 +175,7 @@ public final class HtmlRenderer implements AutoCloseable {
 
             log.info("Render complete – title: '{}', url: {}",
                     safeTitleOf(page), page.url());
+            PerformanceMetrics.recordEmailRender(PerformanceMetrics.elapsedMillis(renderStartNanos));
 
             return page;
 
@@ -189,29 +214,60 @@ public final class HtmlRenderer implements AutoCloseable {
     // Internal – browser setup
     // -------------------------------------------------------------------------
 
-    private static Browser launchBrowser(
-            final Playwright playwright,
-            final String browserName,
-            final boolean headless) {
+    private BrowserContext newPersistentContext() {
+        ensureProfileDirectory(profileDirectory);
+        final long launchStartNanos = System.nanoTime();
 
-        final BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
-                .setHeadless(headless);
+        final BrowserType browserType = browserType(playwright, browserName);
+        final BrowserType.LaunchPersistentContextOptions options =
+                new BrowserType.LaunchPersistentContextOptions()
+                        .setHeadless(headless)
+                        .setTimeout(timeoutMs)
+                        .setLocale(locale)
+                        .setTimezoneId(timezoneId)
+                        .setViewportSize(viewportWidth, viewportHeight)
+                        .setScreenSize(viewportWidth, viewportHeight)
+                        .setDeviceScaleFactor(deviceScaleFactor)
+                        .setColorScheme(ColorScheme.LIGHT)
+                        .setJavaScriptEnabled(true)
+                        .setOffline(false)
+                        .setExtraHTTPHeaders(Map.of("Accept-Language", "en-US,en"));
 
+        final String channel = effectiveChannel(browserName, browserChannel);
+        if (!channel.isBlank() && isChromiumFamily(browserName)) {
+            options.setChannel(channel);
+        }
+
+        final BrowserContext context = browserType.launchPersistentContext(profileDirectory, options);
+        this.browser = context.browser();
+        PerformanceMetrics.recordChromeLaunch(PerformanceMetrics.elapsedMillis(launchStartNanos));
+        return context;
+    }
+
+    private static BrowserType browserType(final Playwright playwright, final String browserName) {
         return switch (browserName.toLowerCase().trim()) {
-            case "firefox" -> playwright.firefox().launch(options);
-            case "webkit"  -> playwright.webkit().launch(options);
-            default        -> {
-                if (!"chromium".equalsIgnoreCase(browserName.trim())) {
-                    log.warn("Unknown browser '{}' – defaulting to Chromium", browserName);
-                }
-                yield playwright.chromium().launch(options);
-            }
+            case "firefox" -> playwright.firefox();
+            case "webkit"  -> playwright.webkit();
+            default        -> playwright.chromium();
         };
     }
 
+    private static boolean isChromiumFamily(final String browserName) {
+        final String normalized = browserName == null ? "" : browserName.toLowerCase().trim();
+        return normalized.isBlank()
+                || "chrome".equals(normalized)
+                || "chromium".equals(normalized)
+                || "msedge".equals(normalized);
+    }
+
+    private static String effectiveChannel(final String browserName, final String configuredChannel) {
+        if (configuredChannel != null && !configuredChannel.isBlank()) {
+            return configuredChannel.trim();
+        }
+        return "chrome".equalsIgnoreCase(browserName) ? "chrome" : "";
+    }
+
     private void configureContext(final BrowserContext context) {
-        // Disable service workers to prevent SW interception of local file URLs.
-        // Bypass CSP so inline scripts and styles in test HTML files are not blocked.
         context.setDefaultTimeout(timeoutMs);
         context.setDefaultNavigationTimeout(timeoutMs);
     }
@@ -274,6 +330,27 @@ public final class HtmlRenderer implements AutoCloseable {
         } catch (PlaywrightException e) {
             log.debug("Suppressed error closing context after render failure: {}", e.getMessage());
         }
+    }
+
+    private static Path resolveProfileDirectory(final String configuredPath) {
+        final String value = configuredPath == null || configuredPath.isBlank()
+                ? "output/browser-profile/chrome-user-data"
+                : configuredPath;
+        return Paths.get(value).normalize().toAbsolutePath();
+    }
+
+    private static void ensureProfileDirectory(final Path directory) {
+        try {
+            Files.createDirectories(directory);
+        } catch (final Exception e) {
+            throw new RenderException("Could not create browser profile directory: " + directory, e);
+        }
+    }
+
+    private static String configuredTimezone(final String configuredTimezone) {
+        return configuredTimezone == null || configuredTimezone.isBlank()
+                ? ZoneId.systemDefault().getId()
+                : configuredTimezone;
     }
 
     // -------------------------------------------------------------------------

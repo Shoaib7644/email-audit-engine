@@ -32,11 +32,40 @@ public final class ConfigurationManager {
     /** Playwright browser to use: chromium | firefox | webkit. */
     public static final String KEY_BROWSER = "playwright.browser";
 
+    /** Playwright browser channel, e.g. chrome for installed Google Chrome. */
+    public static final String KEY_BROWSER_CHANNEL = "playwright.browser.channel";
+
     /** Whether to run the browser in headless mode. */
     public static final String KEY_HEADLESS = "playwright.headless";
 
     /** Default timeout for Playwright actions in milliseconds. */
     public static final String KEY_TIMEOUT_MS = "playwright.timeout.ms";
+
+    /** Persistent browser profile directory. */
+    public static final String KEY_BROWSER_PROFILE_DIR = "browser.profile.directory";
+
+    /** Browser locale for rendered email and clicked journeys. */
+    public static final String KEY_BROWSER_LOCALE = "browser.locale";
+
+    /** Browser timezone override. */
+    public static final String KEY_BROWSER_TIMEZONE = "browser.timezone";
+
+    /** Browser viewport width. */
+    public static final String KEY_BROWSER_VIEWPORT_WIDTH = "browser.viewport.width";
+
+    /** Browser viewport height. */
+    public static final String KEY_BROWSER_VIEWPORT_HEIGHT = "browser.viewport.height";
+
+    /** Browser device scale factor. */
+    public static final String KEY_BROWSER_DEVICE_SCALE_FACTOR = "browser.device.scale.factor";
+
+    /** Additional page stabilization delay before screenshot capture. */
+    public static final String KEY_BROWSER_PAGE_STABILIZATION_DELAY_MS =
+            "browser.page.stabilization.delay";
+
+    /** Whether to retry axe-core analysis in legacy mode when the finishRun window fails. */
+    public static final String KEY_ACCESSIBILITY_AXE_LEGACY_FALLBACK =
+            "accessibility.axe.legacy.fallback.enabled";
 
     /** Number of parallel TestNG threads. */
     public static final String KEY_THREAD_COUNT = "testng.thread.count";
@@ -261,15 +290,83 @@ public final class ConfigurationManager {
     }
 
     public String getBrowser() {
-        return getOrDefault(KEY_BROWSER, "chromium");
+        return get(KEY_BROWSER)
+                .or(() -> get("browser"))
+                .orElse("chrome");
+    }
+
+    public String getBrowserChannel() {
+        return getOrDefault(KEY_BROWSER_CHANNEL, "chrome");
     }
 
     public boolean isHeadless() {
-        return getBoolean(KEY_HEADLESS, true);
+        return get(KEY_HEADLESS)
+                .or(() -> get("headless"))
+                .map(v -> {
+                    if ("true".equalsIgnoreCase(v) || "false".equalsIgnoreCase(v)) {
+                        return Boolean.parseBoolean(v);
+                    }
+                    throw new ConfigurationTypeException(
+                            "Key '" + KEY_HEADLESS + "' value '" + v + "' is not a valid boolean");
+                })
+                .orElse(false);
     }
 
     public long getTimeoutMs() {
         return getLong(KEY_TIMEOUT_MS, 30_000L);
+    }
+
+    public String getBrowserProfileDirectory() {
+        return getOrDefault(KEY_BROWSER_PROFILE_DIR, "output/browser-profile/chrome-user-data");
+    }
+
+    public String getBrowserLocale() {
+        return getOrDefault(KEY_BROWSER_LOCALE, "en-US");
+    }
+
+    public String getBrowserTimezone() {
+        return get(KEY_BROWSER_TIMEZONE).orElse("");
+    }
+
+    public int getBrowserViewportWidth() {
+        return getInt(KEY_BROWSER_VIEWPORT_WIDTH, 1600);
+    }
+
+    public int getBrowserViewportHeight() {
+        return getInt(KEY_BROWSER_VIEWPORT_HEIGHT, 900);
+    }
+
+    public double getBrowserDeviceScaleFactor() {
+        return get(KEY_BROWSER_DEVICE_SCALE_FACTOR)
+                .map(v -> {
+                    try {
+                        return Double.parseDouble(v);
+                    } catch (final NumberFormatException e) {
+                        throw new ConfigurationTypeException(
+                                "Key '" + KEY_BROWSER_DEVICE_SCALE_FACTOR
+                                        + "' value '" + v + "' is not a valid decimal", e);
+                    }
+                })
+                .orElse(1.0);
+    }
+
+    public int getBrowserPageStabilizationDelayMs() {
+        return get(KEY_BROWSER_PAGE_STABILIZATION_DELAY_MS)
+                .or(() -> get("browser.stabilization.delay.ms"))
+                .map(v -> {
+                    try {
+                        return Integer.parseInt(v);
+                    } catch (final NumberFormatException e) {
+                        throw new ConfigurationTypeException(
+                                "Key '" + KEY_BROWSER_PAGE_STABILIZATION_DELAY_MS
+                                        + "' value '" + v + "' is not a valid integer", e);
+                    }
+                })
+                .orElse(250);
+    }
+
+    public boolean isAccessibilityAxeLegacyFallbackEnabled() {
+        return getBoolean(KEY_ACCESSIBILITY_AXE_LEGACY_FALLBACK, true);
     }
 
     public int getThreadCount() {

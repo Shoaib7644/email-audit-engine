@@ -12,7 +12,8 @@ public record RuleAuditData(
         String status,
         String severity,
         List<String> findings,
-        String businessImpact) {
+        String businessImpact,
+        String errorMessage) {
 
     public RuleAuditData {
         Objects.requireNonNull(ruleName,       "ruleName must not be null");
@@ -21,6 +22,7 @@ public record RuleAuditData(
         Objects.requireNonNull(severity,       "severity must not be null");
         Objects.requireNonNull(findings,       "findings must not be null");
         Objects.requireNonNull(businessImpact, "businessImpact must not be null");
+        errorMessage = errorMessage == null ? "" : errorMessage;
 
         findings = List.copyOf(findings);
     }

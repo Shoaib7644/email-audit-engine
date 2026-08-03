@@ -93,8 +93,9 @@ public final class AltTextValidationRule implements AuditRule {
     // -------------------------------------------------------------------------
 
     /**
-     * Returns a JSON array of objects {@code {src, hasAlt, alt}} for every
-     * {@code <img>} element on the page, in document order.
+     * Returns a JSON array of objects {@code {src, hasAlt, alt, width, height,
+     * renderedWidth, renderedHeight}} for every {@code <img>} element on the
+     * page, in document order.
      *
      * <p>{@code hasAlt} distinguishes "no alt attribute" ({@code false}) from
      * "alt attribute present but empty" ({@code true} with {@code alt: ""}),
@@ -103,11 +104,18 @@ public final class AltTextValidationRule implements AuditRule {
      * indistinguishable from an empty string once serialised).</p>
      */
     private static final String EXTRACT_IMAGES_JS = """
-            () => Array.from(document.querySelectorAll('img')).map(img => ({
-                src: img.getAttribute('src') || '',
-                hasAlt: img.hasAttribute('alt'),
-                alt: img.getAttribute('alt') || ''
-            }))
+            () => Array.from(document.querySelectorAll('img')).map(img => {
+                const rect = img.getBoundingClientRect();
+                return {
+                    src: img.getAttribute('src') || '',
+                    hasAlt: img.hasAttribute('alt'),
+                    alt: img.getAttribute('alt') || '',
+                    width: img.getAttribute('width') || '',
+                    height: img.getAttribute('height') || '',
+                    renderedWidth: rect.width || 0,
+                    renderedHeight: rect.height || 0
+                };
+            })
             """;
 
     // -------------------------------------------------------------------------
@@ -206,6 +214,10 @@ public final class AltTextValidationRule implements AuditRule {
         final List<String> offending = new ArrayList<>();
 
         for (final ImageEntry image : images) {
+            if (image.isTrackingPixel()) {
+                continue;
+            }
+
             final String src = image.src().isBlank() ? UNKNOWN_SRC : image.src();
 
             if (!image.hasAlt()) {
@@ -237,6 +249,10 @@ public final class AltTextValidationRule implements AuditRule {
         final List<String> evidence = new ArrayList<>();
 
         for (final ImageEntry image : images) {
+            if (image.isTrackingPixel()) {
+                continue;
+            }
+
             if (image.hasAlt() && !image.alt().trim().isEmpty()) {
                 final String src = image.src().isBlank() ? UNKNOWN_SRC : image.src();
                 evidence.add(FindingFormatter.altTextFinding(src, true, REASON_ALT_PRESENT));
@@ -276,10 +292,21 @@ public final class AltTextValidationRule implements AuditRule {
             final List<ImageEntry> entries = new ArrayList<>(rawList.size());
             for (final Object item : rawList) {
                 if (item instanceof Map<?, ?> map) {
-                    final String  src    = stringOrEmpty(map.get("src"));
-                    final boolean hasAlt = booleanOrFalse(map.get("hasAlt"));
-                    final String  alt    = stringOrEmpty(map.get("alt"));
-                    entries.add(new ImageEntry(src, hasAlt, alt));
+                    final String  src            = stringOrEmpty(map.get("src"));
+                    final boolean hasAlt         = booleanOrFalse(map.get("hasAlt"));
+                    final String  alt            = stringOrEmpty(map.get("alt"));
+                    final String  width          = stringOrEmpty(map.get("width"));
+                    final String  height         = stringOrEmpty(map.get("height"));
+                    final double  renderedWidth  = doubleOrZero(map.get("renderedWidth"));
+                    final double  renderedHeight = doubleOrZero(map.get("renderedHeight"));
+                    entries.add(new ImageEntry(
+                            src,
+                            hasAlt,
+                            alt,
+                            width,
+                            height,
+                            renderedWidth,
+                            renderedHeight));
                 }
             }
 
@@ -311,6 +338,21 @@ public final class AltTextValidationRule implements AuditRule {
         return value instanceof Boolean b && b;
     }
 
+    private static double doubleOrZero(final Object value) {
+        return value instanceof Number n ? n.doubleValue() : 0;
+    }
+
+    private static boolean isZeroDimension(final String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        try {
+            return Double.parseDouble(value.trim()) == 0;
+        } catch (final NumberFormatException e) {
+            return false;
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Internal records
     // -------------------------------------------------------------------------
@@ -319,9 +361,27 @@ public final class AltTextValidationRule implements AuditRule {
      * Typed representation of a single {@code <img>} element extracted from
      * the page.
      *
-     * @param src    the raw {@code src} attribute value (empty string if absent)
-     * @param hasAlt whether the {@code alt} attribute is present on the element
-     * @param alt    the raw {@code alt} attribute value (empty string if absent)
+     * @param src            the raw {@code src} attribute value (empty string if absent)
+     * @param hasAlt         whether the {@code alt} attribute is present on the element
+     * @param alt            the raw {@code alt} attribute value (empty string if absent)
+     * @param width          raw {@code width} attribute value
+     * @param height         raw {@code height} attribute value
+     * @param renderedWidth  rendered CSS width in pixels
+     * @param renderedHeight rendered CSS height in pixels
      */
-    private record ImageEntry(String src, boolean hasAlt, String alt) {}
+    private record ImageEntry(
+            String src,
+            boolean hasAlt,
+            String alt,
+            String width,
+            String height,
+            double renderedWidth,
+            double renderedHeight) {
+
+        private boolean isTrackingPixel() {
+            return (isZeroDimension(width) && isZeroDimension(height))
+                    || (renderedWidth <= 1 && renderedHeight <= 1
+                    && src.toLowerCase(java.util.Locale.ROOT).contains("/r/?"));
+        }
+    }
 }

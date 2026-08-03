@@ -1,0 +1,20 @@
+{
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Demo_PASS_Clean.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Demo_PASS_Clean.html",
+    "contentHash" : "37a8be59964b80b4ecb6e166695f9a028faac2d43e286611e41382bce091fc67",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-20T11:20:03.484598Z",
+    "errorMessage" : "2 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Demo_FAIL_AllIssues.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Demo_FAIL_AllIssues.html",
+    "contentHash" : "1004113f10b02bef8bc9deaf527447361a1e9a0a815d6fae6d7476636c64a06d",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-20T11:20:01.320280Z",
+    "errorMessage" : "11 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

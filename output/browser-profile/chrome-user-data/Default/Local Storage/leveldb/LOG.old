@@ -1,0 +1,42 @@
+2026/08/03-19:23:41.203 c16fd9 Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/08/03-19:23:41.205 c16fd9 Recovering log #204
+2026/08/03-19:23:41.205 c16fd9 Reusing old log /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Local Storage/leveldb/000204.log 
+2026/08/03-19:23:54.875 c16fd9 Level-0 table #208: started
+2026/08/03-19:23:54.878 c16fd9 Level-0 table #208: 27526 bytes OK
+2026/08/03-19:23:54.880 c16fd9 Delete type=0 #204
+2026/08/03-19:23:54.881 c16fd9 Compacting 4@0 + 1@1 files
+2026/08/03-19:23:54.883 c16fd9 Generated table #209@0: 193 keys, 61415 bytes
+2026/08/03-19:23:54.883 c16fd9 Compacted 4@0 + 1@1 files => 61415 bytes
+2026/08/03-19:23:54.884 c16fd9 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/03-19:23:54.884 c16fd9 Delete type=2 #203
+2026/08/03-19:23:54.884 c16fd9 Delete type=2 #201
+2026/08/03-19:23:54.884 c16fd9 Delete type=2 #205
+2026/08/03-19:23:54.884 c16fd9 Delete type=2 #199
+2026/08/03-19:23:54.884 c16fd9 Delete type=2 #208
+2026/08/03-19:24:05.684 c16fd9 Level-0 table #211: started
+2026/08/03-19:24:05.689 c16fd9 Level-0 table #211: 32404 bytes OK
+2026/08/03-19:24:05.691 c16fd9 Delete type=0 #207
+2026/08/03-19:24:08.818 c16fd9 Level-0 table #213: started
+2026/08/03-19:24:08.822 c16fd9 Level-0 table #213: 29497 bytes OK
+2026/08/03-19:24:08.824 c16fd9 Delete type=0 #210
+2026/08/03-19:24:12.540 c16fdc Level-0 table #215: started
+2026/08/03-19:24:12.543 c16fdc Level-0 table #215: 25468 bytes OK
+2026/08/03-19:24:12.545 c16fdc Delete type=0 #212
+2026/08/03-19:24:20.371 c16fdc Level-0 table #217: started
+2026/08/03-19:24:20.376 c16fdc Level-0 table #217: 32458 bytes OK
+2026/08/03-19:24:20.378 c16fdc Delete type=0 #214
+2026/08/03-19:24:20.378 c16fdc Compacting 4@0 + 1@1 files
+2026/08/03-19:24:20.381 c16fdc Generated table #218@0: 193 keys, 62023 bytes
+2026/08/03-19:24:20.381 c16fdc Compacted 4@0 + 1@1 files => 62023 bytes
+2026/08/03-19:24:20.381 c16fdc compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/03-19:24:20.382 c16fdc Delete type=2 #217
+2026/08/03-19:24:20.382 c16fdc Delete type=2 #215
+2026/08/03-19:24:20.382 c16fdc Delete type=2 #211
+2026/08/03-19:24:20.382 c16fdc Delete type=2 #213
+2026/08/03-19:24:20.382 c16fdc Delete type=2 #209
+2026/08/03-19:24:24.258 c16fd9 Level-0 table #220: started
+2026/08/03-19:24:24.261 c16fd9 Level-0 table #220: 29379 bytes OK
+2026/08/03-19:24:24.262 c16fd9 Delete type=0 #216
+2026/08/03-19:24:42.295 c16fdc Level-0 table #222: started
+2026/08/03-19:24:42.299 c16fdc Level-0 table #222: 39109 bytes OK
+2026/08/03-19:24:42.301 c16fdc Delete type=0 #219

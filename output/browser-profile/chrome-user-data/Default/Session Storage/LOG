@@ -1,0 +1,32 @@
+2026/08/03-19:39:00.582 c1b17d Creating DB /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Session Storage since it was missing.
+2026/08/03-19:39:00.590 c1b17d Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Session Storage/MANIFEST-000001
+2026/08/03-19:39:11.706 c1b180 Level-0 table #5: started
+2026/08/03-19:39:11.709 c1b180 Level-0 table #5: 44978 bytes OK
+2026/08/03-19:39:11.711 c1b180 Delete type=0 #3
+2026/08/03-19:39:17.074 c1b180 Level-0 table #7: started
+2026/08/03-19:39:17.078 c1b180 Level-0 table #7: 49232 bytes OK
+2026/08/03-19:39:17.080 c1b180 Delete type=0 #4
+2026/08/03-19:39:28.211 c1b180 Level-0 table #9: started
+2026/08/03-19:39:28.213 c1b180 Level-0 table #9: 32802 bytes OK
+2026/08/03-19:39:28.214 c1b180 Delete type=0 #6
+2026/08/03-19:39:37.978 c1b180 Level-0 table #11: started
+2026/08/03-19:39:37.982 c1b180 Level-0 table #11: 46875 bytes OK
+2026/08/03-19:39:37.983 c1b180 Delete type=0 #8
+2026/08/03-19:39:43.331 c1b180 Level-0 table #13: started
+2026/08/03-19:39:43.333 c1b180 Level-0 table #13: 51512 bytes OK
+2026/08/03-19:39:43.334 c1b180 Delete type=0 #10
+2026/08/03-19:39:58.996 c1b180 Level-0 table #15: started
+2026/08/03-19:39:59.001 c1b180 Level-0 table #15: 56387 bytes OK
+2026/08/03-19:39:59.003 c1b180 Delete type=0 #12
+2026/08/03-19:39:59.004 c1b180 Compacting 4@0 + 1@1 files
+2026/08/03-19:39:59.007 c1b180 Generated table #16@0: 496 keys, 229484 bytes
+2026/08/03-19:39:59.007 c1b180 Compacted 4@0 + 1@1 files => 229484 bytes
+2026/08/03-19:39:59.007 c1b180 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/03-19:39:59.008 c1b180 Delete type=2 #15
+2026/08/03-19:39:59.008 c1b180 Delete type=2 #7
+2026/08/03-19:39:59.008 c1b180 Delete type=2 #13
+2026/08/03-19:39:59.008 c1b180 Delete type=2 #11
+2026/08/03-19:39:59.008 c1b180 Delete type=2 #9
+2026/08/03-19:40:12.319 c1b180 Level-0 table #18: started
+2026/08/03-19:40:12.321 c1b180 Level-0 table #18: 50038 bytes OK
+2026/08/03-19:40:12.332 c1b180 Delete type=0 #14

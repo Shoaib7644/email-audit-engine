@@ -28,6 +28,8 @@ var Sidebar = (function () {
     ============================================================ */
     var CATEGORY_RULES = {
         overview:        null,                                        /* special: show total */
+        LINKS:           null,                                        /* special: use file.links */
+        IMAGES:          null,                                        /* special: use file.images */
         LINK_VALIDATION: ['LINK_VALIDATION'],
         CTA_TRACKING:    ['CTA_VALIDATION', 'LINK_TEXT_VALIDATION'],
         HTML_QUALITY:    ['DUPLICATE_ID', 'HEADING_HIERARCHY', 'CONTENT_VALIDATION'],
@@ -37,7 +39,8 @@ var Sidebar = (function () {
         PRIVACY:         ['PRIVACY_LINK'],
         DISCLOSURE:      ['VIEW_ONLINE_LINK'],
         DISCLAIMER:      ['DISCLAIMER_PRESENT'],
-        UNSUBSCRIBE:     ['BROKEN_ANCHOR', 'CTA_VALIDATION']
+        UNSUBSCRIBE:     ['BROKEN_ANCHOR', 'CTA_VALIDATION'],
+        HEADER_DETAILS:  ['PREHEADER_TRIM_VALIDATION', 'PREHEADER_PUNCTUATION_VALIDATION', 'HEADER_EMOJI_ENCODING_VALIDATION']
     };
 
     /* ============================================================
@@ -104,6 +107,56 @@ var Sidebar = (function () {
                     badgeEl.textContent  = '';
                     badgeEl.className    = 'nav-badge nav-badge--pass';
                     badgeEl.textContent  = '✓';
+                }
+                return;
+            }
+
+            if (cat === 'LINKS') {
+                var links = Array.isArray(file.links) ? file.links : [];
+                if (links.length === 0) {
+                    badgeEl.textContent = '';
+                    badgeEl.className   = 'nav-badge';
+                    return;
+                }
+
+                var broken = links.filter(function (link) {
+                    return String(link.validationStatus || '').toUpperCase() === 'FAIL';
+                }).length;
+
+                if (broken > 0) {
+                    badgeEl.textContent = broken;
+                    badgeEl.className   = 'nav-badge nav-badge--fail';
+                } else {
+                    badgeEl.textContent = '✓';
+                    badgeEl.className   = 'nav-badge nav-badge--pass';
+                }
+                return;
+            }
+
+            if (cat === 'IMAGES') {
+                var images = Array.isArray(file.images) ? file.images : [];
+                if (images.length === 0) {
+                    badgeEl.textContent = '';
+                    badgeEl.className   = 'nav-badge';
+                    return;
+                }
+
+                var failedImages = images.filter(function (image) {
+                    return String(image.validationStatus || '').toUpperCase() === 'FAIL';
+                }).length;
+                var warningImages = images.filter(function (image) {
+                    return String(image.validationStatus || '').toUpperCase() === 'WARNING';
+                }).length;
+
+                if (failedImages > 0) {
+                    badgeEl.textContent = failedImages;
+                    badgeEl.className   = 'nav-badge nav-badge--fail';
+                } else if (warningImages > 0) {
+                    badgeEl.textContent = warningImages;
+                    badgeEl.className   = 'nav-badge nav-badge--neutral';
+                } else {
+                    badgeEl.textContent = '✓';
+                    badgeEl.className   = 'nav-badge nav-badge--pass';
                 }
                 return;
             }

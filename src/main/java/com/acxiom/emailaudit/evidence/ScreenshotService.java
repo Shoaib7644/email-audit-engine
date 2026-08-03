@@ -1,6 +1,7 @@
 package com.acxiom.emailaudit.evidence;
 
 import com.acxiom.emailaudit.config.ConfigurationManager;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
 import org.slf4j.Logger;
@@ -161,6 +162,51 @@ public final class ScreenshotService {
         Objects.requireNonNull(page, "page must not be null");
         final String derivedName = deriveSourceName(page);
         return capture(page, derivedName);
+    }
+
+    /**
+     * Captures a cropped PNG screenshot of a single rendered element.
+     *
+     * <p>The same output directory and timestamp-based naming convention used
+     * for full-page screenshots is reused here; only the Playwright capture
+     * target changes from {@link Page} to {@link Locator}.</p>
+     *
+     * @param locator    Playwright locator resolving to the element to capture
+     * @param sourceName logical name for the screenshot; must not be blank
+     * @return absolute {@link Path} of the saved PNG file
+     * @throws ScreenshotException if the screenshot cannot be taken or saved
+     */
+    public Path capture(final Locator locator, final String sourceName) {
+        Objects.requireNonNull(locator,    "locator must not be null");
+        Objects.requireNonNull(sourceName, "sourceName must not be null");
+
+        if (sourceName.isBlank()) {
+            throw new IllegalArgumentException("sourceName must not be blank");
+        }
+
+        final Path outputPath = buildOutputPath(sourceName);
+        log.debug("Capturing element screenshot → '{}'", outputPath.getFileName());
+
+        final Locator.ScreenshotOptions options = new Locator.ScreenshotOptions()
+                .setPath(outputPath);
+
+        try {
+            locator.screenshot(options);
+        } catch (PlaywrightException e) {
+            throw new ScreenshotException(
+                    "Playwright failed to capture screenshot for '" + sourceName
+                            + "': " + e.getMessage(), e);
+        }
+
+        if (!Files.exists(outputPath)) {
+            throw new ScreenshotException(
+                    "Screenshot file was not created at expected path: " + outputPath);
+        }
+
+        log.info("Screenshot saved: '{}' ({} bytes)",
+                outputPath.getFileName(), fileSizeQuietly(outputPath));
+
+        return outputPath;
     }
 
     /**

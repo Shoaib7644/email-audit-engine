@@ -14,8 +14,9 @@ import java.util.Objects;
 
 /**
  * {@link AuditRule} that validates primary call-to-action (CTA) elements —
- * {@code <button>} elements and {@code <a>} elements styled to look like
- * buttons — on a rendered HTML page.
+ * {@code <button>} elements, {@code <a>} elements styled to look like
+ * buttons, and {@code <a>} elements wrapping a single CTA image — on a
+ * rendered HTML page.
  *
  * <h2>Why this matters</h2>
  * <p>A CTA is the single most important interactive element in most marketing
@@ -40,12 +41,33 @@ import java.util.Objects;
  *             rather than using native {@code <button>} elements.</li>
  *       </ul>
  *   </li>
+ *   <li>or any {@code <a>} element that wraps a single {@code <img>} and has
+ *       <strong>no visible text of its own</strong> — the "image button"
+ *       pattern used throughout HTML email, where a raster CTA graphic
+ *       (e.g. {@code <a href="..."><img src="cta_join_now.png" alt="Join
+ *       now"></a>}) stands in for native button markup. Without this
+ *       branch, image-only CTAs are invisible to this rule entirely: they
+ *       have no text, no {@code role="button"}, no {@code btn} class, and
+ *       typically no background/padding on the anchor itself (padding is
+ *       usually applied to a wrapping {@code <td>} in email markup), so the
+ *       previous detector never matched them — meaning the rule always
+ *       reported PASS on zero checked elements regardless of whether the
+ *       CTA's destination was broken, hidden, or unlabeled.</li>
  * </ul>
+ *
+ * <h2>Visible text for image-button CTAs</h2>
+ * <p>For an image-button CTA, "visible text" is taken from the wrapped
+ * image's {@code alt} attribute when the anchor itself has no text content —
+ * this mirrors what a screen reader announces for the element and lets the
+ * existing empty-text check correctly flag image buttons with missing or
+ * empty {@code alt} text as a real accessibility failure, rather than
+ * silently skipping them.</p>
  *
  * <h2>Checks performed</h2>
  * <p>For every detected CTA candidate:</p>
  * <ul>
- *   <li><strong>Empty text</strong> — the element's trimmed visible text is empty.</li>
+ *   <li><strong>Empty text</strong> — the element's effective visible text
+ *       (its own text, or its wrapped image's {@code alt} text) is empty.</li>
  *   <li><strong>Missing href</strong> — applies only to {@code <a>} elements:
  *       the {@code href} attribute is absent or empty. {@code <button>}
  *       elements are not required to have an {@code href}.</li>
@@ -57,10 +79,9 @@ import java.util.Objects;
  * (e.g. a hidden button with no text).</p>
  *
  * <h2>PASS evidence</h2>
- * <p>When the rule passes, it now also returns one evidence finding per
- * valid CTA candidate via {@link FindingFormatter#linkFinding()}, so the
- * dashboard can show exactly which CTAs were reviewed and confirmed
- * functional, e.g.:</p>
+ * <p>When the rule passes, it also returns one evidence finding per valid
+ * CTA candidate via {@link FindingFormatter#linkFinding()}, so the dashboard
+ * can show exactly which CTAs were reviewed and confirmed functional, e.g.:</p>
  * <pre>
  * CTA Validation
  *   Displayed Text  : Shop Now
@@ -71,6 +92,17 @@ import java.util.Objects;
  * <p>{@code <button>} elements (which have no href to validate) report
  * {@code "(not applicable)"} as the destination, mirroring the FAIL-path
  * convention already used in {@link #buildFindings(List)}.</p>
+ *
+ * <h2>Scope note</h2>
+ * <p>This rule intentionally does <em>not</em> distinguish a "primary"
+ * marketing CTA from other image-only links (e.g. a header logo link or a
+ * footer social icon) — any {@code <a>} wrapping exactly one image with no
+ * other text now qualifies as a candidate. In practice this only ever
+ * widens PASS-evidence coverage for those incidental links (they have a
+ * valid href and non-empty alt text, so they simply pass); it does not
+ * introduce false failures. If tighter precision is needed later (e.g. only
+ * treating CTA-named images as primary CTAs), that should be driven by an
+ * explicit include/exclude list rather than filename heuristics.</p>
  *
  * <h2>DOM and Playwright usage</h2>
  * <p>CTA detection, text extraction, and computed-style checks are all
@@ -95,8 +127,9 @@ public final class CtaValidationRule implements AuditRule {
     public static final String RULE_ID = "CTA_VALIDATION";
 
     private static final String DESCRIPTION =
-            "Validates primary call-to-action buttons and button-styled links "
-                    + "for visible text, a valid href, and visibility.";
+            "Validates primary call-to-action buttons, button-styled links, "
+                    + "and image-button CTAs for visible/alt text, a valid href, "
+                    + "and visibility.";
 
     /** Caps the number of individual findings to keep report output readable. */
     private static final int MAX_FINDINGS = 25;
@@ -114,7 +147,9 @@ public final class CtaValidationRule implements AuditRule {
      *
      * <ul>
      *   <li>{@code tag} — {@code "button"} or {@code "a"}</li>
-     *   <li>{@code text} — trimmed visible text</li>
+     *   <li>{@code text} — trimmed visible text, falling back to a wrapped
+     *       image's {@code alt} attribute for image-button CTAs with no
+     *       text of their own</li>
      *   <li>{@code href} — raw {@code href} attribute for {@code <a>}
      *       elements, or {@code null} for {@code <button>} elements
      *       (the href check does not apply to buttons)</li>
@@ -144,6 +179,17 @@ public final class CtaValidationRule implements AuditRule {
                     return hasBackground && hasPadding;
                 };
 
+                // Image-button CTA: an <a> whose only meaningful content is a
+                // single <img>, with no other visible text of its own. This
+                // is the common "CTA graphic" pattern in HTML email, where a
+                // raster image stands in for native button markup.
+                const isImageButton = (el) => {
+                    const imgs = el.querySelectorAll('img');
+                    if (imgs.length !== 1) return false;
+                    const ownText = (el.textContent || '').replace(/\\s+/g, '');
+                    return ownText.length === 0;
+                };
+
                 const isHidden = (el) => {
                     const style = window.getComputedStyle(el);
                     return style.display === 'none'
@@ -151,18 +197,29 @@ public final class CtaValidationRule implements AuditRule {
                         || parseFloat(style.opacity) === 0;
                 };
 
-                const candidates = [];
+                // Effective visible text: the element's own text, or (for an
+                // image-button CTA with no text of its own) its wrapped
+                // image's alt attribute, which is what a screen reader would
+                // announce for the element.
+                const extractText = (el) => {
+                    const own = (el.innerText || el.textContent || '').trim();
+                    if (own) return own;
+                    const img = el.querySelector('img[alt]');
+                    return img ? (img.getAttribute('alt') || '').trim() : '';
+                };
 
-                document.querySelectorAll('button').forEach(el => candidates.push(el));
+                const candidates = new Set();
+
+                document.querySelectorAll('button').forEach(el => candidates.add(el));
                 document.querySelectorAll('a').forEach(el => {
-                    if (isButtonStyled(el)) candidates.push(el);
+                    if (isButtonStyled(el) || isImageButton(el)) candidates.add(el);
                 });
 
-                return candidates.map(el => {
+                return Array.from(candidates).map(el => {
                     const tag = el.tagName.toLowerCase();
                     return {
                         tag: tag,
-                        text: (el.innerText || el.textContent || '').trim(),
+                        text: extractText(el),
                         href: tag === 'a' ? (el.getAttribute('href') || '') : null,
                         hidden: isHidden(el)
                     };
@@ -218,7 +275,7 @@ public final class CtaValidationRule implements AuditRule {
      *
      * @param page live, fully loaded Playwright page; must not be {@code null}
      * @return PASS (with evidence findings) when every detected CTA has
-     *         visible text, a valid href (for links), and is not hidden;
+     *         visible/alt text, a valid href (for links), and is not hidden;
      *         FAIL when one or more CTAs violate these checks; ERROR when
      *         DOM extraction itself fails
      */
@@ -286,13 +343,13 @@ public final class CtaValidationRule implements AuditRule {
                 findings.add(finding);
             }
 
-            // Check 2: Empty Content Rule Violation
+            // Check 2: Empty Content Rule Violation (no own text and no usable alt text)
             if (cta.text().isBlank()) {
                 String finding = FindingFormatter.linkFinding()
                         .title("CTA Validation")
                         .displayText(textValue)
                         .href(destinationValue)
-                        .failed("CTA has no visible text")
+                        .failed("CTA has no visible text and no usable image alt text")
                         .build();
                 findings.add(finding);
             }
@@ -447,7 +504,7 @@ public final class CtaValidationRule implements AuditRule {
      * Typed representation of a single CTA candidate extracted from the page.
      *
      * @param tag    {@code "button"} or {@code "a"}
-     * @param text   trimmed visible text
+     * @param text   trimmed visible text (own text, or wrapped image alt text)
      * @param href   raw {@code href} attribute for {@code <a>} elements, or
      *               {@code null} for {@code <button>} elements (href check
      *               not applicable)

@@ -48,9 +48,10 @@ document.addEventListener("DOMContentLoaded", function () {
     /* ── Wire all modules ── */
     Integration.init(auditData);
 
-    /* ── Default to Overview category ── */
-    State.set("selectedCategory", "overview");
-    Sidebar.setActiveCategory("overview");
+    /* ── Default to Overview, unless the URL hash names a category ── */
+    var initialCategory = _categoryFromHash() || "overview";
+    State.set("selectedCategory", initialCategory);
+    Sidebar.setActiveCategory(initialCategory);
 
     /* ── Auto-select first failing email, or first email ── */
     if (auditData.files.length > 0) {
@@ -58,6 +59,16 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 });
+
+function _categoryFromHash() {
+    var raw = window.location.hash ? window.location.hash.substring(1) : "";
+    if (!raw) { return null; }
+    try {
+        return decodeURIComponent(raw);
+    } catch (_) {
+        return raw;
+    }
+}
 
 /* ================================================================
    DEV-MODE NOTICE

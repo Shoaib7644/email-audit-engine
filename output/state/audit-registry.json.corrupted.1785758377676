@@ -1,0 +1,74 @@
+{
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.EMOnly.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.EMOnly.html",
+    "contentHash" : "3122f41f1222f6e9b41fc89209cb06de0d72d88d20168aad59453c9b70fb89a8",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-31T18:23:44.588052Z",
+    "errorMessage" : "One or more rules threw an unexpected error",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.PostcardsB.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.PostcardsB.html",
+    "contentHash" : "677d6f6a5a05d937daaa59c9af16d70e1f6479f59e933eee7201926e9d7e02e9",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-31T18:23:02.072840Z",
+    "errorMessage" : "One or more rules threw an unexpected error",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_VBOT2.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_VBOT2.html",
+    "contentHash" : "1fea5662afdf04e28016d37472642260a322e5d1e907975737e6da785cf51c87",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-31T18:22:35.647871Z",
+    "errorMessage" : "One or more rules threw an unexpected error",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Demo_FAIL_AllIssues.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Demo_FAIL_AllIssues.html",
+    "contentHash" : "1004113f10b02bef8bc9deaf527447361a1e9a0a815d6fae6d7476636c64a06d",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-31T18:21:45.295012Z",
+    "errorMessage" : "One or more rules threw an unexpected error",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.PostcardsA.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.PostcardsA.html",
+    "contentHash" : "1f0c96ef6da1f513a1a5cbf925f5ec5e874c0381db721c2355a44015f12f747a",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-31T18:25:45.949851Z",
+    "errorMessage" : "One or more rules threw an unexpected error",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Demo_PASS_Clean.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Demo_PASS_Clean.html",
+    "contentHash" : "37a8be59964b80b4ecb6e166695f9a028faac2d43e286611e41382bce091fc67",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-31T18:23:59.559205Z",
+    "errorMessage" : "One or more rules threw an unexpected error",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.Champion.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.Champion.html",
+    "contentHash" : "267a2e9ea39f2b980ba5aeea544234171f1f12d3eda98f2c314726369a5d00e8",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-31T18:26:22.805661Z",
+    "errorMessage" : "One or more rules threw an unexpected error",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NEW_index.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NEW_index.html",
+    "contentHash" : "172512fdff63191b848c9a51931b98dd81af47f30fb720e9704fbfefeab4955e",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-31T18:25:18.504153Z",
+    "errorMessage" : "One or more rules threw an unexpected error",
+    "successful" : false,
+    "failed" : true
+  }
+}

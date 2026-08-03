@@ -5,6 +5,10 @@ import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
 import com.acxiom.emailaudit.reporting.FindingSummarizer;
 import com.acxiom.emailaudit.reporting.ReportSection;
 import com.acxiom.emailaudit.reporting.ReportSectionMapper;
+import com.acxiom.emailaudit.rules.ImageValidationResult;
+import com.acxiom.emailaudit.rules.ImageValidationRule;
+import com.acxiom.emailaudit.rules.LinkAuditEntry;
+import com.acxiom.emailaudit.rules.LinkValidationRule;
 import com.acxiom.emailaudit.rules.RuleResult;
 
 import java.time.Instant;
@@ -83,13 +87,13 @@ public final class DashboardDataCollector {
 
         final int passedChecks =
                 (int) ruleResults.stream()
-                        .filter(rule ->
-                                "PASS".equalsIgnoreCase(
-                                        rule.getStatus().name()))
+                        .filter(RuleResult::isPassed)
                         .count();
 
         final int failedChecks =
-                totalChecks - passedChecks;
+                (int) ruleResults.stream()
+                        .filter(RuleResult::requiresAttention)
+                        .count();
 
         final String overallStatus = switch (context.getStatus()) {
             case SUCCESS -> "PASS";
@@ -131,6 +135,12 @@ public final class DashboardDataCollector {
         final List<RuleAuditData> rules =
                 buildRuleAuditDataList(ruleResults);
 
+        final List<LinkAuditData> links =
+                buildLinkAuditDataList(ruleResults);
+
+        final List<ImageAuditData> images =
+                buildImageAuditDataList(ruleResults);
+
         final String screenshotPath =
                 context.getScreenshotPath() != null
                         ? context.getScreenshotPath()
@@ -146,41 +156,271 @@ public final class DashboardDataCollector {
                 failedChecks,
                 sections,
                 rules,
+                links,
+                images,
                 screenshotPath);
+    }
+
+    private static List<ImageAuditData> buildImageAuditDataList(
+            final List<RuleResult> ruleResults) {
+
+        for (final RuleResult rule : ruleResults) {
+            if (!ImageValidationRule.RULE_ID.equals(rule.getRuleId())) {
+                continue;
+            }
+
+            final Object rawImages = rule.getMetadata().get("images");
+            if (!(rawImages instanceof List<?> rawList)) {
+                return List.of();
+            }
+
+            final List<ImageAuditData> images = new ArrayList<>(rawList.size());
+            for (final Object rawImage : rawList) {
+                final ImageAuditData data = toImageAuditData(rawImage);
+                if (data != null) {
+                    images.add(data);
+                }
+            }
+            return images;
+        }
+
+        return List.of();
+    }
+
+    private static ImageAuditData toImageAuditData(final Object rawImage) {
+        if (rawImage instanceof ImageValidationResult result) {
+            return new ImageAuditData(
+                    result.imageUrl(),
+                    result.altText(),
+                    result.httpStatus(),
+                    result.validationStatus(),
+                    result.warning(),
+                    result.naturalWidth(),
+                    result.naturalHeight(),
+                    result.displayWidth(),
+                    result.displayHeight(),
+                    result.imageLoaded(),
+                    result.rendered(),
+                    result.screenshotPath(),
+                    result.thumbnailPath(),
+                    result.notes(),
+                    result.bounds(),
+                    result.imageType());
+        }
+
+        if (rawImage instanceof Map<?, ?> map) {
+            return new ImageAuditData(
+                    stringOrEmpty(map.get("imageUrl")),
+                    stringOrEmpty(map.get("altText")),
+                    integerOrNull(map.get("httpStatus")),
+                    stringOrEmpty(map.get("validationStatus")),
+                    booleanOrFalse(map.get("warning")),
+                    integerOrNull(map.get("naturalWidth")),
+                    integerOrNull(map.get("naturalHeight")),
+                    integerOrNull(map.get("displayWidth")),
+                    integerOrNull(map.get("displayHeight")),
+                    booleanOrFalse(map.get("imageLoaded")),
+                    booleanOrFalse(map.get("rendered")),
+                    stringOrNull(map.get("screenshotPath")),
+                    stringOrNull(map.get("thumbnailPath")),
+                    stringOrEmpty(map.get("notes")),
+                    stringOrEmpty(map.get("bounds")),
+                    stringOrEmpty(map.get("imageType")));
+        }
+
+        return null;
+    }
+
+    private static List<LinkAuditData> buildLinkAuditDataList(
+            final List<RuleResult> ruleResults) {
+
+        for (final RuleResult rule : ruleResults) {
+            if (!LinkValidationRule.RULE_ID.equals(rule.getRuleId())) {
+                continue;
+            }
+
+            final Object rawLinks = rule.getMetadata().get("links");
+            if (!(rawLinks instanceof List<?> rawList)) {
+                return List.of();
+            }
+
+            final List<LinkAuditData> links = new ArrayList<>(rawList.size());
+            for (final Object rawLink : rawList) {
+                final LinkAuditData data = toLinkAuditData(rawLink);
+                if (data != null) {
+                    links.add(data);
+                }
+            }
+            return links;
+        }
+
+        return List.of();
+    }
+
+    private static LinkAuditData toLinkAuditData(final Object rawLink) {
+        if (rawLink instanceof LinkAuditEntry entry) {
+            return new LinkAuditData(
+                    entry.visibleText(),
+                    entry.originalUrl(),
+                    entry.finalUrl(),
+                    entry.linkType(),
+                    entry.validationNote(),
+                    entry.validationStatus(),
+                    entry.reason(),
+                    entry.pageTitle(),
+                    entry.httpStatus(),
+                    entry.statusText(),
+                    entry.redirectCount(),
+                    entry.redirectChain(),
+                    entry.responseTimeMs(),
+                    entry.screenshotPath(),
+                    entry.element(),
+                    entry.ariaLabel(),
+                    entry.title(),
+                    entry.target(),
+                    entry.domIndex(),
+                    entry.bounds());
+        }
+
+        if (rawLink instanceof Map<?, ?> map) {
+            final String status = stringOrEmpty(map.get("validationStatus"));
+            final String note = stringOrEmpty(map.get("validationNote"));
+            return new LinkAuditData(
+                    stringOrEmpty(map.get("visibleText")),
+                    stringOrEmpty(map.get("originalUrl")),
+                    stringOrEmpty(map.get("finalUrl")),
+                    stringOrEmpty(map.get("linkType")),
+                    note,
+                    status.isBlank() ? legacyValidationStatus(map) : status,
+                    stringOrEmpty(map.get("reason")),
+                    stringOrEmpty(map.get("pageTitle")),
+                    integerOrNull(map.get("httpStatus")),
+                    stringOrEmpty(map.get("statusText")),
+                    integerOrNull(map.get("redirectCount")),
+                    stringList(map.get("redirectChain")),
+                    longOrNull(map.get("responseTimeMs")),
+                    stringOrNull(map.get("screenshotPath")),
+                    stringOrEmpty(map.get("element")),
+                    stringOrEmpty(map.get("ariaLabel")),
+                    stringOrEmpty(map.get("title")),
+                    stringOrEmpty(map.get("target")),
+                    integerOrNull(map.get("domIndex")),
+                    stringOrEmpty(map.get("bounds")));
+        }
+
+        return null;
+    }
+
+    private static String stringOrEmpty(final Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private static String stringOrNull(final Object value) {
+        if (value == null) {
+            return null;
+        }
+        final String text = String.valueOf(value);
+        return text.isBlank() ? null : text;
+    }
+
+    private static Integer integerOrNull(final Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value != null) {
+            try {
+                return Integer.valueOf(String.valueOf(value));
+            } catch (final NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static Long longOrNull(final Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value != null) {
+            try {
+                return Long.valueOf(String.valueOf(value));
+            } catch (final NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static boolean booleanOrFalse(final Object value) {
+        return value instanceof Boolean bool && bool;
+    }
+
+    private static String legacyValidationStatus(final Map<?, ?> map) {
+        final String linkType = stringOrEmpty(map.get("linkType"));
+        if ("TEMPLATE_PLACEHOLDER".equalsIgnoreCase(linkType)) {
+            return "FAIL";
+        }
+        if (!"HTTP".equalsIgnoreCase(linkType)) {
+            return "SKIPPED";
+        }
+
+        final Integer status = integerOrNull(map.get("httpStatus"));
+        if (status != null && status >= 400) {
+            return "FAIL";
+        }
+        if (stringOrNull(map.get("screenshotPath")) != null) {
+            return "PASS";
+        }
+        return "";
+    }
+
+    private static List<String> stringList(final Object value) {
+        if (!(value instanceof List<?> rawList)) {
+            return List.of();
+        }
+
+        return rawList.stream()
+                .map(String::valueOf)
+                .toList();
     }
 
     private static SectionCheckResult buildSectionResult(
             final ReportSection section,
             final List<RuleResult> rules) {
 
-        int    findingCount  = 0;
-        String status        = "PASS";
-        String severity      = "INFO";
+        int    findingCount   = 0;
+        String status         = "PASS";
+        String severity       = "INFO";
         String businessImpact = section.getDescription();
+        RuleResult firstAttentionRule = null;
+        RuleResult firstSkippedRule   = null;
 
         for (RuleResult rule : rules) {
 
-            if (!"PASS".equalsIgnoreCase(
-                    rule.getStatus().name())) {
-
-                status   = "FAIL";
-                severity = rule.getSeverity().name();
-                findingCount += rule.getFindings().size();
-
-                // Status-aware impact now comes directly from the rule
-                // result (resolved automatically from AuditRule#failImpact()
-                // at RuleResult construction time) instead of a static
-                // ruleId → message lookup.
-                businessImpact = rule.getBusinessImpact();
-
-                if (!rule.getFindings().isEmpty()) {
-                    businessImpact =
-                            FindingSummarizer.summarize(
-                                    rule.getFindings().getFirst());
+            if (rule.requiresAttention()) {
+                if (firstAttentionRule == null) {
+                    firstAttentionRule = rule;
                 }
-
-                break;
+                findingCount += rule.getFindings().size();
+            } else if (rule.isSkipped() && firstSkippedRule == null) {
+                firstSkippedRule = rule;
             }
+        }
+
+        if (firstAttentionRule != null) {
+            status = "FAIL";
+            severity = firstAttentionRule.getSeverity().name();
+            businessImpact = firstAttentionRule.getBusinessImpact();
+
+            if (!firstAttentionRule.getFindings().isEmpty()) {
+                businessImpact =
+                        FindingSummarizer.summarize(
+                                firstAttentionRule.getFindings().getFirst());
+            }
+        } else if (firstSkippedRule != null) {
+            status = "SKIPPED";
+            severity = firstSkippedRule.getSeverity().name();
+            businessImpact = firstSkippedRule.getBusinessImpact();
         }
 
         return new SectionCheckResult(
@@ -220,7 +460,8 @@ public final class DashboardDataCollector {
                     rule.getStatus().name(),
                     rule.getSeverity().name(),
                     findings,
-                    businessImpact));
+                    businessImpact,
+                    stringOrEmpty(rule.getErrorMessage())));
         }
 
         return list;

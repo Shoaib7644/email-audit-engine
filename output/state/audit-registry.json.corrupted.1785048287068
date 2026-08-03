@@ -1,0 +1,29 @@
+{
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.PostcardsB.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.PostcardsB.html",
+    "contentHash" : "677d6f6a5a05d937daaa59c9af16d70e1f6479f59e933eee7201926e9d7e02e9",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-26T05:53:00.437980Z",
+    "errorMessage" : "9 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.EMOnly.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.EMOnly.html",
+    "contentHash" : "3122f41f1222f6e9b41fc89209cb06de0d72d88d20168aad59453c9b70fb89a8",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-26T05:53:03.107758Z",
+    "errorMessage" : "9 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.PostcardsA.html" : {
+    "filePath" : "/Users/shoaibahmed/Automation/EmailAutomationNew/email-audit-engine/input/NFCU_Prospecting_0626_W2T2.PostcardsA.html",
+    "contentHash" : "1f0c96ef6da1f513a1a5cbf925f5ec5e874c0381db721c2355a44015f12f747a",
+    "status" : "FAILED",
+    "processedAt" : "2026-07-26T05:53:04.717684Z",
+    "errorMessage" : "9 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

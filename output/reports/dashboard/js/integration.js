@@ -18,6 +18,7 @@ var Integration = (function () {
     var _emptyState  = null;
     var _detailView  = null;
     var _generatedAt = null;
+    var _syncingHash = false;
 
     /* ================================================================
        PUBLIC INIT
@@ -37,6 +38,7 @@ var Integration = (function () {
         _wireExport();
 
         Sidebar.wireNavButtons();
+        _wireHashNavigation();
 
         EmailSelector.wireSelect();
         EmailSelector.wireSearch();
@@ -141,6 +143,7 @@ var Integration = (function () {
 
     function _onCategoryChange(categoryKey) {
         Sidebar.setActiveCategory(categoryKey);
+        _writeCategoryHash(categoryKey);
         var file = State.selectedFile();
         if (!file) { return; }
         _renderCenter(file, categoryKey);
@@ -171,9 +174,42 @@ var Integration = (function () {
 
         Findings.wireAccordion(_detailView);
         Renderer.wireScreenshot(_detailView);
+        Renderer.wireLinks(_detailView, file);
+        Renderer.wireImages(_detailView, file);
 
         var main = document.getElementById('main-panel');
         if (main) { main.scrollTop = 0; }
+    }
+
+    /* ================================================================
+       HASH NAVIGATION
+    ================================================================ */
+    function _wireHashNavigation() {
+        window.addEventListener('hashchange', function () {
+            var category = _categoryFromHash();
+            if (!category) { return; }
+            _syncingHash = true;
+            State.set('selectedCategory', category);
+            _syncingHash = false;
+        });
+    }
+
+    function _writeCategoryHash(categoryKey) {
+        if (_syncingHash || !categoryKey) { return; }
+        var next = '#' + encodeURIComponent(categoryKey);
+        if (window.location.hash !== next) {
+            window.location.hash = next;
+        }
+    }
+
+    function _categoryFromHash() {
+        var raw = window.location.hash ? window.location.hash.substring(1) : '';
+        if (!raw) { return null; }
+        try {
+            return decodeURIComponent(raw);
+        } catch (_) {
+            return raw;
+        }
     }
 
     /* ================================================================
