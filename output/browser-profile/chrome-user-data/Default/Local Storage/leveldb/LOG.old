@@ -1,42 +1,45 @@
-2026/08/03-19:23:41.203 c16fd9 Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Local Storage/leveldb/MANIFEST-000001
-2026/08/03-19:23:41.205 c16fd9 Recovering log #204
-2026/08/03-19:23:41.205 c16fd9 Reusing old log /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Local Storage/leveldb/000204.log 
-2026/08/03-19:23:54.875 c16fd9 Level-0 table #208: started
-2026/08/03-19:23:54.878 c16fd9 Level-0 table #208: 27526 bytes OK
-2026/08/03-19:23:54.880 c16fd9 Delete type=0 #204
-2026/08/03-19:23:54.881 c16fd9 Compacting 4@0 + 1@1 files
-2026/08/03-19:23:54.883 c16fd9 Generated table #209@0: 193 keys, 61415 bytes
-2026/08/03-19:23:54.883 c16fd9 Compacted 4@0 + 1@1 files => 61415 bytes
-2026/08/03-19:23:54.884 c16fd9 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/08/03-19:23:54.884 c16fd9 Delete type=2 #203
-2026/08/03-19:23:54.884 c16fd9 Delete type=2 #201
-2026/08/03-19:23:54.884 c16fd9 Delete type=2 #205
-2026/08/03-19:23:54.884 c16fd9 Delete type=2 #199
-2026/08/03-19:23:54.884 c16fd9 Delete type=2 #208
-2026/08/03-19:24:05.684 c16fd9 Level-0 table #211: started
-2026/08/03-19:24:05.689 c16fd9 Level-0 table #211: 32404 bytes OK
-2026/08/03-19:24:05.691 c16fd9 Delete type=0 #207
-2026/08/03-19:24:08.818 c16fd9 Level-0 table #213: started
-2026/08/03-19:24:08.822 c16fd9 Level-0 table #213: 29497 bytes OK
-2026/08/03-19:24:08.824 c16fd9 Delete type=0 #210
-2026/08/03-19:24:12.540 c16fdc Level-0 table #215: started
-2026/08/03-19:24:12.543 c16fdc Level-0 table #215: 25468 bytes OK
-2026/08/03-19:24:12.545 c16fdc Delete type=0 #212
-2026/08/03-19:24:20.371 c16fdc Level-0 table #217: started
-2026/08/03-19:24:20.376 c16fdc Level-0 table #217: 32458 bytes OK
-2026/08/03-19:24:20.378 c16fdc Delete type=0 #214
-2026/08/03-19:24:20.378 c16fdc Compacting 4@0 + 1@1 files
-2026/08/03-19:24:20.381 c16fdc Generated table #218@0: 193 keys, 62023 bytes
-2026/08/03-19:24:20.381 c16fdc Compacted 4@0 + 1@1 files => 62023 bytes
-2026/08/03-19:24:20.381 c16fdc compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/08/03-19:24:20.382 c16fdc Delete type=2 #217
-2026/08/03-19:24:20.382 c16fdc Delete type=2 #215
-2026/08/03-19:24:20.382 c16fdc Delete type=2 #211
-2026/08/03-19:24:20.382 c16fdc Delete type=2 #213
-2026/08/03-19:24:20.382 c16fdc Delete type=2 #209
-2026/08/03-19:24:24.258 c16fd9 Level-0 table #220: started
-2026/08/03-19:24:24.261 c16fd9 Level-0 table #220: 29379 bytes OK
-2026/08/03-19:24:24.262 c16fd9 Delete type=0 #216
-2026/08/03-19:24:42.295 c16fdc Level-0 table #222: started
-2026/08/03-19:24:42.299 c16fdc Level-0 table #222: 39109 bytes OK
-2026/08/03-19:24:42.301 c16fdc Delete type=0 #219
+2026/08/04-23:17:50.159 cb255d Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/08/04-23:17:50.161 cb255d Recovering log #449
+2026/08/04-23:17:50.163 cb255d Reusing old log /Users/shoaibahmed/freeClaude/email-audit-engine/output/browser-profile/chrome-user-data/Default/Local Storage/leveldb/000449.log 
+2026/08/04-23:18:01.586 cb255d Level-0 table #453: started
+2026/08/04-23:18:01.589 cb255d Level-0 table #453: 27318 bytes OK
+2026/08/04-23:18:01.590 cb255d Delete type=0 #449
+2026/08/04-23:18:05.100 cb2564 Level-0 table #455: started
+2026/08/04-23:18:05.107 cb2564 Level-0 table #455: 33367 bytes OK
+2026/08/04-23:18:05.108 cb2564 Delete type=0 #452
+2026/08/04-23:18:18.244 cb2564 Level-0 table #457: started
+2026/08/04-23:18:18.251 cb2564 Level-0 table #457: 33279 bytes OK
+2026/08/04-23:18:18.253 cb2564 Delete type=0 #454
+2026/08/04-23:18:18.254 cb2564 Compacting 4@0 + 1@1 files
+2026/08/04-23:18:18.257 cb2564 Generated table #458@0: 269 keys, 73012 bytes
+2026/08/04-23:18:18.257 cb2564 Compacted 4@0 + 1@1 files => 73012 bytes
+2026/08/04-23:18:18.257 cb2564 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/04-23:18:18.258 cb2564 Delete type=2 #448
+2026/08/04-23:18:18.258 cb2564 Delete type=2 #453
+2026/08/04-23:18:18.258 cb2564 Delete type=2 #450
+2026/08/04-23:18:18.258 cb2564 Delete type=2 #455
+2026/08/04-23:18:18.258 cb2564 Delete type=2 #457
+2026/08/04-23:18:20.998 cb255d Level-0 table #460: started
+2026/08/04-23:18:21.003 cb255d Level-0 table #460: 29987 bytes OK
+2026/08/04-23:18:21.004 cb255d Delete type=0 #456
+2026/08/04-23:18:25.392 cb2564 Level-0 table #462: started
+2026/08/04-23:18:25.394 cb2564 Level-0 table #462: 32850 bytes OK
+2026/08/04-23:18:25.396 cb2564 Delete type=0 #459
+2026/08/04-23:18:29.858 cb2564 Level-0 table #464: started
+2026/08/04-23:18:29.862 cb2564 Level-0 table #464: 33622 bytes OK
+2026/08/04-23:18:29.865 cb2564 Delete type=0 #461
+2026/08/04-23:18:34.752 cb2564 Level-0 table #466: started
+2026/08/04-23:18:34.762 cb2564 Level-0 table #466: 30957 bytes OK
+2026/08/04-23:18:34.764 cb2564 Delete type=0 #463
+2026/08/04-23:18:34.765 cb2564 Compacting 4@0 + 1@1 files
+2026/08/04-23:18:34.769 cb2564 Generated table #467@0: 269 keys, 73756 bytes
+2026/08/04-23:18:34.769 cb2564 Compacted 4@0 + 1@1 files => 73756 bytes
+2026/08/04-23:18:34.770 cb2564 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/04-23:18:34.770 cb2564 Delete type=2 #466
+2026/08/04-23:18:34.770 cb2564 Delete type=2 #464
+2026/08/04-23:18:34.770 cb2564 Delete type=2 #458
+2026/08/04-23:18:34.770 cb2564 Delete type=2 #460
+2026/08/04-23:18:34.770 cb2564 Delete type=2 #462
+2026/08/04-23:18:39.083 cb255d Level-0 table #469: started
+2026/08/04-23:18:39.087 cb255d Level-0 table #469: 30197 bytes OK
+2026/08/04-23:18:39.089 cb255d Delete type=0 #465

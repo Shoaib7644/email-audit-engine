@@ -30,6 +30,7 @@ var Sidebar = (function () {
         overview:        null,                                        /* special: show total */
         LINKS:           null,                                        /* special: use file.links */
         IMAGES:          null,                                        /* special: use file.images */
+        CAMPAIGN_VALIDATION: ['CAMPAIGN_VALIDATION'],
         LINK_VALIDATION: ['LINK_VALIDATION'],
         CTA_TRACKING:    ['CTA_VALIDATION', 'LINK_TEXT_VALIDATION'],
         HTML_QUALITY:    ['DUPLICATE_ID', 'HEADING_HIERARCHY', 'CONTENT_VALIDATION'],
@@ -154,6 +155,29 @@ var Sidebar = (function () {
                 } else if (warningImages > 0) {
                     badgeEl.textContent = warningImages;
                     badgeEl.className   = 'nav-badge nav-badge--neutral';
+                } else {
+                    badgeEl.textContent = '✓';
+                    badgeEl.className   = 'nav-badge nav-badge--pass';
+                }
+                return;
+            }
+
+            if (cat === 'CAMPAIGN_VALIDATION') {
+                var campaign = file.campaignValidation || {};
+                if (!campaign.specificationSelected) {
+                    badgeEl.textContent = '';
+                    badgeEl.className   = 'nav-badge nav-badge--neutral';
+                    return;
+                }
+
+                var campaignFailures = Number(campaign.failed || 0);
+                var campaignWarnings = Number(campaign.warnings || 0);
+                if (campaignFailures > 0) {
+                    badgeEl.textContent = campaignFailures;
+                    badgeEl.className   = 'nav-badge nav-badge--fail';
+                } else if (campaignWarnings > 0) {
+                    badgeEl.textContent = campaignWarnings;
+                    badgeEl.className   = 'nav-badge nav-badge--warn';
                 } else {
                     badgeEl.textContent = '✓';
                     badgeEl.className   = 'nav-badge nav-badge--pass';

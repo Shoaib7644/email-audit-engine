@@ -1,6 +1,11 @@
 package com.acxiom.emailaudit.reporting;
 
+import com.acxiom.emailaudit.campaign.CampaignSpecification;
+import com.acxiom.emailaudit.campaign.CampaignSpecificationModule;
+import com.acxiom.emailaudit.campaign.CampaignValidationResult;
+import com.acxiom.emailaudit.campaign.CampaignValidationRow;
 import com.acxiom.emailaudit.config.ConfigurationManager;
+import com.acxiom.emailaudit.core.AuditContext;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
 import com.acxiom.emailaudit.reporting.dashboard.DashboardDataCollector;
 import com.acxiom.emailaudit.reporting.dashboard.FileAuditData;
@@ -8,8 +13,8 @@ import com.acxiom.emailaudit.reporting.dashboard.ImageAuditData;
 import com.acxiom.emailaudit.reporting.dashboard.LinkAuditData;
 import com.acxiom.emailaudit.reporting.dashboard.RuleAuditData;
 import com.acxiom.emailaudit.reporting.dashboard.RunAuditData;
-import com.acxiom.emailaudit.reporting.dashboard.SectionCheckResult;
 import org.apache.poi.common.usermodel.HyperlinkType;
+import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -23,13 +28,20 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.AreaReference;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFTable;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -41,11 +53,14 @@ import java.util.Locale;
  */
 public final class ExcelExporter {
 
+    private static final Logger log = LoggerFactory.getLogger(ExcelExporter.class);
+
     private static final String OUTPUT_FILE_NAME = "EmailAuditSummary.xlsx";
 
     private static final String SHEET_AUDIT_SUMMARY = "Audit Summary";
     private static final String SHEET_LINKS = "Links";
     private static final String SHEET_IMAGES = "Images";
+    private static final String SHEET_CAMPAIGN_VALIDATION = "Campaign Validation";
 
     private static final DateTimeFormatter AUDIT_DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z", Locale.US)
@@ -54,26 +69,57 @@ public final class ExcelExporter {
     private ExcelExporter() {
     }
 
+    public static Path outputPath() {
+        return Paths.get("output", OUTPUT_FILE_NAME);
+    }
+
     public static Path export(final AuditOrchestrator.RunSummary summary) {
         try {
-            final Path outputFile = Paths.get("output", OUTPUT_FILE_NAME);
+            final Path outputFile = outputPath();
             Files.createDirectories(outputFile.getParent());
 
             final RunAuditData dashboardData = DashboardDataCollector.collect(summary);
             final ConfigurationManager config = ConfigurationManager.getInstance();
+            final ExcelMetadata metadata = ExcelMetadata.from(dashboardData, summary);
+            final int campaignRows = campaignRowCount(dashboardData);
+            final boolean campaignValidationEnabled = campaignRows > 0;
+
+            log.info("""
+                    
+                    ========== EXCEL EXPORT ==========
+                    Campaign Validation Enabled : {}
+                    Campaign Rows : {}""",
+                    campaignValidationEnabled,
+                    campaignRows);
 
             try (XSSFWorkbook workbook = new XSSFWorkbook()) {
                 final WorkbookStyles styles = WorkbookStyles.create(workbook);
 
-                buildAuditSummarySheet(workbook, dashboardData, config, styles);
-                buildLinksSheet(workbook, dashboardData, styles);
-                buildImagesSheet(workbook, dashboardData, styles);
+                buildAuditSummarySheet(workbook, dashboardData, summary, config, styles, metadata);
+                buildLinksSheet(workbook, dashboardData, styles, metadata);
+                buildImagesSheet(workbook, dashboardData, styles, metadata);
+                if (campaignValidationEnabled) {
+                    log.info("Creating Campaign Sheet...");
+                    try {
+                        buildCampaignValidationSheet(workbook, dashboardData, styles, metadata);
+                    } catch (final RuntimeException ex) {
+                        log.error("Campaign Validation Excel sheet generation failed; continuing workbook export.", ex);
+                        buildCampaignValidationExportFallbackSheet(workbook, styles, metadata, ex);
+                    }
+                } else {
+                    log.info("Skipping Campaign Sheet...");
+                    buildCampaignValidationNotSelectedSheet(workbook, styles, metadata);
+                }
 
                 try (OutputStream outputStream = Files.newOutputStream(outputFile)) {
                     workbook.write(outputStream);
+                    log.info("Workbook Written Successfully");
                 }
             }
 
+            log.info("""
+                    Workbook Closed Successfully
+                    =================================""");
             return outputFile;
         } catch (final Exception ex) {
             throw new RuntimeException("Unable to generate excel report", ex);
@@ -83,111 +129,124 @@ public final class ExcelExporter {
     private static void buildAuditSummarySheet(
             final Workbook workbook,
             final RunAuditData data,
+            final AuditOrchestrator.RunSummary summary,
             final ConfigurationManager config,
-            final WorkbookStyles styles) {
+            final WorkbookStyles styles,
+            final ExcelMetadata metadata) {
 
         final Sheet sheet = workbook.createSheet(SHEET_AUDIT_SUMMARY);
         int rowIndex = 0;
 
-        titleRow(sheet, rowIndex++, "EMAIL AUDIT SUMMARY", styles);
+        titleRow(sheet, rowIndex++, "EMAIL AUDIT EXECUTION SUMMARY", styles);
+        rowIndex++;
+        rowIndex = writeWorkbookMetadata(sheet, rowIndex, metadata, styles, true);
         rowIndex++;
 
-        rowIndex = keyValueRow(sheet, rowIndex, "Campaign:", campaignLabel(data), styles);
-        rowIndex = keyValueRow(sheet, rowIndex, "Audit Date:", AUDIT_DATE_FORMAT.format(data.generatedAt()), styles);
-        rowIndex = keyValueRow(sheet, rowIndex, "Execution Time:", formatDuration(data.executionTimeMs()), styles);
-        rowIndex = keyValueRow(sheet, rowIndex, "Browser:", browserLabel(config), styles);
-        rowIndex = keyValueRow(sheet, rowIndex, "Execution Mode:", config.isHeadless() ? "Headless" : "Headed", styles);
-        rowIndex = keyValueRow(sheet, rowIndex, "Overall Result:", overallResult(data), styles);
-        applyStatusStyle(sheet.getRow(rowIndex - 1).getCell(1), overallResult(data), styles);
-        rowIndex += 2;
+        final int emailHeaderRow = rowIndex;
+        headerRow(sheet, rowIndex++, List.of(
+                "Email Name",
+                "Links",
+                "Images",
+                "Campaign Validation",
+                "Accessibility",
+                "Overall Result"), styles);
 
-        sectionRow(sheet, rowIndex++, "AUDIT RESULTS", styles);
-        final int categoryHeaderRow = rowIndex;
-        headerRow(sheet, rowIndex++, List.of("Category", "Status", "Passed", "Failed", "Warning"), styles);
-
-        for (final CategorySummary category : categorySummaries(data)) {
+        for (final FileAuditData file : data.files()) {
             final Row row = sheet.createRow(rowIndex++);
             final CellStyle rowStyle = bodyStyle(styles, rowIndex);
-            writeCell(row, 0, category.name(), rowStyle);
-            final Cell statusCell = writeCell(row, 1, category.status(), rowStyle);
-            applyStatusStyle(statusCell, category.status(), styles);
-            writeNumber(row, 2, category.passed(), rowStyle);
-            writeNumber(row, 3, category.failed(), rowStyle);
-            writeNumber(row, 4, category.warning(), rowStyle);
+            final EmailSummary emailSummary = emailSummary(file);
+            writeCell(row, 0, file.fileName(), rowStyle);
+            writeCell(row, 1, emailSummary.linksLabel(), rowStyle);
+            writeCell(row, 2, emailSummary.imagesLabel(), rowStyle);
+            final Cell campaignCell = writeCell(row, 3, emailSummary.campaignLabel(), rowStyle);
+            applyStatusStyle(campaignCell, emailSummary.campaignStatus(), styles);
+            final Cell accessibilityCell = writeCell(row, 4, emailSummary.accessibilityLabel(), rowStyle);
+            applyStatusStyle(accessibilityCell, emailSummary.accessibilityStatus(), styles);
+            final Cell resultCell = writeCell(row, 5, emailSummary.overallResult(), rowStyle);
+            applyStatusStyle(resultCell, emailSummary.overallResult(), styles);
         }
-        applyAutoFilter(sheet, categoryHeaderRow, rowIndex - 1, 0, 4);
+        createExcelTable(sheet, emailHeaderRow, Math.max(emailHeaderRow, rowIndex - 1), 0, 5, "AuditSummaryTable");
         rowIndex += 2;
 
-        sectionRow(sheet, rowIndex++, "TOTALS", styles);
+        sectionRow(sheet, rowIndex++, "EXECUTION TOTALS", styles);
         final DashboardTotals totals = totals(data);
+        rowIndex = keyValueRow(sheet, rowIndex, "Total Emails Executed", String.valueOf(data.files().size()), styles);
         rowIndex = keyValueRow(sheet, rowIndex, "Total Links", String.valueOf(totals.totalLinks()), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Passed Links", String.valueOf(totals.passedLinks()), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Failed Links", String.valueOf(totals.failedLinks()), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Skipped Links", String.valueOf(totals.skippedLinks()), styles);
         rowIndex = keyValueRow(sheet, rowIndex, "Total Images", String.valueOf(totals.totalImages()), styles);
-        rowIndex = keyValueRow(sheet, rowIndex, "Screenshots Captured", String.valueOf(totals.screenshotsCaptured()), styles);
-        rowIndex = keyValueRow(sheet, rowIndex, "Broken Links", String.valueOf(totals.brokenLinks()), styles);
-        rowIndex = keyValueRow(sheet, rowIndex, "Broken Images", String.valueOf(totals.brokenImages()), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Passed Images", String.valueOf(totals.passedImages()), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Failed Images", String.valueOf(totals.failedImages()), styles);
         rowIndex = keyValueRow(sheet, rowIndex, "Accessibility Warnings", String.valueOf(totals.accessibilityWarnings()), styles);
-        rowIndex += 2;
+        rowIndex = keyValueRow(sheet, rowIndex, "Execution Start Time", formatInstant(executionStart(summary.auditResults())), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Execution End Time", formatInstant(executionEnd(summary.auditResults())), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Execution Duration", formatDuration(data.executionTimeMs()), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Browser", browserLabel(config), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Execution Mode", config.isHeadless() ? "Headless" : "Headed", styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Overall Execution Result", overallResult(data), styles);
+        applyStatusStyle(sheet.getRow(rowIndex - 1).getCell(1), overallResult(data), styles);
+        rowIndex++;
 
-        sectionRow(sheet, rowIndex++, "OVERALL RESULT", styles);
-        final Row resultRow = sheet.createRow(rowIndex);
-        final Cell resultCell = writeCell(resultRow, 0, overallResult(data), styles.result());
-        applyStatusStyle(resultCell, overallResult(data), styles);
-        sheet.addMergedRegion(new CellRangeAddress(rowIndex, rowIndex, 0, 4));
-
-        sheet.createFreezePane(0, 1);
-        autoSizeColumns(sheet, 28, 32, 14, 14, 14);
+        sheet.createFreezePane(0, emailHeaderRow + 1);
+        autoSizeColumns(sheet, 34, 16, 16, 24, 22, 22);
     }
 
     private static void buildLinksSheet(
             final Workbook workbook,
             final RunAuditData data,
-            final WorkbookStyles styles) {
+            final WorkbookStyles styles,
+            final ExcelMetadata metadata) {
 
         final Sheet sheet = workbook.createSheet(SHEET_LINKS);
         final List<String> headers = List.of(
+                "Email Name",
                 "#",
                 "Visible Text",
                 "Destination URL",
                 "Destination Title",
                 "Validation",
-                "HTTP Status",
                 "Screenshot",
                 "Notes");
 
-        headerRow(sheet, 0, headers, styles);
+        int rowIndex = writeWorksheetMetadata(sheet, 0, metadata, styles);
+        final int headerRowIndex = rowIndex;
+        headerRow(sheet, rowIndex++, headers, styles);
 
-        int rowIndex = 1;
-        int count = 1;
         for (final FileAuditData file : data.files()) {
+            int count = 1;
             for (final LinkAuditData link : file.links()) {
                 final Row row = sheet.createRow(rowIndex++);
                 final CellStyle rowStyle = bodyStyle(styles, rowIndex);
                 final CellStyle urlStyle = hyperlinkStyle(styles, rowIndex);
-                writeNumber(row, 0, count++, rowStyle);
-                writeCell(row, 1, displayText(link.visibleText(), "(No Visible Text)"), rowStyle);
-                writeHyperlink(row, 2, destinationUrl(link), urlStyle, workbook.getCreationHelper());
-                writeCell(row, 3, displayText(link.pageTitle(), "-"), rowStyle);
+                writeCell(row, 0, file.fileName(), rowStyle);
+                writeNumber(row, 1, count++, rowStyle);
+                writeCell(row, 2, displayText(link.visibleText(), "(No Visible Text)"), rowStyle);
+                writeHyperlink(row, 3, destinationUrl(link), urlStyle, workbook.getCreationHelper());
+                writeCell(row, 4, displayText(link.pageTitle(), "-"), rowStyle);
 
-                final Cell validationCell = writeCell(row, 4, statusOrDash(link.validationStatus()), rowStyle);
+                final Cell validationCell = writeCell(row, 5, statusOrDash(link.validationStatus()), rowStyle);
                 applyStatusStyle(validationCell, link.validationStatus(), styles);
 
-                writeCell(row, 5, httpStatus(link.httpStatus(), link.statusText()), rowStyle);
                 writeCell(row, 6, hasScreenshot(link.screenshotPath()) ? "Captured" : "No Screenshot", rowStyle);
                 writeCell(row, 7, displayText(link.reason(), link.validationNote()), rowStyle);
             }
         }
 
-        finishTabularSheet(sheet, rowIndex, headers.size());
-        autoSizeColumns(sheet, 8, 28, 60, 36, 16, 18, 18, 48);
+        finishTabularSheet(sheet, rowIndex, headers.size(), headerRowIndex);
+        createExcelTable(sheet, headerRowIndex, Math.max(headerRowIndex, rowIndex - 1), 0, headers.size() - 1, "LinksTable");
+        autoSizeColumns(sheet, 28, 8, 28, 60, 36, 16, 18, 48);
     }
 
     private static void buildImagesSheet(
             final Workbook workbook,
             final RunAuditData data,
-            final WorkbookStyles styles) {
+            final WorkbookStyles styles,
+            final ExcelMetadata metadata) {
 
         final Sheet sheet = workbook.createSheet(SHEET_IMAGES);
         final List<String> headers = List.of(
+                "Email Name",
                 "#",
                 "Alt Text",
                 "Image URL",
@@ -196,144 +255,252 @@ public final class ExcelExporter {
                 "Screenshot",
                 "Notes");
 
-        headerRow(sheet, 0, headers, styles);
+        int rowIndex = writeWorksheetMetadata(sheet, 0, metadata, styles);
+        final int headerRowIndex = rowIndex;
+        headerRow(sheet, rowIndex++, headers, styles);
 
-        int rowIndex = 1;
-        int count = 1;
         for (final FileAuditData file : data.files()) {
+            int count = 1;
             for (final ImageAuditData image : file.images()) {
                 final Row row = sheet.createRow(rowIndex++);
                 final CellStyle rowStyle = bodyStyle(styles, rowIndex);
                 final CellStyle urlStyle = hyperlinkStyle(styles, rowIndex);
-                writeNumber(row, 0, count++, rowStyle);
-                writeCell(row, 1, displayText(image.altText(), "(No Alt Text)"), rowStyle);
-                writeHyperlink(row, 2, image.imageUrl(), urlStyle, workbook.getCreationHelper());
-                writeCell(row, 3, httpStatus(image.httpStatus(), ""), rowStyle);
+                writeCell(row, 0, file.fileName(), rowStyle);
+                writeNumber(row, 1, count++, rowStyle);
+                writeCell(row, 2, displayText(image.altText(), "(No Alt Text)"), rowStyle);
+                writeHyperlink(row, 3, image.imageUrl(), urlStyle, workbook.getCreationHelper());
+                writeCell(row, 4, httpStatus(image.httpStatus(), ""), rowStyle);
 
-                final Cell validationCell = writeCell(row, 4, statusOrDash(image.validationStatus()), rowStyle);
+                final Cell validationCell = writeCell(row, 5, statusOrDash(image.validationStatus()), rowStyle);
                 applyStatusStyle(validationCell, image.validationStatus(), styles);
 
-                writeCell(row, 5, hasScreenshot(image.screenshotPath()) ? "Captured" : "No Screenshot", rowStyle);
-                writeCell(row, 6, displayText(image.notes(), image.validationStatus()), rowStyle);
+                writeCell(row, 6, hasScreenshot(image.screenshotPath()) ? "Captured" : "No Screenshot", rowStyle);
+                writeCell(row, 7, displayText(image.notes(), image.validationStatus()), rowStyle);
             }
         }
 
-        finishTabularSheet(sheet, rowIndex, headers.size());
-        autoSizeColumns(sheet, 8, 34, 64, 18, 16, 18, 48);
+        finishTabularSheet(sheet, rowIndex, headers.size(), headerRowIndex);
+        createExcelTable(sheet, headerRowIndex, Math.max(headerRowIndex, rowIndex - 1), 0, headers.size() - 1, "ImagesTable");
+        autoSizeColumns(sheet, 28, 8, 34, 64, 18, 16, 18, 48);
     }
 
-    private static List<CategorySummary> categorySummaries(final RunAuditData data) {
-        return List.of(
-                linksSummary(data),
-                imagesSummary(data),
-                sectionSummary(data, "Accessibility", "Accessibility"),
-                ruleSummary(data, "Privacy Links", List.of("PRIVACY_LINK")),
-                ruleSummary(data, "View In Browser", List.of("VIEW_ONLINE_LINK")),
-                ruleSummary(data, "Unsubscribe", List.of("BROKEN_ANCHOR")),
-                ruleSummary(data, "Reply-To / Disclaimer", List.of("DISCLAIMER_PRESENT"))
-        );
-    }
-
-    private static CategorySummary linksSummary(final RunAuditData data) {
-        int passed = 0;
-        int failed = 0;
-        int warning = 0;
-        for (final FileAuditData file : data.files()) {
-            for (final LinkAuditData link : file.links()) {
-                final String status = normalisedStatus(link.validationStatus());
-                if ("PASS".equals(status)) {
-                    passed++;
-                } else if ("FAIL".equals(status)) {
-                    failed++;
-                } else if ("WARNING".equals(status) || "PROTECTED".equals(status)) {
-                    warning++;
-                }
-            }
-        }
-        return new CategorySummary("Links", aggregateStatus(passed, failed, warning), passed, failed, warning);
-    }
-
-    private static CategorySummary imagesSummary(final RunAuditData data) {
-        int passed = 0;
-        int failed = 0;
-        int warning = 0;
-        for (final FileAuditData file : data.files()) {
-            for (final ImageAuditData image : file.images()) {
-                final String status = normalisedStatus(image.validationStatus());
-                if ("PASS".equals(status)) {
-                    passed++;
-                } else if ("FAIL".equals(status)) {
-                    failed++;
-                } else if ("WARNING".equals(status) || image.warning()) {
-                    warning++;
-                }
-            }
-        }
-        return new CategorySummary("Images", aggregateStatus(passed, failed, warning), passed, failed, warning);
-    }
-
-    private static CategorySummary sectionSummary(
+    private static void buildCampaignValidationSheet(
+            final Workbook workbook,
             final RunAuditData data,
-            final String label,
-            final String sectionName) {
+            final WorkbookStyles styles,
+            final ExcelMetadata metadata) {
 
-        int passed = 0;
-        int failed = 0;
-        int warning = 0;
+        final Sheet sheet = workbook.createSheet(SHEET_CAMPAIGN_VALIDATION);
+        final List<String> headers = List.of(
+                "Email",
+                "Item #",
+                "Taxonomy",
+                "Expected Type",
+                "Actual Type",
+                "Expected URL",
+                "Actual URL",
+                "Element Exists",
+                "URL",
+                "Tracking",
+                "Label",
+                "Category",
+                "Type",
+                "Screenshot",
+                "Overall Result",
+                "Notes");
+
+        int rowIndex = writeWorksheetMetadata(sheet, 0, metadata, styles);
+        final int headerRowIndex = rowIndex;
+        headerRow(sheet, rowIndex++, headers, styles);
+        int rowsWritten = 0;
+        final int rowsToExport = campaignRowCount(data);
+
+        log.info("========== CAMPAIGN EXCEL EXPORT ==========");
+        log.info("Rows to export : {}", rowsToExport);
 
         for (final FileAuditData file : data.files()) {
-            final SectionCheckResult section = findSection(file, sectionName);
-            if (section == null) {
+            final CampaignValidationResult campaign = file.campaignValidation();
+            if (campaign == null || campaign.rows().isEmpty()) {
                 continue;
             }
-            final String status = normalisedStatus(section.status());
-            if ("PASS".equals(status)) {
-                passed++;
-            } else if ("FAIL".equals(status) || "ERROR".equals(status)) {
-                failed += Math.max(1, section.findingCount());
-            } else if ("WARNING".equals(status)) {
-                warning += Math.max(1, section.findingCount());
+
+            for (final CampaignValidationRow campaignRow : campaign.rows()) {
+                log.info("""
+                        
+                        Writing row:
+                        Taxonomy:
+                        {}
+                        Overall:
+                        {}
+                        ------------------------------------------""",
+                        campaignRow.identifier(),
+                        statusOrDash(campaignRow.validation()));
+
+                final Row row = sheet.createRow(rowIndex++);
+                final CellStyle rowStyle = bodyStyle(styles, rowIndex);
+                final CellStyle urlStyle = hyperlinkStyle(styles, rowIndex);
+                int column = 0;
+                writeCell(row, column++, file.fileName(), rowStyle);
+                writeCell(row, column++, campaignItem(campaignRow), rowStyle);
+                writeCell(row, column++, displayText(campaignRow.identifier(), "-"), rowStyle);
+                writeCell(row, column++, displayText(campaignRow.type(), "-"), rowStyle);
+                writeCell(row, column++, displayText(campaignRow.actualType(), "-"), rowStyle);
+                writeHyperlink(row, column++, campaignRow.expectedUrl(), urlStyle, workbook.getCreationHelper());
+                writeHyperlink(row, column++, campaignRow.actualUrl(), urlStyle, workbook.getCreationHelper());
+                writeStatusCell(row, column++, campaignRow.elementStatus(), rowStyle, styles);
+                writeStatusCell(row, column++, campaignRow.urlStatus(), rowStyle, styles);
+                writeStatusCell(row, column++, campaignRow.trackingStatus(), rowStyle, styles);
+                writeStatusCell(row, column++, campaignRow.labelStatus(), rowStyle, styles);
+                writeStatusCell(row, column++, campaignRow.categoryStatus(), rowStyle, styles);
+                writeStatusCell(row, column++, campaignRow.typeStatus(), rowStyle, styles);
+                writeCell(row, column++, hasScreenshot(campaignRow.screenshotPath()) ? "Captured" : "Missing", rowStyle);
+                final Cell validationCell = writeCell(row, column++, statusOrDash(campaignRow.validation()), rowStyle);
+                applyStatusStyle(validationCell, campaignRow.validation(), styles);
+                writeCell(row, column, displayText(campaignRow.notes(), "-"), rowStyle);
+                rowsWritten++;
             }
         }
 
-        return new CategorySummary(label, aggregateStatus(passed, failed, warning), passed, failed, warning);
+        log.info("Rows written : {}", rowsWritten);
+
+        finishTabularSheet(sheet, rowIndex, headers.size(), headerRowIndex);
+        createExcelTable(sheet, headerRowIndex, Math.max(headerRowIndex, rowIndex - 1), 0, headers.size() - 1, "CampaignValidationTable");
+        autoSizeColumns(sheet, 28, 10, 34, 18, 18, 60, 60, 18, 16, 18, 16, 16, 16, 18, 18, 56);
     }
 
-    private static CategorySummary ruleSummary(
-            final RunAuditData data,
-            final String label,
-            final List<String> ruleIds) {
+    private static void buildCampaignValidationNotSelectedSheet(
+            final Workbook workbook,
+            final WorkbookStyles styles,
+            final ExcelMetadata metadata) {
 
-        int passed = 0;
-        int failed = 0;
-        int warning = 0;
+        final Sheet sheet = workbook.createSheet(SHEET_CAMPAIGN_VALIDATION);
+        int rowIndex = 0;
+        titleRow(sheet, rowIndex++, "CAMPAIGN VALIDATION", styles);
+        rowIndex++;
+        rowIndex = writeWorksheetMetadata(sheet, rowIndex, metadata, styles);
+        sectionRow(sheet, rowIndex++, "STATUS", styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Campaign Validation", "No Campaign Specification Selected", styles);
+        keyValueRow(sheet, rowIndex, "Message", "Campaign validation was skipped because no campaign specification was loaded.", styles);
+        autoSizeColumns(sheet, 28, 80);
+    }
 
-        for (final FileAuditData file : data.files()) {
-            for (final RuleAuditData rule : file.rules()) {
-                if (!ruleIds.contains(rule.ruleId())) {
-                    continue;
-                }
+    private static void buildCampaignValidationExportFallbackSheet(
+            final Workbook workbook,
+            final WorkbookStyles styles,
+            final ExcelMetadata metadata,
+            final RuntimeException ex) {
 
-                final String status = normalisedStatus(rule.status());
-                if ("PASS".equals(status)) {
-                    passed++;
-                } else if ("FAIL".equals(status) || "ERROR".equals(status)) {
-                    failed += Math.max(1, rule.findings().size());
-                } else if ("WARNING".equals(status)) {
-                    warning += Math.max(1, rule.findings().size());
-                }
-            }
+        if (workbook.getSheet(SHEET_CAMPAIGN_VALIDATION) != null) {
+            return;
         }
 
-        return new CategorySummary(label, aggregateStatus(passed, failed, warning), passed, failed, warning);
+        final Sheet sheet = workbook.createSheet(SHEET_CAMPAIGN_VALIDATION);
+        titleRow(sheet, 0, "CAMPAIGN VALIDATION", styles);
+        final int rowIndex = writeWorksheetMetadata(sheet, 2, metadata, styles);
+        sectionRow(sheet, rowIndex, "EXPORT STATUS", styles);
+        keyValueRow(sheet, rowIndex + 1, "Status", "Not available in Excel export", styles);
+        keyValueRow(sheet, rowIndex + 2, "Reason", ex.getMessage(), styles);
+        autoSizeColumns(sheet, 28, 80);
+    }
+
+    private static int writeWorkbookMetadata(
+            final Sheet sheet,
+            int rowIndex,
+            final ExcelMetadata metadata,
+            final WorkbookStyles styles,
+            final boolean includeCampaignSpecification) {
+
+        rowIndex = keyValueRow(sheet, rowIndex, "Client", metadata.client(), styles);
+        if (includeCampaignSpecification) {
+            rowIndex = keyValueRow(sheet, rowIndex, "Campaign Specification File", metadata.campaignSpecificationFile(), styles);
+            rowIndex = keyValueRow(sheet, rowIndex, "Worksheet", metadata.worksheet(), styles);
+        }
+        rowIndex = keyValueRow(sheet, rowIndex, "Execution Date/Time", metadata.executionDateTime(), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Total HTML Files", metadata.totalHtmlFiles(), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Processed", metadata.processed(), styles);
+        return keyValueRow(sheet, rowIndex, "Execution Time", metadata.executionTime(), styles);
+    }
+
+    private static int writeWorksheetMetadata(
+            final Sheet sheet,
+            int rowIndex,
+            final ExcelMetadata metadata,
+            final WorkbookStyles styles) {
+
+        rowIndex = keyValueRow(sheet, rowIndex, "Client", metadata.client(), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Execution", metadata.executionDateTime(), styles);
+        return rowIndex + 1;
+    }
+
+    private static EmailSummary emailSummary(final FileAuditData file) {
+        final int totalLinks = file.links().size();
+        final int passedLinks = (int) file.links()
+                .stream()
+                .filter(link -> "PASS".equals(normalisedStatus(link.validationStatus())))
+                .count();
+
+        final int totalImages = file.images().size();
+        final int passedImages = (int) file.images()
+                .stream()
+                .filter(image -> "PASS".equals(normalisedStatus(image.validationStatus())))
+                .count();
+
+        final int accessibilityWarnings = accessibilityWarningCount(file);
+        final boolean accessibilityError = findRule(file, "ACCESSIBILITY_AXE")
+                .stream()
+                .anyMatch(rule -> "ERROR".equals(normalisedStatus(rule.status())));
+        final String accessibilityLabel = accessibilityError
+                ? "FAIL"
+                : accessibilityWarnings > 0 ? "Warning (" + accessibilityWarnings + ")" : "PASS";
+        final String accessibilityStatus = accessibilityError
+                ? "FAIL"
+                : accessibilityWarnings > 0 ? "WARNING" : "PASS";
+        final CampaignValidationResult campaign = file.campaignValidation();
+        final String campaignLabel;
+        final String campaignStatus;
+        if (campaign == null || !campaign.specificationSelected()) {
+            campaignLabel = "Not Selected";
+            campaignStatus = "SKIPPED";
+        } else if (campaign.failed() > 0) {
+            campaignLabel = "FAIL (" + campaign.failed() + ")";
+            campaignStatus = "FAIL";
+        } else if (campaign.warnings() > 0) {
+            campaignLabel = "Warning (" + campaign.warnings() + ")";
+            campaignStatus = "WARNING";
+        } else {
+            campaignLabel = "PASS";
+            campaignStatus = "PASS";
+        }
+
+        return new EmailSummary(
+                passedLinks + "/" + totalLinks,
+                passedImages + "/" + totalImages,
+                campaignLabel,
+                campaignStatus,
+                accessibilityLabel,
+                accessibilityStatus,
+                fileOverallResult(file));
+    }
+
+    private static int campaignRowCount(final RunAuditData data) {
+        int rows = 0;
+        for (final FileAuditData file : data.files()) {
+            final CampaignValidationResult campaign = file.campaignValidation();
+            if (campaign != null && campaign.rows() != null) {
+                rows += campaign.rows().size();
+            }
+        }
+        return rows;
     }
 
     private static DashboardTotals totals(final RunAuditData data) {
         int totalLinks = 0;
+        int passedLinks = 0;
+        int failedLinks = 0;
+        int skippedLinks = 0;
         int totalImages = 0;
-        int screenshotsCaptured = 0;
-        int brokenLinks = 0;
-        int brokenImages = 0;
+        int passedImages = 0;
+        int failedImages = 0;
         int accessibilityWarnings = 0;
 
         for (final FileAuditData file : data.files()) {
@@ -341,43 +508,44 @@ public final class ExcelExporter {
             totalImages += file.images().size();
 
             for (final LinkAuditData link : file.links()) {
-                if (hasScreenshot(link.screenshotPath())) {
-                    screenshotsCaptured++;
-                }
-                if ("FAIL".equals(normalisedStatus(link.validationStatus()))) {
-                    brokenLinks++;
+                final String status = normalisedStatus(link.validationStatus());
+                if ("PASS".equals(status)) {
+                    passedLinks++;
+                } else if ("FAIL".equals(status)) {
+                    failedLinks++;
+                } else if ("SKIPPED".equals(status)) {
+                    skippedLinks++;
                 }
             }
 
             for (final ImageAuditData image : file.images()) {
-                if (hasScreenshot(image.screenshotPath())) {
-                    screenshotsCaptured++;
-                }
-                if ("FAIL".equals(normalisedStatus(image.validationStatus()))) {
-                    brokenImages++;
+                final String status = normalisedStatus(image.validationStatus());
+                if ("PASS".equals(status)) {
+                    passedImages++;
+                } else if ("FAIL".equals(status)) {
+                    failedImages++;
                 }
             }
 
-            for (final RuleAuditData rule : findRule(file, "ACCESSIBILITY_AXE")) {
-                accessibilityWarnings += rule.findings().size();
-            }
+            accessibilityWarnings += accessibilityWarningCount(file);
         }
 
         return new DashboardTotals(
                 totalLinks,
+                passedLinks,
+                failedLinks,
+                skippedLinks,
                 totalImages,
-                screenshotsCaptured,
-                brokenLinks,
-                brokenImages,
+                passedImages,
+                failedImages,
                 accessibilityWarnings);
     }
 
-    private static SectionCheckResult findSection(final FileAuditData file, final String sectionName) {
-        return file.sections()
+    private static int accessibilityWarningCount(final FileAuditData file) {
+        return findRule(file, "ACCESSIBILITY_AXE")
                 .stream()
-                .filter(section -> section.sectionName().equalsIgnoreCase(sectionName))
-                .findFirst()
-                .orElse(null);
+                .mapToInt(rule -> rule.findings().size())
+                .sum();
     }
 
     private static List<RuleAuditData> findRule(final FileAuditData file, final String ruleId) {
@@ -387,51 +555,55 @@ public final class ExcelExporter {
                 .toList();
     }
 
-    private static String aggregateStatus(final int passed, final int failed, final int warning) {
-        if (failed > 0) {
-            return "FAIL";
-        }
-        if (warning > 0) {
-            return "WARNING";
-        }
-        if (passed > 0) {
-            return "PASS";
-        }
-        return "-";
-    }
-
     private static String overallResult(final RunAuditData data) {
-        if (data.failedFiles() > 0 || data.erroredFiles() > 0) {
+        if (data.files().stream().map(ExcelExporter::fileOverallResult).anyMatch("FAIL"::equals)) {
             return "FAIL";
         }
-
-        final DashboardTotals totals = totals(data);
-        if (totals.brokenLinks() > 0
-                || totals.brokenImages() > 0
-                || totals.accessibilityWarnings() > 0
-                || hasWarnings(data)) {
+        if (data.files().stream().map(ExcelExporter::fileOverallResult).anyMatch("PASS WITH WARNINGS"::equals)) {
             return "PASS WITH WARNINGS";
         }
 
         return "PASS";
     }
 
-    private static boolean hasWarnings(final RunAuditData data) {
-        return data.files()
+    private static String fileOverallResult(final FileAuditData file) {
+        final boolean failedLinks = file.links()
                 .stream()
-                .flatMap(file -> file.images().stream())
+                .anyMatch(link -> "FAIL".equals(normalisedStatus(link.validationStatus())));
+        final boolean failedImages = file.images()
+                .stream()
+                .anyMatch(image -> "FAIL".equals(normalisedStatus(image.validationStatus())));
+        final boolean failedCampaign = file.campaignValidation() != null
+                && file.campaignValidation().specificationSelected()
+                && file.campaignValidation().failed() > 0;
+        final boolean nonAccessibilityFailure = file.rules()
+                .stream()
+                .filter(rule -> !"ACCESSIBILITY_AXE".equalsIgnoreCase(rule.ruleId()))
+                .anyMatch(rule -> "FAIL".equals(normalisedStatus(rule.status()))
+                        || "ERROR".equals(normalisedStatus(rule.status())));
+
+        if (failedLinks || failedImages || failedCampaign || nonAccessibilityFailure) {
+            return "FAIL";
+        }
+
+        final boolean hasWarnings = accessibilityWarningCount(file) > 0
+                || (file.campaignValidation() != null
+                && file.campaignValidation().specificationSelected()
+                && file.campaignValidation().warnings() > 0)
+                || file.links()
+                .stream()
+                .anyMatch(link -> "WARNING".equals(normalisedStatus(link.validationStatus()))
+                        || "PROTECTED".equals(normalisedStatus(link.validationStatus())))
+                || file.images()
+                .stream()
                 .anyMatch(image -> image.warning()
                         || "WARNING".equals(normalisedStatus(image.validationStatus())));
-    }
 
-    private static String campaignLabel(final RunAuditData data) {
-        if (data.files().isEmpty()) {
-            return "-";
+        if (hasWarnings) {
+            return "PASS WITH WARNINGS";
         }
-        if (data.files().size() == 1) {
-            return data.files().getFirst().fileName();
-        }
-        return data.files().size() + " audited emails";
+
+        return "PASS";
     }
 
     private static String browserLabel(final ConfigurationManager config) {
@@ -440,6 +612,22 @@ public final class ExcelExporter {
             return config.getBrowser();
         }
         return config.getBrowser() + " (" + channel + ")";
+    }
+
+    private static Instant executionStart(final List<AuditContext> contexts) {
+        return contexts.stream()
+                .map(AuditContext::getStartTime)
+                .filter(instant -> instant != null)
+                .min(Instant::compareTo)
+                .orElse(null);
+    }
+
+    private static Instant executionEnd(final List<AuditContext> contexts) {
+        return contexts.stream()
+                .map(AuditContext::getEndTime)
+                .filter(instant -> instant != null)
+                .max(Instant::compareTo)
+                .orElse(null);
     }
 
     private static String destinationUrl(final LinkAuditData link) {
@@ -476,6 +664,32 @@ public final class ExcelExporter {
                 : value;
     }
 
+    private static String pathFileName(final Path path) {
+        if (path == null || path.getFileName() == null) {
+            return "-";
+        }
+        return path.getFileName().toString();
+    }
+
+    private static String htmlMetadataStatus(final CampaignValidationRow row) {
+        return "Label " + statusOrDash(row.labelStatus())
+                + "; Category " + statusOrDash(row.categoryStatus());
+    }
+
+    private static String campaignItem(final CampaignValidationRow row) {
+        for (final var entry : row.rawColumns().entrySet()) {
+            final String key = entry.getKey() == null
+                    ? ""
+                    : entry.getKey().trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").trim();
+            if ((key.equals("item") || key.equals("item number"))
+                    && entry.getValue() != null
+                    && !entry.getValue().isBlank()) {
+                return entry.getValue();
+            }
+        }
+        return String.valueOf(row.index());
+    }
+
     private static String formatDuration(final long millis) {
         final long totalSeconds = millis / 1000;
         final long minutes = totalSeconds / 60;
@@ -484,6 +698,10 @@ public final class ExcelExporter {
             return minutes + "m " + seconds + "s";
         }
         return seconds + "s";
+    }
+
+    private static String formatInstant(final Instant instant) {
+        return instant == null ? "-" : AUDIT_DATE_FORMAT.format(instant);
     }
 
     private static void titleRow(
@@ -572,9 +790,26 @@ public final class ExcelExporter {
             return;
         }
 
-        final Hyperlink hyperlink = creationHelper.createHyperlink(HyperlinkType.URL);
-        hyperlink.setAddress(url);
-        cell.setHyperlink(hyperlink);
+        try {
+            final Hyperlink hyperlink = creationHelper.createHyperlink(HyperlinkType.URL);
+            hyperlink.setAddress(url);
+            cell.setHyperlink(hyperlink);
+        } catch (final RuntimeException ex) {
+            log.debug("Skipping Excel hyperlink attachment for non-standard URL '{}': {}",
+                    url,
+                    ex.getMessage());
+        }
+    }
+
+    private static void writeStatusCell(
+            final Row row,
+            final int column,
+            final String status,
+            final CellStyle rowStyle,
+            final WorkbookStyles styles) {
+
+        final Cell cell = writeCell(row, column, statusOrDash(status), rowStyle);
+        applyStatusStyle(cell, status, styles);
     }
 
     private static boolean isExternalUrl(final String url) {
@@ -610,10 +845,11 @@ public final class ExcelExporter {
     private static void finishTabularSheet(
             final Sheet sheet,
             final int rowCount,
-            final int columnCount) {
+            final int columnCount,
+            final int headerRowIndex) {
 
-        sheet.createFreezePane(0, 1);
-        applyAutoFilter(sheet, 0, Math.max(0, rowCount - 1), 0, columnCount - 1);
+        sheet.createFreezePane(0, headerRowIndex + 1);
+        applyAutoFilter(sheet, headerRowIndex, Math.max(headerRowIndex, rowCount - 1), 0, columnCount - 1);
     }
 
     private static void applyAutoFilter(
@@ -626,6 +862,28 @@ public final class ExcelExporter {
         if (lastRow >= firstRow) {
             sheet.setAutoFilter(new CellRangeAddress(firstRow, lastRow, firstColumn, lastColumn));
         }
+    }
+
+    private static void createExcelTable(
+            final Sheet sheet,
+            final int firstRow,
+            final int lastRow,
+            final int firstColumn,
+            final int lastColumn,
+            final String tableName) {
+
+        if (!(sheet instanceof XSSFSheet xssfSheet)) {
+            return;
+        }
+
+        final AreaReference areaReference = new AreaReference(
+                new CellReference(firstRow, firstColumn),
+                new CellReference(lastRow, lastColumn),
+                SpreadsheetVersion.EXCEL2007);
+        final XSSFTable table = xssfSheet.createTable(areaReference);
+        table.setName(tableName);
+        table.setDisplayName(tableName);
+        table.setStyleName("TableStyleMedium2");
     }
 
     private static void autoSizeColumns(final Sheet sheet, final int... maxWidths) {
@@ -642,21 +900,53 @@ public final class ExcelExporter {
         }
     }
 
-    private record CategorySummary(
-            String name,
-            String status,
-            int passed,
-            int failed,
-            int warning) {
+    private record EmailSummary(
+            String linksLabel,
+            String imagesLabel,
+            String campaignLabel,
+            String campaignStatus,
+            String accessibilityLabel,
+            String accessibilityStatus,
+            String overallResult) {
     }
 
     private record DashboardTotals(
             int totalLinks,
+            int passedLinks,
+            int failedLinks,
+            int skippedLinks,
             int totalImages,
-            int screenshotsCaptured,
-            int brokenLinks,
-            int brokenImages,
+            int passedImages,
+            int failedImages,
             int accessibilityWarnings) {
+    }
+
+    private record ExcelMetadata(
+            String client,
+            String campaignSpecificationFile,
+            String worksheet,
+            String executionDateTime,
+            String totalHtmlFiles,
+            String processed,
+            String executionTime) {
+
+        private static ExcelMetadata from(
+                final RunAuditData data,
+                final AuditOrchestrator.RunSummary summary) {
+
+            final CampaignSpecification specification =
+                    CampaignSpecificationModule.activeSpecification()
+                            .orElse(null);
+
+            return new ExcelMetadata(
+                    displayText(data.client(), "General"),
+                    specification == null ? "Not Selected" : pathFileName(specification.sourceFile()),
+                    specification == null ? "-" : displayText(specification.worksheetName(), "-"),
+                    formatInstant(data.generatedAt()),
+                    String.valueOf(summary.totalDiscovered()),
+                    String.valueOf(summary.processed()),
+                    formatDuration(data.executionTimeMs()));
+        }
     }
 
     private record WorkbookStyles(

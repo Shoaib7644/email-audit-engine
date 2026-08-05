@@ -86,6 +86,10 @@ public final class BusinessImpactMapper {
                     "No links are wrapped by an unexpected security filter.",
                     "Destination links may not reach the intended page.")),
 
+            Map.entry("CAMPAIGN_VALIDATION", new ImpactPair(
+                    "Rendered email matches the uploaded campaign specification.",
+                    "Rendered email does not match the uploaded campaign specification.")),
+
             Map.entry("ACCESSIBILITY_AXE", new ImpactPair(
                     "No accessibility violations were detected.",
                     "Email may not meet accessibility standards and could impact"

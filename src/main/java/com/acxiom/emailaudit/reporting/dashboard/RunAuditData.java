@@ -8,6 +8,7 @@ import java.util.Objects;
  * Dashboard representation of a complete audit run.
  */
 public record RunAuditData(
+        String client,
         int totalFiles,
         int passedFiles,
         int failedFiles,
@@ -18,6 +19,7 @@ public record RunAuditData(
         List<FileAuditData> files) {
 
     public RunAuditData {
+        client = client == null || client.isBlank() ? "General" : client.trim();
         Objects.requireNonNull(generatedAt, "generatedAt must not be null");
         Objects.requireNonNull(files,       "files must not be null");
 

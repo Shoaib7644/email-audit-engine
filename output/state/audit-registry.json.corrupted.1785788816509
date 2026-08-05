@@ -1,0 +1,11 @@
+{
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NEW_index.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NEW_index.html",
+    "contentHash" : "172512fdff63191b848c9a51931b98dd81af47f30fb720e9704fbfefeab4955e",
+    "status" : "FAILED",
+    "processedAt" : "2026-08-03T17:58:33.391602Z",
+    "errorMessage" : "7 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

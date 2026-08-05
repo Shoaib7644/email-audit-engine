@@ -6,6 +6,7 @@
   Entry point only.  All logic lives in js/*.js.
   Data contract (injected by Java engine at {{DASHBOARD_DATA}}):
   {
+    client        : string,
     passedFiles   : number,
     failedFiles   : number,
     generatedAt   : ISO-8601 string,
@@ -197,6 +198,14 @@
                     <span class="nav-icon" aria-hidden="true">&#128444;</span>
                     <span class="nav-label">Images</span>
                     <span class="nav-badge" id="badge-IMAGES" aria-label="Images audit status"></span>
+                </button>
+            </li>
+
+            <li class="nav-item" data-category="CAMPAIGN_VALIDATION" role="listitem">
+                <button class="nav-btn" aria-current="false" data-category="CAMPAIGN_VALIDATION">
+                    <span class="nav-icon" aria-hidden="true">&#128202;</span>
+                    <span class="nav-label">Campaign Validation</span>
+                    <span class="nav-badge" id="badge-CAMPAIGN_VALIDATION" aria-label="Campaign validation status"></span>
                 </button>
             </li>
 

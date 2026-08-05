@@ -72,6 +72,59 @@ var Parser = (function () {
         };
     }
 
+    /* ── Normalise campaign validation payload ────────────────── */
+    function normaliseCampaignValidation(raw) {
+        raw = raw || {};
+        var rows = Array.isArray(raw.rows) ? raw.rows.map(function (row, index) {
+            row = row || {};
+            return {
+                index:       typeof row.index === "number" ? row.index : index + 1,
+                identifier:  String(row.identifier || ""),
+                type:        String(row.type || ""),
+                actualType:  String(row.actualType || ""),
+                expectedUrl: String(row.expectedUrl || ""),
+                actualUrl:   String(row.actualUrl || ""),
+                visibleText: String(row.visibleText || ""),
+                expectedLabel: String(row.expectedLabel || ""),
+                actualLabel: String(row.actualLabel || ""),
+                expectedCategory: String(row.expectedCategory || ""),
+                actualCategory: String(row.actualCategory || ""),
+                expectedTracking: Array.isArray(row.expectedTracking) ? row.expectedTracking.map(String) : [],
+                actualTrackingParameters: row.actualTrackingParameters && typeof row.actualTrackingParameters === "object" ? row.actualTrackingParameters : {},
+                urlStatus: Utils.normaliseStatus(row.urlStatus || ""),
+                trackingStatus: Utils.normaliseStatus(row.trackingStatus || ""),
+                labelStatus: Utils.normaliseStatus(row.labelStatus || ""),
+                categoryStatus: Utils.normaliseStatus(row.categoryStatus || ""),
+                elementStatus: Utils.normaliseStatus(row.elementStatus || ""),
+                typeStatus: Utils.normaliseStatus(row.typeStatus || ""),
+                screenshotStatus: Utils.normaliseStatus(row.screenshotStatus || ""),
+                screenshotPath: String(row.screenshotPath || ""),
+                linkValidationStatus: Utils.normaliseStatus(row.linkValidationStatus || ""),
+                finalDestinationUrl: String(row.finalDestinationUrl || ""),
+                httpStatus: String(row.httpStatus || ""),
+                validation:  Utils.normaliseStatus(row.validation || ""),
+                notes:       String(row.notes || ""),
+                rawColumns:  row.rawColumns && typeof row.rawColumns === "object" ? row.rawColumns : {}
+            };
+        }) : [];
+
+        return {
+            specificationSelected: !!raw.specificationSelected,
+            message:               String(raw.message || "No campaign specification selected."),
+            expectedEntries:       typeof raw.expectedEntries === "number" ? raw.expectedEntries : 0,
+            matched:               typeof raw.matched === "number" ? raw.matched : 0,
+            missing:               typeof raw.missing === "number" ? raw.missing : 0,
+            unexpected:            typeof raw.unexpected === "number" ? raw.unexpected : 0,
+            trackingErrors:        typeof raw.trackingErrors === "number" ? raw.trackingErrors : 0,
+            urlErrors:             typeof raw.urlErrors === "number" ? raw.urlErrors : 0,
+            passed:                typeof raw.passed === "number" ? raw.passed : 0,
+            failed:                typeof raw.failed === "number" ? raw.failed : 0,
+            warnings:              typeof raw.warnings === "number" ? raw.warnings : 0,
+            originalHeaders:       Array.isArray(raw.originalHeaders) ? raw.originalHeaders.map(String) : [],
+            rows:                  rows
+        };
+    }
+
     function _imageValidationStatus(raw) {
         var explicit = String(raw.validationStatus || "").toUpperCase();
         if (explicit === "PASS" || explicit === "FAIL" || explicit === "WARNING") {
@@ -129,6 +182,7 @@ var Parser = (function () {
             rules:         rules,
             links:         links,
             images:        images,
+            campaignValidation: normaliseCampaignValidation(raw.campaignValidation),
             /* pre-partitioned for fast access */
             passedRules:   passedRules,
             failedRules:   failedRules,
@@ -151,6 +205,7 @@ var Parser = (function () {
         var files = Array.isArray(raw.files) ? raw.files.map(normaliseFile) : [];
 
         return {
+            client:       raw.client ? String(raw.client) : 'General',
             passedFiles:  typeof raw.passedFiles === "number" ? raw.passedFiles : 0,
             failedFiles:  typeof raw.failedFiles === "number" ? raw.failedFiles : 0,
             generatedAt:  raw.generatedAt ? String(raw.generatedAt) : null,
@@ -164,7 +219,8 @@ var Parser = (function () {
         normaliseFile: normaliseFile,
         normaliseRule: normaliseRule,
         normaliseLink: normaliseLink,
-        normaliseImage: normaliseImage
+        normaliseImage: normaliseImage,
+        normaliseCampaignValidation: normaliseCampaignValidation
     };
 
 }());

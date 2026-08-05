@@ -7,7 +7,7 @@
          Sticky email name + status badge + pass-rate gauge.
          Always shown at top of center panel.
 
-     • buildCategoryView(file, cat, generatedAt, showPreview)
+     • buildCategoryView(file, cat, generatedAt, showPreview, client)
          cat === 'overview'  → email stats tiles + email preview + issues
          cat !== 'overview'  → category title + description + 3 stat tiles
                                + issue list.  NO screenshot / NO preview.
@@ -26,6 +26,7 @@ var Renderer = (function () {
         overview:        { icon: '&#9783;',  title: 'Overview',                            desc: 'Full audit summary for this email campaign.' },
         LINKS:           { icon: '&#128279;',title: 'Links',                               desc: 'Shows every clickable journey captured from the rendered email during the audit run.' },
         IMAGES:          { icon: '&#128444;',title: 'Images',                              desc: 'Shows every visible rendered image captured from the email, including load status, alt text warnings, and cropped screenshots.' },
+        CAMPAIGN_VALIDATION: { icon: '&#128202;',title: 'Campaign Validation',              desc: 'Compares the rendered email against the uploaded campaign specification.' },
         LINK_VALIDATION: { icon: '&#128279;',title: 'Inventory & Inspect Links',            desc: 'Validates all hyperlinks in the email. Broken or missing links prevent recipients from reaching intended destinations.' },
         CTA_TRACKING:    { icon: '&#128073;',title: 'Tracking Links & CTAs',               desc: 'Checks CTA button destinations and link-level tracking parameters for analytics accuracy.' },
         HTML_QUALITY:    { icon: '&#128203;',title: 'Broken HTML Codes',                   desc: 'Scans the email HTML for structural issues such as duplicate element IDs, broken heading sequences, and malformed content that can cause rendering failures across email clients.' },
@@ -46,6 +47,7 @@ var Renderer = (function () {
         overview:        null,
         LINKS:           null,
         IMAGES:          null,
+        CAMPAIGN_VALIDATION: ['CAMPAIGN_VALIDATION'],
         LINK_VALIDATION: ['LINK_VALIDATION'],
         CTA_TRACKING:    ['CTA_VALIDATION', 'LINK_TEXT_VALIDATION'],
         HTML_QUALITY:    ['DUPLICATE_ID', 'HEADING_HIERARCHY', 'CONTENT_VALIDATION'],
@@ -203,15 +205,18 @@ var Renderer = (function () {
        PUBLIC: buildCategoryView
        showPreview = true only when categoryKey === 'overview'
     ============================================================ */
-    function buildCategoryView(file, categoryKey, generatedAt, showPreview) {
+    function buildCategoryView(file, categoryKey, generatedAt, showPreview, client) {
         if (categoryKey === 'overview') {
-            return _buildOverview(file, showPreview);
+            return _buildOverview(file, showPreview, client);
         }
         if (categoryKey === 'LINKS') {
             return _buildLinksAudit(file);
         }
         if (categoryKey === 'IMAGES') {
             return _buildImagesAudit(file);
+        }
+        if (categoryKey === 'CAMPAIGN_VALIDATION') {
+            return _buildCampaignValidationAudit(file);
         }
         if (categoryKey === 'ACCESSIBILITY') {
             return _buildAccessibilityAudit(file);
@@ -224,8 +229,9 @@ var Renderer = (function () {
        NO Execution Summary here — that lives in the page header.
        Order: Category header → Email stats tiles → Email Preview → Issues
     ============================================================ */
-    function _buildOverview(file, showPreview) {
+    function _buildOverview(file, showPreview, client) {
         var rules        = Array.isArray(file.rules) ? file.rules : [];
+        var clientName   = client || 'General';
         var passedCount  = rules.filter(function (r) { return _normStatus(r.status) === 'PASS'; }).length;
         var failedCount  = rules.filter(function (r) { var s = _normStatus(r.status); return s === 'FAIL' || s === 'ERROR'; }).length;
         var skippedCount = rules.filter(function (r) { return _normStatus(r.status) === 'SKIPPED'; }).length;
@@ -235,6 +241,7 @@ var Renderer = (function () {
         var statsHtml =
             '<div class="section-label">Email Audit Statistics</div>' +
             '<div class="summary-strip">' +
+            _tile('Client',        clientName,   'selected client', 'tile-total',   '&#128188;') +
             _tile('Total Checks',  totalRules,  'rules evaluated', 'tile-total',   '&#9635;') +
             _tile('Passed',        passedCount, 'no issues',       'tile-passed',  '&#10003;') +
             _tile('Issues Found',  failedCount, 'need attention',  'tile-failed',  '&#10007;') +
@@ -812,6 +819,103 @@ var Renderer = (function () {
     }
 
     /* ============================================================
+       CAMPAIGN VALIDATION
+    ============================================================ */
+    function _buildCampaignValidationAudit(file) {
+        var campaign = file.campaignValidation || {};
+        var rows = Array.isArray(campaign.rows) ? campaign.rows : [];
+
+        var statsHtml =
+            '<div class="section-label">Campaign Validation Summary</div>' +
+            '<div class="summary-strip strip-campaign">' +
+            _tile('Expected Entries', campaign.expectedEntries || 0, 'from specification', 'tile-total', '&#9635;') +
+            _tile('Passed', campaign.passed || 0, 'ready', 'tile-passed', '&#10003;') +
+            _tile('Failed', campaign.failed || 0, 'review required', 'tile-failed', '&#10007;') +
+            _tile('Warnings', campaign.warnings || 0, 'review recommended', 'tile-warning', '&#9888;') +
+            _tile('Missing', campaign.missing || 0, 'not found', 'tile-failed', '&#10007;') +
+            _tile('Unexpected', campaign.unexpected || 0, 'not in spec', 'tile-warning', '&#9888;') +
+            '</div>';
+
+        if (!campaign.specificationSelected) {
+            return (
+                '<div class="category-header">' +
+                '<div class="category-eyebrow">AUDIT CATEGORY</div>' +
+                '<h1 class="category-title">&#128202; Campaign Validation</h1>' +
+                '<p class="category-description">Compares the rendered email against an uploaded campaign specification.</p>' +
+                '</div>' +
+                statsHtml +
+                '<div class="no-results">' +
+                '<div class="no-results-icon">&#128202;</div>' +
+                '<div class="no-results-title">No campaign specification selected.</div>' +
+                '<div class="no-results-sub">Upload a campaign spreadsheet from the Audit Console to validate taxonomy, tracking, Adobe labels, categories and campaign assets.</div>' +
+                '</div>'
+            );
+        }
+
+        if (rows.length === 0) {
+            return (
+                '<div class="category-header">' +
+                '<div class="category-eyebrow">AUDIT CATEGORY</div>' +
+                '<h1 class="category-title">&#128202; Campaign Validation</h1>' +
+                '<p class="category-description">Compares the rendered email against the uploaded campaign specification.</p>' +
+                '</div>' +
+                statsHtml +
+                '<div class="no-results">' +
+                '<div class="no-results-icon">&#128202;</div>' +
+                '<div class="no-results-title">Campaign validation was not executed.</div>' +
+                '<div class="no-results-sub">' + _esc(campaign.message || 'No campaign validation rows were produced.') + '</div>' +
+                '</div>'
+            );
+        }
+
+        return (
+            '<div class="category-header">' +
+            '<div class="category-eyebrow">AUDIT CATEGORY</div>' +
+            '<h1 class="category-title">&#128202; Campaign Validation</h1>' +
+            '<p class="category-description">Compares the rendered email against the uploaded campaign specification.</p>' +
+            '</div>' +
+            statsHtml +
+            '<div class="section-label">Specification Comparison</div>' +
+            '<div class="links-panel campaign-panel" data-campaign-panel>' +
+            '<div class="links-toolbar">' +
+            '<label class="sr-only" for="campaign-search">Search campaign validation</label>' +
+            '<input id="campaign-search" class="links-search" type="search" placeholder="Search campaign validation..." autocomplete="off" />' +
+            '<div class="links-page-size">' +
+            '<label for="campaign-page-size">Rows</label>' +
+            '<select id="campaign-page-size" class="links-page-size-select">' +
+            '<option value="10">10</option>' +
+            '<option value="25">25</option>' +
+            '<option value="50">50</option>' +
+            '</select>' +
+            '</div>' +
+            '</div>' +
+            '<div class="links-table-wrap">' +
+            '<table class="links-table campaign-table">' +
+            '<thead><tr>' +
+            _campaignSortHeader('identifier', 'Taxonomy') +
+            _campaignSortHeader('type', 'Expected Type') +
+            _campaignSortHeader('actualType', 'Actual Type') +
+            _campaignSortHeader('expectedUrl', 'Expected URL') +
+            _campaignSortHeader('actualUrl', 'Actual URL') +
+            '<th scope="col">Validation Checklist</th>' +
+            _campaignSortHeader('validation', 'Overall Result') +
+            _campaignSortHeader('screenshotStatus', 'Screenshot') +
+            _campaignSortHeader('notes', 'Notes') +
+            '</tr></thead>' +
+            '<tbody id="campaign-table-body"></tbody>' +
+            '</table>' +
+            '</div>' +
+            '<div class="links-pagination" id="campaign-pagination"></div>' +
+            '</div>'
+        );
+    }
+
+    function _campaignSortHeader(key, label) {
+        return '<th scope="col"><button class="links-sort-btn" type="button" data-campaign-sort="' +
+            _esc(key) + '">' + _esc(label) + ' <span aria-hidden="true">&#8597;</span></button></th>';
+    }
+
+    /* ============================================================
        ISSUE LIST
     ============================================================ */
     function _buildIssueList(rules, ruleFilter) {
@@ -1021,6 +1125,301 @@ var Renderer = (function () {
         });
 
         render();
+    }
+
+    /* ============================================================
+       WIRE CAMPAIGN TABLE
+    ============================================================ */
+    function wireCampaign(container, file) {
+        var panel = container.querySelector('[data-campaign-panel]');
+        if (!panel) { return; }
+
+        var campaign = file.campaignValidation || {};
+        var rows = Array.isArray(campaign.rows) ? campaign.rows.slice() : [];
+        var tbody = panel.querySelector('#campaign-table-body');
+        var search = panel.querySelector('#campaign-search');
+        var pageSize = panel.querySelector('#campaign-page-size');
+        var pager = panel.querySelector('#campaign-pagination');
+        var state = {
+            query: '',
+            sortKey: 'validation',
+            sortDir: 'asc',
+            page: 1,
+            pageSize: pageSize ? Number(pageSize.value) : 10
+        };
+
+        function filteredRows() {
+            var q = state.query.toLowerCase();
+            var filtered = !q ? rows : rows.filter(function (row) {
+                return [
+                    row.identifier,
+                    row.expectedLabel,
+                    row.type,
+                    row.labelStatus,
+                    row.categoryStatus,
+                    row.urlStatus,
+                    row.trackingStatus,
+                    row.linkValidationStatus,
+                    row.screenshotStatus,
+                    row.validation,
+                    row.notes
+                ].join(' ').toLowerCase().indexOf(q) >= 0;
+            });
+
+            filtered.sort(function (a, b) {
+                var result = _compareCampaignValue(a, b, state.sortKey);
+                return state.sortDir === 'asc' ? result : -result;
+            });
+
+            return filtered;
+        }
+
+        function render() {
+            var filtered = filteredRows();
+            var totalPages = Math.max(1, Math.ceil(filtered.length / state.pageSize));
+            state.page = Math.min(state.page, totalPages);
+            var start = (state.page - 1) * state.pageSize;
+            var visibleRows = filtered.slice(start, start + state.pageSize);
+
+            tbody.innerHTML = visibleRows.map(_buildCampaignRow).join('');
+            pager.innerHTML = _buildCampaignPager(filtered.length, state.page, totalPages);
+            _wireLinksPager(pager, state, render);
+            _wireCampaignDetails(tbody, rows);
+        }
+
+        if (search) {
+            search.addEventListener('input', function () {
+                state.query = search.value.trim();
+                state.page = 1;
+                render();
+            });
+        }
+
+        if (pageSize) {
+            pageSize.addEventListener('change', function () {
+                state.pageSize = Number(pageSize.value) || 10;
+                state.page = 1;
+                render();
+            });
+        }
+
+        panel.querySelectorAll('[data-campaign-sort]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var key = btn.dataset.campaignSort;
+                if (state.sortKey === key) {
+                    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    state.sortKey = key;
+                    state.sortDir = 'asc';
+                }
+                state.page = 1;
+                render();
+            });
+        });
+
+        render();
+    }
+
+    function _buildCampaignRow(row) {
+        return (
+            '<tr>' +
+            '<td class="links-cell-text">' + _esc(row.identifier || '-') + '</td>' +
+            '<td class="links-cell-text">' + _esc(row.type || '-') + '</td>' +
+            '<td class="links-cell-text">' + _esc(row.actualType || '-') + '</td>' +
+            '<td class="links-cell-url">' + _linkAnchor(row.expectedUrl) + '</td>' +
+            '<td class="links-cell-url">' + _linkAnchor(row.actualUrl) + '</td>' +
+            '<td class="links-cell-text">' + _campaignChecklist(row) + '</td>' +
+            '<td>' + _campaignValidationBadge(row.validation) + '</td>' +
+            '<td>' + _statusIcon(row.screenshotStatus) + '</td>' +
+            '<td class="links-cell-text"><button class="campaign-detail-btn" type="button" data-campaign-detail="' +
+            _esc(row.index) + '">' + _esc(row.notes || '-') + '</button></td>' +
+            '</tr>'
+        );
+    }
+
+    function _campaignChecklist(row) {
+        return [
+            _checklistItem('Element Exists', row.elementStatus),
+            _checklistItem('URL Structure', row.urlStatus),
+            _checklistItem('Tracking', row.trackingStatus),
+            _checklistItem('Label', row.labelStatus),
+            _checklistItem('Category', row.categoryStatus),
+            _checklistItem('Type', row.typeStatus),
+            _checklistItem('Screenshot', row.screenshotStatus)
+        ].join('');
+    }
+
+    function _statusIcon(status) {
+        var normalised = _normStatus(status);
+        if (normalised === 'PASS') {
+            return '<span class="campaign-check campaign-check-pass" title="Passed">&#10003;</span>';
+        }
+        if (normalised === 'FAIL') {
+            return '<span class="campaign-check campaign-check-fail" title="Failed">&#10007;</span>';
+        }
+        if (normalised === 'WARNING') {
+            return '<span class="campaign-check campaign-check-warning" title="Warning">&#9888;</span>';
+        }
+        return '<span class="links-empty">N/A</span>';
+    }
+
+    function _trackingSummary(row) {
+        var expected = Array.isArray(row.expectedTracking) ? row.expectedTracking : [];
+        if (!expected.length) {
+            return '<span class="links-empty">N/A</span>';
+        }
+        var actual = row.actualTrackingParameters || {};
+        return expected.map(function (param) {
+            var key = String(param).toLowerCase();
+            var exists = Object.prototype.hasOwnProperty.call(actual, key);
+            return '<span class="' + (exists ? 'campaign-param-pass' : 'campaign-param-fail') + '">' +
+                (exists ? '&#10003; ' : 'Missing ') + _esc(param) + '</span>';
+        }).join('<br>');
+    }
+
+    function _metadataSummary(row) {
+        return [
+            'Label ' + (_normStatus(row.labelStatus) === 'PASS' ? '&#10003;' : _normStatus(row.labelStatus) === 'FAIL' ? '&#10007;' : 'N/A'),
+            'Category ' + (_normStatus(row.categoryStatus) === 'PASS' ? '&#10003;' : _normStatus(row.categoryStatus) === 'FAIL' ? '&#10007;' : 'N/A')
+        ].map(function (text) {
+            return '<span>' + text + '</span>';
+        }).join('<br>');
+    }
+
+    function _campaignPassRate(campaign) {
+        var expected = Number(campaign.expectedEntries || 0);
+        if (!expected) { return '0%'; }
+        return Math.round((Number(campaign.passed || 0) / expected) * 100) + '%';
+    }
+
+    function _campaignValidationBadge(status) {
+        var normalised = _normStatus(status) || 'PASS';
+        var cls = normalised === 'PASS'
+            ? 'link-status-pass'
+            : normalised === 'WARNING'
+                ? 'link-status-protected'
+                : 'link-status-fail';
+        return '<span class="link-status-badge ' + cls + '">' + _esc(normalised) + '</span>';
+    }
+
+    function _buildCampaignPager(totalRows, page, totalPages) {
+        var label = totalRows === 0
+            ? 'No campaign rows match the current search'
+            : 'Page ' + page + ' of ' + totalPages + ' &#8226; ' + totalRows + ' Row' + (totalRows === 1 ? '' : 's');
+
+        return (
+            '<span class="links-page-label">' + label + '</span>' +
+            '<div class="links-page-actions">' +
+            '<button type="button" class="links-page-btn" data-link-page="prev" ' + (page <= 1 ? 'disabled' : '') + '>Previous</button>' +
+            '<button type="button" class="links-page-btn" data-link-page="next" ' + (page >= totalPages ? 'disabled' : '') + '>Next</button>' +
+            '</div>'
+        );
+    }
+
+    function _compareCampaignValue(a, b, key) {
+        if (key === 'index') {
+            return Number(a.index || 0) - Number(b.index || 0);
+        }
+        var left = String(a[key] || '').toLowerCase();
+        var right = String(b[key] || '').toLowerCase();
+        return left.localeCompare(right);
+    }
+
+    function _wireCampaignDetails(tbody, rows) {
+        tbody.querySelectorAll('[data-campaign-detail]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var index = Number(btn.dataset.campaignDetail);
+                var row = rows.find(function (item) { return Number(item.index) === index; });
+                _openCampaignModal(row || null);
+            });
+        });
+    }
+
+    function _openCampaignModal(row) {
+        var modal = _ensureCampaignModal();
+        var body = modal.querySelector('.link-modal-body');
+        if (!body) { return; }
+        body.innerHTML = row ? _buildCampaignModalBody(row)
+            : '<div class="screenshot-unavailable"><div class="screenshot-unavailable-msg">No campaign details available.</div></div>';
+        modal.removeAttribute('hidden');
+        modal.classList.add('is-visible');
+        var close = modal.querySelector('[data-campaign-modal-close]');
+        if (close) { close.focus(); }
+    }
+
+    function _ensureCampaignModal() {
+        var modal = document.getElementById('campaign-detail-modal');
+        if (modal) { return modal; }
+
+        modal = document.createElement('div');
+        modal.id = 'campaign-detail-modal';
+        modal.className = 'link-modal';
+        modal.setAttribute('hidden', '');
+        modal.innerHTML =
+            '<div class="link-modal-backdrop" data-campaign-modal-close></div>' +
+            '<section class="link-modal-card" role="dialog" aria-modal="true" aria-labelledby="campaign-modal-title">' +
+            '<div class="link-modal-header">' +
+            '<h2 id="campaign-modal-title">Campaign Asset Details</h2>' +
+            '<button class="link-modal-close" type="button" data-campaign-modal-close aria-label="Close campaign details">&times;</button>' +
+            '</div>' +
+            '<div class="link-modal-body"></div>' +
+            '</section>';
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', function (event) {
+            if (event.target.hasAttribute('data-campaign-modal-close')) {
+                _closeLinkModal(modal);
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modal.classList.contains('is-visible')) {
+                _closeLinkModal(modal);
+            }
+        });
+
+        return modal;
+    }
+
+    function _buildCampaignModalBody(row) {
+        var shot = row.screenshotPath
+            ? '<div class="link-modal-screenshot"><img src="' + _esc(_fileSrc(row.screenshotPath)) + '" alt="Campaign asset screenshot" /></div>'
+            : '<div class="screenshot-unavailable"><div class="screenshot-unavailable-msg">No screenshot available.</div></div>';
+
+        return (
+            '<div class="link-modal-preview">' +
+            '<dl class="link-modal-meta">' +
+            '<div><dt>Taxonomy</dt><dd>' + _esc(row.identifier || '-') + '</dd></div>' +
+            '<div><dt>Expected Type</dt><dd>' + _esc(row.type || '-') + '</dd></div>' +
+            '<div><dt>Actual Type</dt><dd>' + _esc(row.actualType || '-') + '</dd></div>' +
+            '<div><dt>Expected Label</dt><dd>' + _esc(row.expectedLabel || '-') + '</dd></div>' +
+            '<div><dt>Actual Label</dt><dd>' + _esc(row.actualLabel || '-') + '</dd></div>' +
+            '<div><dt>Expected Category</dt><dd>' + _esc(row.expectedCategory || '-') + '</dd></div>' +
+            '<div><dt>Actual Category</dt><dd>' + _esc(row.actualCategory || '-') + '</dd></div>' +
+            '<div class="link-modal-field-full"><dt>Expected URL</dt><dd>' + _linkAnchor(row.expectedUrl) + '</dd></div>' +
+            '<div class="link-modal-field-full"><dt>Actual URL</dt><dd>' + _linkAnchor(row.actualUrl) + '</dd></div>' +
+            '<div class="link-modal-field-full"><dt>Visible Text</dt><dd>' + _esc(row.visibleText || '-') + '</dd></div>' +
+            '<div class="link-modal-field-full"><dt>Validation Checklist</dt><dd>' +
+            _checklistItem('Element Exists', row.elementStatus) +
+            _checklistItem('URL', row.urlStatus) +
+            _checklistItem('Tracking', row.trackingStatus) +
+            _checklistItem('Label', row.labelStatus) +
+            _checklistItem('Category', row.categoryStatus) +
+            _checklistItem('Type', row.typeStatus) +
+            _checklistItem('Screenshot', row.screenshotStatus) +
+            '</dd></div>' +
+            '<div class="link-modal-field-full"><dt>Tracking Parameters</dt><dd>' + _trackingSummary(row) + '</dd></div>' +
+            '</dl>' +
+            '<div class="link-modal-screenshot-section">' +
+            '<div class="link-modal-screenshot-title">Screenshot</div>' +
+            shot +
+            '</div>' +
+            '</div>'
+        );
+    }
+
+    function _checklistItem(label, status) {
+        return '<span class="campaign-checklist-item">' + _statusIcon(status) + ' ' + _esc(label) + '</span>';
     }
 
     function _buildImageRow(image) {
@@ -1669,7 +2068,7 @@ var Renderer = (function () {
         return (
             '<div class="summary-tile ' + modifier + '">' +
             '<div class="summary-tile-icon" aria-hidden="true">' + icon + '</div>' +
-            '<div class="summary-tile-value">' + value + '</div>' +
+            '<div class="summary-tile-value">' + _esc(value) + '</div>' +
             '<div class="summary-tile-label">' + _esc(label) + '</div>' +
             '<div class="summary-tile-sub">' + _esc(sub) + '</div>' +
             '</div>'
@@ -1851,7 +2250,8 @@ var Renderer = (function () {
         handleScreenshotError:  handleScreenshotError,
         wireScreenshot:         wireScreenshot,
         wireLinks:              wireLinks,
-        wireImages:             wireImages
+        wireImages:             wireImages,
+        wireCampaign:           wireCampaign
     };
 
 }());

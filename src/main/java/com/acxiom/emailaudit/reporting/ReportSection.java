@@ -26,6 +26,11 @@ public enum ReportSection {
             "Validation of rendered email images, load state, alt attributes, and image screenshots."
     ),
 
+    CAMPAIGN_VALIDATION(
+            "Campaign Validation",
+            "Comparison of rendered email links and assets against an uploaded campaign specification."
+    ),
+
     CTA(
             "Call To Action",
             "Validation of call-to-action elements and user engagement pathways."

@@ -18,6 +18,7 @@ var Integration = (function () {
     var _emptyState  = null;
     var _detailView  = null;
     var _generatedAt = null;
+    var _client      = 'General';
     var _syncingHash = false;
 
     /* ================================================================
@@ -27,6 +28,7 @@ var Integration = (function () {
         _emptyState  = document.getElementById('empty-state');
         _detailView  = document.getElementById('detail-view');
         _generatedAt = auditData.generatedAt;
+        _client      = auditData.client || 'General';
 
         /* Topbar timestamp */
         Utils.setText('hdr-timestamp', Utils.formatDate(_generatedAt));
@@ -79,6 +81,7 @@ var Integration = (function () {
         bar.innerHTML =
             '<div class="esb-label">Execution Summary</div>' +
             '<div class="esb-cards">' +
+            _esbCard(_client,        'Client',  'var(--text-primary)',   '&#128188;') +
             _esbCard(total,          'Emails',  'var(--accent)',        '&#128231;') +
             _esbCard(passed,         'Passed',  'var(--green)',         '&#10003;') +
             _esbCard(failed,         'Failed',  'var(--red)',           '&#10007;') +
@@ -91,7 +94,7 @@ var Integration = (function () {
         return (
             '<div class="esb-card">' +
             '<span class="esb-card-icon" aria-hidden="true">' + icon + '</span>' +
-            '<span class="esb-card-value" style="color:' + color + '">' + value + '</span>' +
+            '<span class="esb-card-value" style="color:' + color + '">' + _esc(value) + '</span>' +
             '<span class="esb-card-label">' + _esc(label) + '</span>' +
             '</div>'
         );
@@ -160,7 +163,7 @@ var Integration = (function () {
 
         var html =
             Renderer.buildDetailHeader(file) +
-            Renderer.buildCategoryView(file, categoryKey, _generatedAt, categoryKey === 'overview');
+            Renderer.buildCategoryView(file, categoryKey, _generatedAt, categoryKey === 'overview', _client);
 
         _detailView.innerHTML = html;
         _detailView.style.display = 'block';
@@ -176,6 +179,7 @@ var Integration = (function () {
         Renderer.wireScreenshot(_detailView);
         Renderer.wireLinks(_detailView, file);
         Renderer.wireImages(_detailView, file);
+        Renderer.wireCampaign(_detailView, file);
 
         var main = document.getElementById('main-panel');
         if (main) { main.scrollTop = 0; }

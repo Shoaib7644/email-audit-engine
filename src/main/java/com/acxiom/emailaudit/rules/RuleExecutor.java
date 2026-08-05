@@ -82,7 +82,7 @@ public final class RuleExecutor {
         final List<RuleResult> results = new ArrayList<>(rules.size());
 
         for (final AuditRule rule : rules) {
-            final RuleResult result = executeSingle(rule, page);
+            final RuleResult result = executeSingle(rule, page, results);
             results.add(result);
             logResult(result);
         }
@@ -121,6 +121,13 @@ public final class RuleExecutor {
     // -------------------------------------------------------------------------
 
     private static RuleResult executeSingle(final AuditRule rule, final Page page) {
+        return executeSingle(rule, page, List.of());
+    }
+
+    private static RuleResult executeSingle(
+            final AuditRule rule,
+            final Page page,
+            final List<RuleResult> previousResults) {
         if (!rule.isEnabled()) {
             log.debug("Skipping disabled rule: '{}'", rule.ruleId());
             return RuleResult.skipped(rule, "Rule is disabled");
@@ -130,7 +137,9 @@ public final class RuleExecutor {
         log.debug("Executing rule: '{}' [{}]", rule.ruleId(), rule.category());
 
         try {
-            final RuleResult result = rule.execute(page);
+            final RuleResult result = rule instanceof ContextAwareAuditRule contextAwareRule
+                    ? contextAwareRule.execute(page, Collections.unmodifiableList(previousResults))
+                    : rule.execute(page);
 
             if (result == null) {
                 log.error("Rule '{}' returned null – treating as ERROR", rule.ruleId());

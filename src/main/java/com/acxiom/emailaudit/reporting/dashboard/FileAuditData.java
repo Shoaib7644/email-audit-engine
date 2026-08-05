@@ -1,5 +1,7 @@
 package com.acxiom.emailaudit.reporting.dashboard;
 
+import com.acxiom.emailaudit.campaign.CampaignValidationResult;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -16,6 +18,7 @@ public record FileAuditData(
         List<RuleAuditData> rules,
         List<LinkAuditData> links,
         List<ImageAuditData> images,
+        CampaignValidationResult campaignValidation,
         String screenshotPath) {
 
     public FileAuditData {
@@ -25,6 +28,7 @@ public record FileAuditData(
         Objects.requireNonNull(rules,         "rules must not be null");
         Objects.requireNonNull(links,         "links must not be null");
         Objects.requireNonNull(images,        "images must not be null");
+        Objects.requireNonNull(campaignValidation, "campaignValidation must not be null");
         // screenshotPath is intentionally nullable — absent when no screenshot was captured.
 
         if (totalChecks < 0) {

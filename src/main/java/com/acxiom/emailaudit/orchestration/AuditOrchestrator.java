@@ -128,13 +128,14 @@ public final class AuditOrchestrator implements AutoCloseable {
             }
         }
 
-        final Path reportPath = reportManager.flush();
-
         // ── Compute duration HERE so it is available for both the dashboard
         //    data and the log line below. Previously it was computed after
         //    DashboardDataCollector.collect(), so it never reached the JSON.
         final long runDurationMs =
                 Duration.between(runStart, Instant.now()).toMillis();
+
+        final Path reportPath = reportManager.getReportPath();
+        Path dashboardPath = null;
 
         RunSummary runSummary = new RunSummary(
                 htmlFiles.size(),
@@ -155,8 +156,7 @@ public final class AuditOrchestrator implements AutoCloseable {
             final CustomDashboardGenerator dashboardGenerator =
                     new CustomDashboardGenerator();
 
-            final Path dashboardPath =
-                    dashboardGenerator.generate(dashboardData);
+            dashboardPath = dashboardGenerator.generate(dashboardData);
 
             runSummary = new RunSummary(
                     runSummary.totalDiscovered(),
@@ -175,6 +175,12 @@ public final class AuditOrchestrator implements AutoCloseable {
 
         } catch (final Exception ex) {
             log.error("Failed to generate custom dashboard", ex);
+        }
+
+        try {
+            reportManager.flush();
+        } catch (final Exception ex) {
+            log.error("Failed to generate audit HTML report", ex);
         }
 
         log.info(
@@ -349,14 +355,16 @@ public final class AuditOrchestrator implements AutoCloseable {
 
     private static RuleRegistry defaultRuleRegistry() {
         final RuleRegistry registry = new RuleRegistry();
+        registry.register(new LinkValidationRule());
+        registry.register(new ImageValidationRule());
         registry.register(new AccessibilityRule());
-        registry.register(new AltTextValidationRule());
         registry.register(new BrokenAnchorRule());
+        registry.register(new ImageSourceValidationRule());
+        registry.register(new AltTextValidationRule());
         registry.register(new CtaValidationRule());
         registry.register(new ContentValidationRule());
         registry.register(new DuplicateIdRule());
         registry.register(new LinkTextValidationRule());
-        registry.register(new LinkValidationRule());
         registry.register(new HeaderEmojiEncodingRule());
         registry.register(new HeadingHierarchyRule());
         registry.register(new PreheaderPunctuationRule());
@@ -364,9 +372,8 @@ public final class AuditOrchestrator implements AutoCloseable {
         registry.register(new PrivacyLinkRule());
         registry.register(new ViewOnlineLinkRule());
         registry.register(new DisclaimerRule());
-        registry.register(new ImageValidationRule());
-        registry.register(new ImageSourceValidationRule());
         registry.register(new HeaderEmojiEncodingRule());
+        registry.register(new CampaignValidationRule());
         return registry;
     }
 

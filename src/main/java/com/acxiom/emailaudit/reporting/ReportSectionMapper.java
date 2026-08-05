@@ -23,6 +23,8 @@ public final class ReportSectionMapper {
                     Map.entry("IMAGE_SRC_VALIDATION", ReportSection.ACCESSIBILITY),
                     Map.entry("IMAGE_VALIDATION", ReportSection.IMAGES),
 
+                    Map.entry("CAMPAIGN_VALIDATION", ReportSection.CAMPAIGN_VALIDATION),
+
                     Map.entry("LINK_VALIDATION", ReportSection.LINKS),
                     Map.entry("LINK_TEXT_VALIDATION", ReportSection.LINKS),
                     Map.entry("BROKEN_ANCHOR", ReportSection.LINKS),

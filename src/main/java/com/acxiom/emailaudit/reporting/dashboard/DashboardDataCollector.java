@@ -1,12 +1,15 @@
 package com.acxiom.emailaudit.reporting.dashboard;
 
 import com.acxiom.emailaudit.core.AuditContext;
+import com.acxiom.emailaudit.core.ClientContext;
+import com.acxiom.emailaudit.campaign.CampaignValidationResult;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
 import com.acxiom.emailaudit.reporting.FindingSummarizer;
 import com.acxiom.emailaudit.reporting.ReportSection;
 import com.acxiom.emailaudit.reporting.ReportSectionMapper;
 import com.acxiom.emailaudit.rules.ImageValidationResult;
 import com.acxiom.emailaudit.rules.ImageValidationRule;
+import com.acxiom.emailaudit.rules.CampaignValidationRule;
 import com.acxiom.emailaudit.rules.LinkAuditEntry;
 import com.acxiom.emailaudit.rules.LinkValidationRule;
 import com.acxiom.emailaudit.rules.RuleResult;
@@ -66,6 +69,7 @@ public final class DashboardDataCollector {
         }
 
         return new RunAuditData(
+                ClientContext.selectedClient(),
                 fileAuditDataList.size(),
                 passedFiles,
                 failedFiles,
@@ -141,6 +145,9 @@ public final class DashboardDataCollector {
         final List<ImageAuditData> images =
                 buildImageAuditDataList(ruleResults);
 
+        final CampaignValidationResult campaignValidation =
+                buildCampaignValidationResult(ruleResults);
+
         final String screenshotPath =
                 context.getScreenshotPath() != null
                         ? context.getScreenshotPath()
@@ -158,7 +165,25 @@ public final class DashboardDataCollector {
                 rules,
                 links,
                 images,
+                campaignValidation,
                 screenshotPath);
+    }
+
+    private static CampaignValidationResult buildCampaignValidationResult(
+            final List<RuleResult> ruleResults) {
+
+        for (final RuleResult rule : ruleResults) {
+            if (!CampaignValidationRule.RULE_ID.equals(rule.getRuleId())) {
+                continue;
+            }
+
+            final Object rawResult = rule.getMetadata().get("campaignValidation");
+            if (rawResult instanceof CampaignValidationResult result) {
+                return result;
+            }
+        }
+
+        return CampaignValidationResult.noSpecification();
     }
 
     private static List<ImageAuditData> buildImageAuditDataList(

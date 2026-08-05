@@ -64,6 +64,7 @@ var Categories = (function () {
         "ALT_TEXT_VALIDATION":   "IMAGE_AUDIT",
         "IMAGE_VALIDATION":      "IMAGES",
         "IMAGE_SRC_VALIDATION":  "IMAGE_AUDIT",
+        "CAMPAIGN_VALIDATION":   "CAMPAIGN_VALIDATION",
         "ACCESSIBILITY_AXE":     "ACCESSIBILITY",
         "PRIVACY_LINK":          "PRIVACY",
         "VIEW_ONLINE_LINK":      "DISCLOSURE",
@@ -90,6 +91,14 @@ var Categories = (function () {
             badgeId:     "badge-IMAGES",
             description: "Shows every visible image captured from the rendered email, including load status, alt text warnings, and cropped image screenshots.",
             recommendation: "Review failed or warning images, confirm each creative renders correctly, and verify missing alt attributes before launch."
+        },
+        {
+            key:         "CAMPAIGN_VALIDATION",
+            label:       "Campaign Validation",
+            icon:        "📊",
+            badgeId:     "badge-CAMPAIGN_VALIDATION",
+            description: "Compares the rendered email against an uploaded campaign specification.",
+            recommendation: "Review missing, unexpected, or tracking-mismatch rows with the campaign specification owner before launch."
         },
         {
             key:         "LINK_VALIDATION",

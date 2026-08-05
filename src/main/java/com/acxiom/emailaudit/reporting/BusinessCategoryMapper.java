@@ -60,6 +60,8 @@ public final class BusinessCategoryMapper {
             // the image actually renders).
             Map.entry("IMAGE_SRC_VALIDATION",  "Image Inventory & Rendering"),
 
+            Map.entry("CAMPAIGN_VALIDATION",   "Campaign Validation"),
+
             Map.entry("URL_DEFENSE",           "URL Defense Wrappers Cleanup"),
 
             Map.entry("ACCESSIBILITY_AXE",     "Accessibility Violations"),
