@@ -1,6 +1,7 @@
 package com.acxiom.emailaudit.ingestion;
 
 import com.acxiom.emailaudit.config.ConfigurationManager;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -324,15 +325,23 @@ public final class ArchiveManager {
 
     private static Path resolveSuccessDir() {
         final ConfigurationManager cfg = ConfigurationManager.getInstance();
-        final String root    = cfg.getOrDefault(KEY_ARCHIVE_ROOT,  DEFAULT_ARCHIVE_ROOT);
+        final String root    = cfg.getOrDefault(KEY_ARCHIVE_ROOT,  "");
         final String subDir  = cfg.getOrDefault(KEY_SUCCESS_DIR,   DEFAULT_SUCCESS_DIR);
+        if (ExecutionOutputManager.isManagedArchiveDir(root)
+                || DEFAULT_ARCHIVE_ROOT.equals(root)) {
+            return ExecutionOutputManager.ensureCurrentExecution().archiveSuccessDir();
+        }
         return Paths.get(root, subDir);
     }
 
     private static Path resolveFailedDir() {
         final ConfigurationManager cfg = ConfigurationManager.getInstance();
-        final String root   = cfg.getOrDefault(KEY_ARCHIVE_ROOT, DEFAULT_ARCHIVE_ROOT);
+        final String root   = cfg.getOrDefault(KEY_ARCHIVE_ROOT, "");
         final String subDir = cfg.getOrDefault(KEY_FAILED_DIR,   DEFAULT_FAILED_DIR);
+        if (ExecutionOutputManager.isManagedArchiveDir(root)
+                || DEFAULT_ARCHIVE_ROOT.equals(root)) {
+            return ExecutionOutputManager.ensureCurrentExecution().archiveFailedDir();
+        }
         return Paths.get(root, subDir);
     }
 

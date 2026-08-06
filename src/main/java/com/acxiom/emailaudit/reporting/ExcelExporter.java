@@ -7,6 +7,7 @@ import com.acxiom.emailaudit.campaign.CampaignValidationRow;
 import com.acxiom.emailaudit.config.ConfigurationManager;
 import com.acxiom.emailaudit.core.AuditContext;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.acxiom.emailaudit.reporting.dashboard.DashboardDataCollector;
 import com.acxiom.emailaudit.reporting.dashboard.FileAuditData;
 import com.acxiom.emailaudit.reporting.dashboard.ImageAuditData;
@@ -40,7 +41,6 @@ import org.slf4j.LoggerFactory;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -70,7 +70,7 @@ public final class ExcelExporter {
     }
 
     public static Path outputPath() {
-        return Paths.get("output", OUTPUT_FILE_NAME);
+        return ExecutionOutputManager.ensureCurrentExecution().summaryWorkbookPath();
     }
 
     public static Path export(final AuditOrchestrator.RunSummary summary) {
@@ -411,6 +411,8 @@ public final class ExcelExporter {
             final boolean includeCampaignSpecification) {
 
         rowIndex = keyValueRow(sheet, rowIndex, "Client", metadata.client(), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Validation Mode", metadata.validationMode(), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Input Source", metadata.inputSource(), styles);
         if (includeCampaignSpecification) {
             rowIndex = keyValueRow(sheet, rowIndex, "Campaign Specification File", metadata.campaignSpecificationFile(), styles);
             rowIndex = keyValueRow(sheet, rowIndex, "Worksheet", metadata.worksheet(), styles);
@@ -428,6 +430,8 @@ public final class ExcelExporter {
             final WorkbookStyles styles) {
 
         rowIndex = keyValueRow(sheet, rowIndex, "Client", metadata.client(), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Validation Mode", metadata.validationMode(), styles);
+        rowIndex = keyValueRow(sheet, rowIndex, "Input Source", metadata.inputSource(), styles);
         rowIndex = keyValueRow(sheet, rowIndex, "Execution", metadata.executionDateTime(), styles);
         return rowIndex + 1;
     }
@@ -923,6 +927,8 @@ public final class ExcelExporter {
 
     private record ExcelMetadata(
             String client,
+            String validationMode,
+            String inputSource,
             String campaignSpecificationFile,
             String worksheet,
             String executionDateTime,
@@ -940,6 +946,8 @@ public final class ExcelExporter {
 
             return new ExcelMetadata(
                     displayText(data.client(), "General"),
+                    displayText(data.validationMode(), "PRE_SEND"),
+                    displayText(data.inputSource(), "HTML Folder"),
                     specification == null ? "Not Selected" : pathFileName(specification.sourceFile()),
                     specification == null ? "-" : displayText(specification.worksheetName(), "-"),
                     formatInstant(data.generatedAt()),

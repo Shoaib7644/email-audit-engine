@@ -46,7 +46,6 @@ public class DashboardDataCollectorTest {
                         1,
                         0,
                         null,
-                        null,
                         List.of(context),
                         25));
 
@@ -110,7 +109,6 @@ public class DashboardDataCollectorTest {
                         0,
                         0,
                         0,
-                        null,
                         null,
                         List.of(context),
                         25));

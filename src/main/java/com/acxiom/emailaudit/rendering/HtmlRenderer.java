@@ -1,6 +1,7 @@
 package com.acxiom.emailaudit.rendering;
 
 import com.acxiom.emailaudit.config.ConfigurationManager;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.acxiom.emailaudit.utilities.PerformanceMetrics;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
@@ -334,8 +335,11 @@ public final class HtmlRenderer implements AutoCloseable {
 
     private static Path resolveProfileDirectory(final String configuredPath) {
         final String value = configuredPath == null || configuredPath.isBlank()
-                ? "output/browser-profile/chrome-user-data"
+                ? ""
                 : configuredPath;
+        if (ExecutionOutputManager.isManagedBrowserProfileDir(value)) {
+            return ExecutionOutputManager.ensureCurrentExecution().browserProfileDir();
+        }
         return Paths.get(value).normalize().toAbsolutePath();
     }
 

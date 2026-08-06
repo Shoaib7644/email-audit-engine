@@ -1,8 +1,13 @@
 package com.acxiom.emailaudit.bootstrap;
 
+import com.acxiom.emailaudit.core.ExecutionContext;
+import com.acxiom.emailaudit.core.ValidationMode;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.file.Path;
 
 /**
  * Application entry point for the email audit engine.
@@ -70,9 +75,48 @@ public final class ApplicationLauncher {
         System.exit(exitCode);
     }
     public static AuditOrchestrator.RunSummary runAudit() {
+        return runAudit(ValidationMode.PRE_SEND, ExecutionContext.DEFAULT_INPUT_SOURCE);
+    }
 
-        try (AuditOrchestrator orchestrator =
-                     new AuditOrchestrator()) {
+    public static AuditOrchestrator.RunSummary runAudit(
+            final ValidationMode validationMode,
+            final String inputSource) {
+
+        return runAudit(validationMode, inputSource, null);
+    }
+
+    public static AuditOrchestrator.RunSummary runAudit(
+            final ValidationMode validationMode,
+            final String inputSource,
+            final Path inputDirectory) {
+
+        return runAudit(validationMode, inputSource, inputDirectory, false);
+    }
+
+    public static AuditOrchestrator.RunSummary runAuditUsingCurrentOutput(
+            final ValidationMode validationMode,
+            final String inputSource,
+            final Path inputDirectory) {
+
+        return runAudit(validationMode, inputSource, inputDirectory, true);
+    }
+
+    private static AuditOrchestrator.RunSummary runAudit(
+            final ValidationMode validationMode,
+            final String inputSource,
+            final Path inputDirectory,
+            final boolean reuseCurrentOutput) {
+
+        ExecutionContext.configure(validationMode, inputSource);
+        if (reuseCurrentOutput) {
+            ExecutionOutputManager.ensureCurrentExecution();
+        } else {
+            ExecutionOutputManager.startNewExecution();
+        }
+
+        try (AuditOrchestrator orchestrator = inputDirectory == null
+                ? new AuditOrchestrator()
+                : new AuditOrchestrator(inputDirectory, AuditOrchestrator.defaultRuleRegistry())) {
 
             return orchestrator.run();
         }
@@ -87,6 +131,9 @@ public final class ApplicationLauncher {
      * @return process exit code based on initialisation and run outcome
      */
     private static int execute() {
+        ExecutionContext.configure(ValidationMode.PRE_SEND, ExecutionContext.DEFAULT_INPUT_SOURCE);
+        ExecutionOutputManager.startNewExecution();
+
         try (AuditOrchestrator orchestrator = new AuditOrchestrator()) {
 
             final AuditOrchestrator.RunSummary summary;
@@ -98,6 +145,7 @@ public final class ApplicationLauncher {
             }
 
             logRunSummary(summary);
+            ExecutionOutputManager.completeExecution(summary, null, executionStatus(summary));
 
             return (summary.failed() == 0 && summary.errored() == 0)
                     ? EXIT_SUCCESS
@@ -145,15 +193,25 @@ public final class ApplicationLauncher {
             log.info(" Errored                : {}", summary.errored());
         }
 
-        log.info(" Report location        : {}", summary.reportPath());
+        log.info(" Dashboard location     : {}", summary.dashboardPath());
         log.info("==================================================");
 
         if (hasIssues) {
             log.warn("Audit run completed with {} failed and {} errored file(s). "
-                            + "Review the report at '{}' for details.",
-                    summary.failed(), summary.errored(), summary.reportPath());
+                            + "Review the dashboard at '{}' for details.",
+                    summary.failed(), summary.errored(), summary.dashboardPath());
         } else {
             log.info("Audit run completed successfully with no failures or errors.");
         }
+    }
+
+    private static String executionStatus(final AuditOrchestrator.RunSummary summary) {
+        if (summary.errored() > 0) {
+            return "ERROR";
+        }
+        if (summary.failed() > 0) {
+            return "FAIL";
+        }
+        return "PASS";
     }
 }

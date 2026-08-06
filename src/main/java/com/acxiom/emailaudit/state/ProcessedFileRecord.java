@@ -20,7 +20,7 @@ import java.util.Objects;
  * <h3>JSON shape</h3>
  * <pre>{@code
  * {
- *   "filePath"        : "/reports/index.html",
+ *   "filePath"        : "/input/index.html",
  *   "contentHash"     : "a3f5…",
  *   "status"          : "SUCCESS",
  *   "processedAt"     : "2024-06-01T10:15:30Z",

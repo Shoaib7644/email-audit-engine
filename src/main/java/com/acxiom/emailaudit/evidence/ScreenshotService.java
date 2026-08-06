@@ -1,6 +1,7 @@
 package com.acxiom.emailaudit.evidence;
 
 import com.acxiom.emailaudit.config.ConfigurationManager;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
@@ -312,7 +313,11 @@ public final class ScreenshotService {
 
     private static Path resolveScreenshotDir() {
         final String dir = ConfigurationManager.getInstance()
-                .getOrDefault(CONFIG_KEY_SCREENSHOT_DIR, DEFAULT_SCREENSHOT_DIR);
+                .getOrDefault(CONFIG_KEY_SCREENSHOT_DIR, "");
+        if (ExecutionOutputManager.isManagedScreenshotDir(dir)
+                || DEFAULT_SCREENSHOT_DIR.equals(dir)) {
+            return ExecutionOutputManager.ensureCurrentExecution().screenshotsDir();
+        }
         return Paths.get(dir);
     }
 

@@ -28,7 +28,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <playwright.version>1.49.0</playwright.version>
         <testng.version>7.10.2</testng.version>
-        <extentreports.version>5.1.2</extentreports.version>
         <jackson.version>2.18.2</jackson.version>
         <slf4j.version>2.0.16</slf4j.version>
         <logback.version>1.5.16</logback.version>
@@ -38,6 +37,7 @@
         <languagetool.version>6.4</languagetool.version>
         <axe-playwright.version>4.10.0</axe-playwright.version>
         <javafx.version>21.0.2</javafx.version>
+        <javax-mail.version>1.6.0</javax-mail.version>
         <maven-compiler.version>3.13.0</maven-compiler.version>
         <maven-surefire.version>3.5.2</maven-surefire.version>
         <maven-assembly.version>3.7.1</maven-assembly.version>
@@ -69,12 +69,6 @@
 	  <classifier>${javafx.platform}</classifier>
 	</dependency>
         <dependency>
-            <groupId>com.aventstack</groupId>
-            <artifactId>extentreports</artifactId>
-            <version>${extentreports.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
@@ -100,6 +94,11 @@
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>5.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>${javax-mail.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>

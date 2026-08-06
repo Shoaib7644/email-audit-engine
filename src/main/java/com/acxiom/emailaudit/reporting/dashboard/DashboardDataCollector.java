@@ -2,7 +2,10 @@ package com.acxiom.emailaudit.reporting.dashboard;
 
 import com.acxiom.emailaudit.core.AuditContext;
 import com.acxiom.emailaudit.core.ClientContext;
+import com.acxiom.emailaudit.core.ExecutionContext;
 import com.acxiom.emailaudit.campaign.CampaignValidationResult;
+import com.acxiom.emailaudit.gmail.GmailMetadata;
+import com.acxiom.emailaudit.gmail.GmailMetadataContext;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
 import com.acxiom.emailaudit.reporting.FindingSummarizer;
 import com.acxiom.emailaudit.reporting.ReportSection;
@@ -70,6 +73,8 @@ public final class DashboardDataCollector {
 
         return new RunAuditData(
                 ClientContext.selectedClient(),
+                ExecutionContext.validationMode().name(),
+                ExecutionContext.inputSource(),
                 fileAuditDataList.size(),
                 passedFiles,
                 failedFiles,
@@ -77,7 +82,27 @@ public final class DashboardDataCollector {
                 skippedFiles,
                 summary.executionTimeMs(),      // ← wired from RunSummary
                 Instant.now(),
+                buildEmailMetadataData(),
                 fileAuditDataList);
+    }
+
+    private static EmailMetadataData buildEmailMetadataData() {
+        return GmailMetadataContext.current()
+                .map(DashboardDataCollector::toEmailMetadataData)
+                .orElseGet(EmailMetadataData::notAvailable);
+    }
+
+    private static EmailMetadataData toEmailMetadataData(final GmailMetadata metadata) {
+        return new EmailMetadataData(
+                true,
+                metadata.subject(),
+                metadata.from(),
+                metadata.to(),
+                metadata.cc(),
+                metadata.bcc(),
+                metadata.replyTo(),
+                metadata.receivedDate(),
+                metadata.messageId());
     }
 
     private static FileAuditData buildFileAuditData(

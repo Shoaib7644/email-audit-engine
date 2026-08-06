@@ -3,10 +3,17 @@ package com.acxiom.emailaudit.gui;
 import com.acxiom.emailaudit.campaign.CampaignSpecification;
 import com.acxiom.emailaudit.campaign.CampaignSpecificationModule;
 import com.acxiom.emailaudit.core.ClientContext;
+import com.acxiom.emailaudit.core.ExecutionContext;
+import com.acxiom.emailaudit.core.ValidationMode;
+import com.acxiom.emailaudit.gmail.GmailMetadata;
+import com.acxiom.emailaudit.gmail.GmailMetadataContext;
+import com.acxiom.emailaudit.gmail.GmailService;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.acxiom.emailaudit.reporting.ExcelExporter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -14,7 +21,7 @@ import javafx.stage.FileChooser;
 
 import java.awt.Desktop;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.List;
 
 public class MainController {
@@ -28,14 +35,19 @@ public class MainController {
     private Path campaignSpecificationPath;
     private CampaignSpecification selectedCampaignSpecification;
     private boolean specificationPendingValidation;
-    private boolean campaignSpecificationExpanded;
 
-    private final Button runButton              = new Button("Run Audit Engine");
+    private final Button runButton              = new Button("Run Pre-Send Audit");
     private final Button openSummaryButton      = new Button("Open Summary Excel");
     private final Button openReportButton       = new Button("Open Dashboard");
     private final Button openReportsFolderButton = new Button("Open Output Folder");
-    private final Button campaignSpecificationToggleButton =
-            new Button("▶ Campaign Specification (Optional)");
+    private final Button postSendRunButton      = new Button("Validate Email");
+    private final Button postSendOpenSummaryButton = new Button("Open Summary Excel");
+    private final Button postSendOpenReportButton = new Button("Open Dashboard");
+    private final Button postSendOpenFolderButton = new Button("Open Output Folder");
+    private final TextField postSendInboxField = new TextField("campaign.qa@gmail.com");
+    private final TextField postSendSubjectField = new TextField();
+    private final ComboBox<String> postSendFolderComboBox = new ComboBox<>();
+    private final ComboBox<String> postSendReceivedWithinComboBox = new ComboBox<>();
     private final ComboBox<String> clientComboBox = new ComboBox<>();
     private final TextField specificationFileField = new TextField();
     private final ComboBox<String> worksheetComboBox = new ComboBox<>();
@@ -61,22 +73,18 @@ public class MainController {
         subtitleLabel.getStyleClass().add("header-subtitle");
         headerPanel.getChildren().addAll(titleLabel, subtitleLabel);
 
-        HBox environmentBox = new HBox(10);
-        environmentBox.setAlignment(Pos.CENTER_LEFT);
-        VBox inputCard  = createCompactPathInfo("📂 Input", "./input");
-        VBox outputCard = createCompactPathInfo("📂 Output", "./output");
-        HBox.setHgrow(inputCard,  Priority.ALWAYS);
-        HBox.setHgrow(outputCard, Priority.ALWAYS);
-        environmentBox.getChildren().addAll(inputCard, outputCard);
-
         VBox clientPanel = createClientPanel();
         VBox campaignSpecificationPanel = createCampaignSpecificationPanel();
-        VBox executionPanel = createExecutionPanel();
+        VBox executionPanel = createWorkflowPanel();
 
         runButton.getStyleClass().add("btn-primary");
         openSummaryButton.getStyleClass().add("btn-secondary");
         openReportButton.getStyleClass().add("btn-secondary");
         openReportsFolderButton.getStyleClass().add("btn-secondary");
+        postSendRunButton.getStyleClass().add("btn-primary");
+        postSendOpenSummaryButton.getStyleClass().add("btn-secondary");
+        postSendOpenReportButton.getStyleClass().add("btn-secondary");
+        postSendOpenFolderButton.getStyleClass().add("btn-secondary");
 
         progressBar.setMaxWidth(Double.MAX_VALUE);
         progressBar.setProgress(0);
@@ -95,20 +103,26 @@ public class MainController {
         openSummaryButton.setDisable(true);
         openReportButton.setDisable(true);
         openReportsFolderButton.setDisable(true);
+        postSendOpenSummaryButton.setDisable(true);
+        postSendOpenReportButton.setDisable(true);
+        postSendOpenFolderButton.setDisable(true);
 
         root.getChildren().addAll(
                 headerPanel,
-                environmentBox,
                 clientPanel,
                 campaignSpecificationPanel,
                 executionPanel,
                 progressBar,
                 consoleContainer);
 
-        runButton.setOnAction(e -> runAudit());
-        openReportButton.setOnAction(e -> openReportInChrome());
+        runButton.setOnAction(e -> runPreSendAudit());
+        openReportButton.setOnAction(e -> openDashboardInChrome());
         openSummaryButton.setOnAction(e -> openSummaryExcel());
         openReportsFolderButton.setOnAction(e -> openReportsFolder());
+        postSendRunButton.setOnAction(e -> runPostSendAudit());
+        postSendOpenReportButton.setOnAction(e -> openDashboardInChrome());
+        postSendOpenSummaryButton.setOnAction(e -> openSummaryExcel());
+        postSendOpenFolderButton.setOnAction(e -> openReportsFolder());
     }
 
     private VBox createClientPanel() {
@@ -135,9 +149,6 @@ public class MainController {
     }
 
     private VBox createCampaignSpecificationPanel() {
-        VBox panel = new VBox(6);
-        panel.getStyleClass().add("compact-section");
-
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(6);
@@ -156,9 +167,6 @@ public class MainController {
         validateSpecificationButton.setDisable(true);
         browseSpecificationButton.getStyleClass().add("btn-secondary");
         validateSpecificationButton.getStyleClass().add("btn-secondary");
-        campaignSpecificationToggleButton.getStyleClass().add("section-toggle");
-        campaignSpecificationToggleButton.setMaxWidth(Double.MAX_VALUE);
-        campaignSpecificationToggleButton.setAlignment(Pos.CENTER_LEFT);
         specificationStatusLabel.getStyleClass().add("spec-status");
         specificationFileNameLabel.getStyleClass().add("compact-value");
         specificationWorksheetNameLabel.getStyleClass().add("compact-value");
@@ -197,11 +205,7 @@ public class MainController {
 
         specificationHintLabel.getStyleClass().add("compact-hint");
         campaignSpecificationContent.getChildren().addAll(grid, specificationStatusLabel, loadedGrid, specificationHintLabel);
-        campaignSpecificationContent.setVisible(false);
-        campaignSpecificationContent.setManaged(false);
 
-        panel.getChildren().addAll(campaignSpecificationToggleButton, campaignSpecificationContent);
-        campaignSpecificationToggleButton.setOnAction(event -> setCampaignSpecificationExpanded(!campaignSpecificationExpanded));
         updateCampaignSpecificationSummary();
 
         browseSpecificationButton.setOnAction(event -> browseCampaignSpecification());
@@ -215,21 +219,16 @@ public class MainController {
         });
         validateSpecificationButton.setOnAction(event -> validateCampaignSpecification());
 
-        return panel;
+        return new CollapsiblePanel(
+                "Campaign Specification (Optional)",
+                campaignSpecificationContent,
+                false);
     }
 
     private Label compactLabel(final String text) {
         final Label label = new Label(text);
         label.getStyleClass().add("compact-field-label");
         return label;
-    }
-
-    private void setCampaignSpecificationExpanded(final boolean expanded) {
-        campaignSpecificationExpanded = expanded;
-        campaignSpecificationToggleButton.setText((expanded ? "▼ " : "▶ ")
-                + "Campaign Specification (Optional)");
-        campaignSpecificationContent.setVisible(expanded);
-        campaignSpecificationContent.setManaged(expanded);
     }
 
     private void updateCampaignSpecificationSummary() {
@@ -263,13 +262,13 @@ public class MainController {
         }
     }
 
-    private VBox createExecutionPanel() {
+    private VBox createWorkflowPanel() {
         VBox panel = new VBox(8);
-        panel.getStyleClass().add("compact-section");
+        panel.getChildren().addAll(createPreSendPanel(), createPostSendPanel());
+        return panel;
+    }
 
-        Label title = new Label("EXECUTION");
-        title.getStyleClass().add("section-title");
-
+    private VBox createPreSendPanel() {
         GridPane actionGrid = new GridPane();
         actionGrid.setHgap(8);
         actionGrid.setVgap(8);
@@ -291,8 +290,63 @@ public class MainController {
             actionGrid.add(buttons.get(index), index, 0);
         }
 
-        panel.getChildren().addAll(title, actionGrid);
-        return panel;
+        VBox content = new VBox(8, actionGrid);
+        return new CollapsiblePanel("PRE-SEND VALIDATION", content, true);
+    }
+
+    private VBox createPostSendPanel() {
+        GridPane formGrid = new GridPane();
+        formGrid.setHgap(10);
+        formGrid.setVgap(6);
+
+        ColumnConstraints labelCol = new ColumnConstraints();
+        labelCol.setMinWidth(100);
+        ColumnConstraints inputCol = new ColumnConstraints();
+        inputCol.setHgrow(Priority.ALWAYS);
+        formGrid.getColumnConstraints().addAll(labelCol, inputCol);
+
+        postSendSubjectField.setPromptText("Email subject");
+        postSendInboxField.setMaxWidth(Double.MAX_VALUE);
+        postSendSubjectField.setMaxWidth(Double.MAX_VALUE);
+        postSendFolderComboBox.getItems().setAll("Inbox");
+        postSendFolderComboBox.getSelectionModel().select("Inbox");
+        postSendReceivedWithinComboBox.getItems().setAll("Last 24 Hours", "Last 7 Days");
+        postSendReceivedWithinComboBox.getSelectionModel().select("Last 24 Hours");
+        postSendFolderComboBox.setMaxWidth(Double.MAX_VALUE);
+        postSendReceivedWithinComboBox.setMaxWidth(Double.MAX_VALUE);
+
+        formGrid.add(compactLabel("Inbox:"), 0, 0);
+        formGrid.add(postSendInboxField, 1, 0);
+        formGrid.add(compactLabel("Subject:"), 0, 1);
+        formGrid.add(postSendSubjectField, 1, 1);
+        formGrid.add(compactLabel("Folder:"), 0, 2);
+        formGrid.add(postSendFolderComboBox, 1, 2);
+        formGrid.add(compactLabel("Received Within:"), 0, 3);
+        formGrid.add(postSendReceivedWithinComboBox, 1, 3);
+
+        GridPane actionGrid = new GridPane();
+        actionGrid.setHgap(8);
+        actionGrid.setVgap(8);
+
+        final List<Button> buttons = List.of(
+                postSendRunButton,
+                postSendOpenReportButton,
+                postSendOpenSummaryButton,
+                postSendOpenFolderButton);
+        for (final Button button : buttons) {
+            button.setMaxWidth(Double.MAX_VALUE);
+        }
+
+        for (int index = 0; index < buttons.size(); index++) {
+            ColumnConstraints column = new ColumnConstraints();
+            column.setPercentWidth(25);
+            column.setHgrow(Priority.ALWAYS);
+            actionGrid.getColumnConstraints().add(column);
+            actionGrid.add(buttons.get(index), index, 0);
+        }
+
+        VBox content = new VBox(8, formGrid, actionGrid);
+        return new CollapsiblePanel("POST-SEND VALIDATION", content, false);
     }
 
     private void browseCampaignSpecification() {
@@ -381,28 +435,6 @@ public class MainController {
                 || !specificationPendingValidation);
     }
 
-    private VBox createCompactPathInfo(String title, String pathValue) {
-        VBox box = new VBox(2);
-        box.getStyleClass().add("compact-path");
-        Label titleLabel = new Label(title);
-        titleLabel.getStyleClass().add("compact-path-title");
-        Label valueLabel = new Label(pathValue);
-        valueLabel.getStyleClass().add("compact-path-value");
-        box.getChildren().addAll(titleLabel, valueLabel);
-        return box;
-    }
-
-    private VBox createInfoCard(String title, String pathValue) {
-        VBox card = new VBox(4);
-        card.getStyleClass().add("info-card");
-        Label titleLbl = new Label(title);
-        titleLbl.getStyleClass().add("card-title");
-        Label valLbl = new Label(pathValue);
-        valLbl.getStyleClass().add("card-value");
-        card.getChildren().addAll(titleLbl, valLbl);
-        return card;
-    }
-
     private static String fileName(final Path path) {
         return path == null || path.getFileName() == null ? "" : path.getFileName().toString();
     }
@@ -411,7 +443,64 @@ public class MainController {
         return root;
     }
 
-    private void runAudit() {
+    private void runPreSendAudit() {
+        GmailMetadataContext.clear();
+        runValidation(
+                ValidationMode.PRE_SEND,
+                ExecutionContext.DEFAULT_INPUT_SOURCE);
+    }
+
+    private void runPostSendAudit() {
+        final String inbox = postSendInboxField.getText() == null
+                ? ""
+                : postSendInboxField.getText().trim();
+        final String subject = postSendSubjectField.getText() == null
+                ? ""
+                : postSendSubjectField.getText().trim();
+        final String folder = postSendFolderComboBox.getValue() == null
+                ? "Inbox"
+                : postSendFolderComboBox.getValue();
+        final String receivedWithin = postSendReceivedWithinComboBox.getValue() == null
+                ? "Last 24 Hours"
+                : postSendReceivedWithinComboBox.getValue();
+
+        if (subject.isBlank()) {
+            logArea.appendText(" Enter an email subject for Post-Send validation.\n");
+            return;
+        }
+
+        final String inputSource = inbox.isBlank()
+                ? "Gmail Inbox"
+                : "Gmail Inbox - " + inbox + " / " + folder;
+
+        runValidation(
+                ValidationMode.POST_SEND,
+                inputSource,
+                () -> {
+                    final GmailMetadata metadata =
+                            new GmailService(inbox).downloadNewestMatchingEmail(
+                                    subject,
+                                    folder,
+                                    receivedWithinDuration(receivedWithin));
+                    GmailMetadataContext.set(metadata);
+                    return metadata.tempDirectory();
+                },
+                true);
+    }
+
+    private void runValidation(
+            final ValidationMode validationMode,
+            final String inputSource) {
+
+        runValidation(validationMode, inputSource, null, false);
+    }
+
+    private void runValidation(
+            final ValidationMode validationMode,
+            final String inputSource,
+            final AuditTask.InputDirectoryProvider inputDirectoryProvider,
+            final boolean cleanupInputDirectory) {
+
         if (specificationPendingValidation) {
             logArea.appendText(" Validate the selected campaign specification before running the audit.\n");
             updateRunButtonState();
@@ -426,14 +515,25 @@ public class MainController {
 
         ClientContext.setSelectedClient(clientComboBox.getValue());
         runButton.setDisable(true);
+        postSendRunButton.setDisable(true);
         clientComboBox.setDisable(true);
+        setPostSendControlsDisabled(true);
         setCampaignSpecificationControlsDisabled(true);
+        lastRunSummary = null;
+        generatedExcelPath = null;
         openSummaryButton.setDisable(true);
         openReportButton.setDisable(true);
         openReportsFolderButton.setDisable(true);
+        postSendOpenSummaryButton.setDisable(true);
+        postSendOpenReportButton.setDisable(true);
+        postSendOpenFolderButton.setDisable(true);
         logArea.clear();
+        logArea.appendText("» Validation Mode: " + validationMode.name() + "\n");
+        logArea.appendText("» Input Source: " + inputSource + "\n");
 
-        AuditTask task = new AuditTask();
+        AuditTask task = inputDirectoryProvider == null
+                ? new AuditTask(validationMode, inputSource)
+                : new AuditTask(validationMode, inputSource, inputDirectoryProvider, cleanupInputDirectory);
         progressBar.progressProperty().bind(task.progressProperty());
 
         task.messageProperty().addListener((obs, oldVal, newVal) ->
@@ -452,15 +552,12 @@ public class MainController {
             // ── Execution time formatting ──────────────────────────────────
             final String execTime = formatDuration(summary.executionTimeMs());
 
-            // ── Dashboard path (prefer custom dashboard over spark report) ──
             final String dashboardDisplay =
                     summary.dashboardPath() != null
                             ? summary.dashboardPath().toString()
-                            : summary.reportPath() != null
-                              ? summary.reportPath().toString()
-                              : "N/A";
+                            : "N/A";
 
-            logArea.appendText(
+            final String completionSummary =
                     "\n=========================================\n"  +
                             "  AUDIT PIPELINE COMPLETE\n"                    +
                             "=========================================\n"    +
@@ -473,30 +570,68 @@ public class MainController {
                             " Execution Time   : " + execTime                   + "\n" +
                             "-----------------------------------------\n"    +
                             " Dashboard        : " + dashboardDisplay           + "\n" +
-                            " Audit Report     : " + summary.reportPath()       + "\n" +
                             " Summary Sheet    : " + generatedExcelPath         + "\n" +
-                            "=========================================\n"
-            );
+                            " Output Folder    : " + ExecutionOutputManager.ensureCurrentExecution().executionRoot() + "\n" +
+                            "=========================================\n";
+            logArea.appendText(completionSummary);
+            ExecutionOutputManager.writeLogs(logArea.getText());
+            ExecutionOutputManager.completeExecution(summary, generatedExcelPath, executionStatus(summary));
 
             updateRunButtonState();
+            postSendRunButton.setDisable(false);
             clientComboBox.setDisable(false);
+            setPostSendControlsDisabled(false);
             setCampaignSpecificationControlsDisabled(false);
-            openSummaryButton.setDisable(false);
-            openReportButton.setDisable(false);
-            openReportsFolderButton.setDisable(false);
+            if (validationMode == ValidationMode.POST_SEND) {
+                postSendOpenSummaryButton.setDisable(false);
+                postSendOpenReportButton.setDisable(false);
+                postSendOpenFolderButton.setDisable(false);
+            } else {
+                openSummaryButton.setDisable(false);
+                openReportButton.setDisable(false);
+                openReportsFolderButton.setDisable(false);
+            }
         });
 
         task.setOnFailed(event -> {
             updateRunButtonState();
+            postSendRunButton.setDisable(false);
             clientComboBox.setDisable(false);
+            setPostSendControlsDisabled(false);
             setCampaignSpecificationControlsDisabled(false);
             logArea.appendText("CRITICAL PIPELINE EXCEPTION: "
                     + task.getException().getMessage() + "\n");
+            ExecutionOutputManager.writeLogs(logArea.getText());
+            ExecutionOutputManager.completeExecution(null, generatedExcelPath, "ERROR");
         });
 
         Thread thread = new Thread(task);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    private static Duration receivedWithinDuration(final String label) {
+        if ("Last 7 Days".equalsIgnoreCase(label)) {
+            return Duration.ofDays(7);
+        }
+        return Duration.ofHours(24);
+    }
+
+    private static String executionStatus(final AuditOrchestrator.RunSummary summary) {
+        if (summary.errored() > 0) {
+            return "ERROR";
+        }
+        if (summary.failed() > 0) {
+            return "FAIL";
+        }
+        return "PASS";
+    }
+
+    private void setPostSendControlsDisabled(final boolean disabled) {
+        postSendInboxField.setDisable(disabled);
+        postSendSubjectField.setDisable(disabled);
+        postSendFolderComboBox.setDisable(disabled);
+        postSendReceivedWithinComboBox.setDisable(disabled);
     }
 
     /**
@@ -531,22 +666,18 @@ public class MainController {
         }
     }
 
-    private void openReportInChrome() {
+    private void openDashboardInChrome() {
         try {
             if (lastRunSummary == null) return;
 
-            Path reportToOpen =
-                    (lastRunSummary.dashboardPath() != null
-                            && lastRunSummary.dashboardPath().toFile().exists())
-                            ? lastRunSummary.dashboardPath()
-                            : lastRunSummary.reportPath();
+            Path dashboardToOpen = lastRunSummary.dashboardPath();
 
-            if (reportToOpen == null) {
+            if (dashboardToOpen == null || !dashboardToOpen.toFile().exists()) {
                 logArea.appendText(" Missing visualization engine paths.\n");
                 return;
             }
 
-            String        targetUri     = reportToOpen.toUri().toString();
+            String        targetUri     = dashboardToOpen.toUri().toString();
             String        os            = System.getProperty("os.name").toLowerCase();
             ProcessBuilder processBuilder = new ProcessBuilder();
 
@@ -567,9 +698,44 @@ public class MainController {
 
     private void openReportsFolder() {
         try {
-            Desktop.getDesktop().open(Paths.get("output").toFile());
+            Desktop.getDesktop().open(
+                    ExecutionOutputManager.ensureCurrentExecution().executionRoot().toFile());
         } catch (Exception ex) {
             logArea.appendText(" File system lock access path restriction error.\n");
+        }
+    }
+
+    private static final class CollapsiblePanel extends VBox {
+
+        private final String title;
+        private final Button toggleButton = new Button();
+        private final Node content;
+        private boolean expanded;
+
+        private CollapsiblePanel(
+                final String title,
+                final Node content,
+                final boolean expandedByDefault) {
+
+            super(6);
+            this.title = title;
+            this.content = content;
+
+            getStyleClass().add("compact-section");
+            toggleButton.getStyleClass().add("section-toggle");
+            toggleButton.setMaxWidth(Double.MAX_VALUE);
+            toggleButton.setAlignment(Pos.CENTER_LEFT);
+            toggleButton.setOnAction(event -> setExpanded(!expanded));
+
+            getChildren().addAll(toggleButton, content);
+            setExpanded(expandedByDefault);
+        }
+
+        private void setExpanded(final boolean expanded) {
+            this.expanded = expanded;
+            toggleButton.setText((expanded ? "▼ " : "▶ ") + title);
+            content.setVisible(expanded);
+            content.setManaged(expanded);
         }
     }
 }

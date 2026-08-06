@@ -1,6 +1,7 @@
 package com.acxiom.emailaudit.state;
 
 import com.acxiom.emailaudit.config.ConfigurationManager;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -423,7 +424,11 @@ public final class StateRegistry {
 
     private static Path resolveRegistryPath() {
         final String configured = ConfigurationManager.getInstance()
-                .getOrDefault(CONFIG_KEY_REGISTRY_FILE, DEFAULT_REGISTRY_FILE);
+                .getOrDefault(CONFIG_KEY_REGISTRY_FILE, "");
+        if (ExecutionOutputManager.isManagedStateRegistry(configured)
+                || DEFAULT_REGISTRY_FILE.equals(configured)) {
+            return ExecutionOutputManager.ensureCurrentExecution().stateRegistryPath();
+        }
         return Paths.get(configured);
     }
 }

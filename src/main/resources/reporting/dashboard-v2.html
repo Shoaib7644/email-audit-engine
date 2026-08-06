@@ -7,6 +7,8 @@
   Data contract (injected by Java engine at {{DASHBOARD_DATA}}):
   {
     client        : string,
+    validationMode: "PRE_SEND" | "POST_SEND",
+    inputSource   : string,
     passedFiles   : number,
     failedFiles   : number,
     generatedAt   : ISO-8601 string,
@@ -206,6 +208,14 @@
                     <span class="nav-icon" aria-hidden="true">&#128202;</span>
                     <span class="nav-label">Campaign Validation</span>
                     <span class="nav-badge" id="badge-CAMPAIGN_VALIDATION" aria-label="Campaign validation status"></span>
+                </button>
+            </li>
+
+            <li class="nav-item" data-category="EMAIL_METADATA" role="listitem">
+                <button class="nav-btn" aria-current="false" data-category="EMAIL_METADATA">
+                    <span class="nav-icon" aria-hidden="true">&#9993;</span>
+                    <span class="nav-label">Email Metadata</span>
+                    <span class="nav-badge" id="badge-EMAIL_METADATA" aria-label="Email metadata status"></span>
                 </button>
             </li>
 

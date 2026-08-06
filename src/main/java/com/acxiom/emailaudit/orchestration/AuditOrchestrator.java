@@ -7,8 +7,8 @@ import com.acxiom.emailaudit.evidence.ScreenshotService;
 import com.acxiom.emailaudit.ingestion.ArchiveManager;
 import com.acxiom.emailaudit.ingestion.DuplicateDetector;
 import com.acxiom.emailaudit.ingestion.FileScanner;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.acxiom.emailaudit.rendering.HtmlRenderer;
-import com.acxiom.emailaudit.reporting.ReportManager;
 import com.acxiom.emailaudit.rules.*;
 import com.acxiom.emailaudit.state.StateRegistry;
 import com.acxiom.emailaudit.utilities.HashUtil;
@@ -41,7 +41,6 @@ public final class AuditOrchestrator implements AutoCloseable {
     private final HtmlRenderer      htmlRenderer;
     private final RuleExecutor      ruleExecutor;
     private final ScreenshotService screenshotService;
-    private final ReportManager     reportManager;
     private final ArchiveManager    archiveManager;
 
     public AuditOrchestrator() {
@@ -51,6 +50,7 @@ public final class AuditOrchestrator implements AutoCloseable {
     public AuditOrchestrator(final Path inputDir, final RuleRegistry ruleRegistry) {
         Objects.requireNonNull(inputDir,      "inputDir must not be null");
         Objects.requireNonNull(ruleRegistry,  "ruleRegistry must not be null");
+        ExecutionOutputManager.ensureCurrentExecution();
 
         log.info("Initialising AuditOrchestrator – input directory: '{}'", inputDir);
 
@@ -60,7 +60,6 @@ public final class AuditOrchestrator implements AutoCloseable {
         HtmlRenderer            renderer = null;
         final RuleExecutor      executor;
         final ScreenshotService screenshotSvc;
-        final ReportManager     reportMgr;
         final ArchiveManager    archiveMgr;
 
         try {
@@ -70,7 +69,6 @@ public final class AuditOrchestrator implements AutoCloseable {
             renderer      = new HtmlRenderer();
             executor      = new RuleExecutor(ruleRegistry);
             screenshotSvc = new ScreenshotService();
-            reportMgr     = new ReportManager();
             archiveMgr    = new ArchiveManager();
         } catch (final Exception e) {
             if (renderer != null) {
@@ -90,7 +88,6 @@ public final class AuditOrchestrator implements AutoCloseable {
         this.htmlRenderer      = renderer;
         this.ruleExecutor      = executor;
         this.screenshotService = screenshotSvc;
-        this.reportManager     = reportMgr;
         this.archiveManager    = archiveMgr;
 
         log.info("AuditOrchestrator ready – {} rule(s) registered",
@@ -134,7 +131,6 @@ public final class AuditOrchestrator implements AutoCloseable {
         final long runDurationMs =
                 Duration.between(runStart, Instant.now()).toMillis();
 
-        final Path reportPath = reportManager.getReportPath();
         Path dashboardPath = null;
 
         RunSummary runSummary = new RunSummary(
@@ -144,7 +140,6 @@ public final class AuditOrchestrator implements AutoCloseable {
                 succeeded,
                 failed,
                 errored,
-                reportPath,
                 null,
                 auditResults,
                 runDurationMs);   // ← now carried into RunSummary
@@ -165,7 +160,6 @@ public final class AuditOrchestrator implements AutoCloseable {
                     runSummary.succeeded(),
                     runSummary.failed(),
                     runSummary.errored(),
-                    runSummary.reportPath(),
                     dashboardPath,
                     runSummary.auditResults(),
                     runSummary.executionTimeMs());   // ← preserve when rebuilding
@@ -177,14 +171,8 @@ public final class AuditOrchestrator implements AutoCloseable {
             log.error("Failed to generate custom dashboard", ex);
         }
 
-        try {
-            reportManager.flush();
-        } catch (final Exception ex) {
-            log.error("Failed to generate audit HTML report", ex);
-        }
-
         log.info(
-                "=== Audit run complete in {}ms – total: {}, processed: {}, skipped: {}, success: {}, failed: {}, error: {} – report: '{}' ===",
+                "=== Audit run complete in {}ms – total: {}, processed: {}, skipped: {}, success: {}, failed: {}, error: {} – dashboard: '{}' ===",
                 runDurationMs,
                 htmlFiles.size(),
                 processed,
@@ -192,7 +180,7 @@ public final class AuditOrchestrator implements AutoCloseable {
                 succeeded,
                 failed,
                 errored,
-                reportPath);
+                dashboardPath);
         PerformanceMetrics.logSummary(runDurationMs);
 
         return runSummary;
@@ -256,9 +244,6 @@ public final class AuditOrchestrator implements AutoCloseable {
         final String      fileName = context.getFileName();
         final AuditStatus status   = context.getStatus();
 
-        reportManager.recordFileResults(
-                fileName, context.getRuleResults(), context.getScreenshotPath());
-
         switch (status) {
             case SUCCESS -> {
                 stateRegistry.markSuccess(context.getHtmlFile(), context.getFileHash());
@@ -299,8 +284,6 @@ public final class AuditOrchestrator implements AutoCloseable {
                 .completedNow()
                 .build();
 
-        reportManager.recordFileResults(context.getFileName(), context.getRuleResults(), null);
-
         final String fileHash = HashUtil.hashFileSafe(file);
         stateRegistry.markFailed(file, fileHash,
                 "Pipeline error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
@@ -320,7 +303,6 @@ public final class AuditOrchestrator implements AutoCloseable {
                 .build();
 
         log.debug("Recording skipped file '{}': {}", context.getFileName(), reason);
-        reportManager.recordFileResults(context.getFileName(), context.getRuleResults(), null);
         return context;
     }
 
@@ -353,7 +335,7 @@ public final class AuditOrchestrator implements AutoCloseable {
                 .getOrDefault(KEY_INPUT_DIR, DEFAULT_INPUT_DIR));
     }
 
-    private static RuleRegistry defaultRuleRegistry() {
+    public static RuleRegistry defaultRuleRegistry() {
         final RuleRegistry registry = new RuleRegistry();
         registry.register(new LinkValidationRule());
         registry.register(new ImageValidationRule());
@@ -391,7 +373,6 @@ public final class AuditOrchestrator implements AutoCloseable {
             int succeeded,
             int failed,
             int errored,
-            Path reportPath,
             Path dashboardPath,
             List<AuditContext> auditResults,
             long executionTimeMs) {   // ← added

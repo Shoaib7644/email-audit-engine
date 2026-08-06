@@ -1,0 +1,11 @@
+{
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/post-send-temp/gmail-1786003419804/GM_Offers_-_Email_Test.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/post-send-temp/gmail-1786003419804/GM_Offers_-_Email_Test.html",
+    "contentHash" : "852b97f105b076e7d254346b79b09d0343a7b2f9ad5cc8dec3642dee02693286",
+    "status" : "FAILED",
+    "processedAt" : "2026-08-06T08:05:08.066013Z",
+    "errorMessage" : "9 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

@@ -1,6 +1,6 @@
 # Email Audit Engine
 
-A high-performance, enterprise-grade Email HTML Validation Framework built with Java, Playwright, Axe-Core, and ExtentReports.
+A high-performance, enterprise-grade Email HTML Validation Framework built with Java, Playwright, Axe-Core, Dashboard v2, and Excel reporting.
 
 The framework validates marketing emails, CRM templates, transactional emails, and campaign HTML files against accessibility, content quality, email development best practices, and compliance standards.
 
@@ -16,9 +16,8 @@ Email Audit Engine performs automated validation of HTML email templates and gen
 * Duplicate ID detection
 * ALT text validation
 * Screenshot evidence
-* Detailed Extent HTML reports
 * Business-friendly Excel summary reports
-* Interactive, centralized web dashboards
+* Interactive, centralized Dashboard v2 reports
 * Historical execution tracking
 
 The framework is designed for:
@@ -137,7 +136,7 @@ Features:
 
 ### HTML Reporting & Interactive Dashboard
 
-Generates enterprise reporting using ExtentReports and an advanced interactive web dashboard (`dashboard.html`).
+Generates enterprise reporting using the official interactive Dashboard v2 (`dashboard-v2.html`) and Excel summary workbook.
 
 Includes:
 
@@ -233,7 +232,7 @@ Email Audit Engine
 | Language | Java 17 |
 | Browser Engine | Playwright |
 | Accessibility Engine | Axe-Core |
-| Reporting | ExtentReports & HTML5 |
+| Reporting | Dashboard v2 & Excel |
 | Spreadsheet Engine | Apache POI |
 | Logging | SLF4J |
 | Build Tool | Maven |
@@ -330,16 +329,14 @@ email-audit-engine (Project Root)
 │     │     ├── failed
 │     │     └── passed
 │     │
-│     ├── audit-reports
-│     │     ├── audit-report.html
-│     │     └── dashboard.html
+│     ├── dashboard
+│     │     └── dashboard-v2.html
+│     │
+│     ├── EmailAuditSummary.xlsx
 │     │
 │     ├── audit-screenshots
 │     │     ├── sample-promo-email_20260617T120101123Z.png
 │     │     └── transactional-welcome_20260617T120103456Z.png
-│     │
-│     ├── reports
-│     │     └── EmailAuditSummary.xlsx
 │     │
 │     └── state
 │           └── registry.json
@@ -439,8 +436,7 @@ Prevent deployment of non-compliant emails.
 * Content Validation
 * Link Validation
 * Screenshot Evidence
-* Extent Reporting
-* Centralized Web Dashboard View
+* Dashboard v2 Reporting
 * Excel Business Summary Exportation
 * Historical State Registry
 * Duplicate File Detection

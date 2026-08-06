@@ -9,6 +9,8 @@ import java.util.Objects;
  */
 public record RunAuditData(
         String client,
+        String validationMode,
+        String inputSource,
         int totalFiles,
         int passedFiles,
         int failedFiles,
@@ -16,11 +18,15 @@ public record RunAuditData(
         int skippedFiles,
         long executionTimeMs,
         Instant generatedAt,
+        EmailMetadataData emailMetadata,
         List<FileAuditData> files) {
 
     public RunAuditData {
         client = client == null || client.isBlank() ? "General" : client.trim();
+        validationMode = validationMode == null || validationMode.isBlank() ? "PRE_SEND" : validationMode.trim();
+        inputSource = inputSource == null || inputSource.isBlank() ? "HTML Folder" : inputSource.trim();
         Objects.requireNonNull(generatedAt, "generatedAt must not be null");
+        emailMetadata = emailMetadata == null ? EmailMetadataData.notAvailable() : emailMetadata;
         Objects.requireNonNull(files,       "files must not be null");
 
         if (totalFiles    < 0) throw new IllegalArgumentException("totalFiles cannot be negative");

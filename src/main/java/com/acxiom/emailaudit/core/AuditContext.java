@@ -28,8 +28,8 @@ import java.util.ArrayList;
  * <h2>Immutability</h2>
  * <p>All fields are {@code final}. {@link #getRuleResults()} returns an
  * unmodifiable list. Instances are safe to share across threads (e.g. handed
- * from a file-processing thread to {@code ReportManager} and
- * {@code StateRegistry} without defensive copying).</p>
+ * from a file-processing thread to reporting collectors and {@code StateRegistry}
+ * without defensive copying).</p>
  *
  * <h2>Thread safety</h2>
  * <p>{@code AuditContext} itself is immutable and thread-safe.

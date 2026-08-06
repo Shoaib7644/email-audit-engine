@@ -70,9 +70,6 @@ public final class ConfigurationManager {
     /** Number of parallel TestNG threads. */
     public static final String KEY_THREAD_COUNT = "testng.thread.count";
 
-    /** Output directory for ExtentReports artefacts. */
-    public static final String KEY_REPORT_DIR = "report.output.dir";
-
     /** Screenshot mode: ON_FAILURE | ALWAYS | NEVER. */
     public static final String KEY_SCREENSHOT_MODE = "report.screenshot.mode";
 
@@ -317,7 +314,7 @@ public final class ConfigurationManager {
     }
 
     public String getBrowserProfileDirectory() {
-        return getOrDefault(KEY_BROWSER_PROFILE_DIR, "output/browser-profile/chrome-user-data");
+        return getOrDefault(KEY_BROWSER_PROFILE_DIR, "");
     }
 
     public String getBrowserLocale() {
@@ -371,10 +368,6 @@ public final class ConfigurationManager {
 
     public int getThreadCount() {
         return getInt(KEY_THREAD_COUNT, 1);
-    }
-
-    public String getReportOutputDir() {
-        return getOrDefault(KEY_REPORT_DIR, "target/audit-reports");
     }
 
     public String getScreenshotMode() {

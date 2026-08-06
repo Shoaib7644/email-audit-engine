@@ -1,6 +1,7 @@
 package com.acxiom.emailaudit.reporting;
 
 import com.acxiom.emailaudit.reporting.dashboard.RunAuditData;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Objects;
@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * Generates the standalone audit dashboard and required static assets.
  *
- * <p>Output layout written to {@value #OUTPUT_DIRECTORY}:</p>
+ * <p>Output layout is written to the current execution dashboard directory:</p>
  * <pre>
  *   dashboard-v2.html        ← rendered template with injected JSON
  *   dashboard-v2.css         ← stylesheet
@@ -38,10 +38,6 @@ public final class CustomDashboardGenerator {
 
     private static final Logger log =
             LoggerFactory.getLogger(CustomDashboardGenerator.class);
-
-    // ── Output paths ──────────────────────────────────────────────────────────
-    private static final String OUTPUT_DIRECTORY =
-            "output/reports/dashboard";
 
     private static final String DASHBOARD_HTML =
             "dashboard-v2.html";
@@ -85,7 +81,7 @@ public final class CustomDashboardGenerator {
      *
      * <p>Steps:</p>
      * <ol>
-     *   <li>Create {@value #OUTPUT_DIRECTORY} and its {@code js/} subdirectory.</li>
+     *   <li>Create the execution dashboard directory and its {@code js/} subdirectory.</li>
      *   <li>Copy {@code dashboard-v2.css} next to the HTML.</li>
      *   <li>Copy all JS modules into the {@code js/} subdirectory.</li>
      *   <li>Render the HTML template with injected JSON and write it.</li>
@@ -100,7 +96,8 @@ public final class CustomDashboardGenerator {
 
         try {
             // ── 1. Create output directories ──────────────────────────────────
-            final Path dashboardDirectory = Paths.get(OUTPUT_DIRECTORY);
+            final Path dashboardDirectory =
+                    ExecutionOutputManager.ensureCurrentExecution().dashboardDir();
             final Path jsDirectory        = dashboardDirectory.resolve("js");
 
             Files.createDirectories(dashboardDirectory);

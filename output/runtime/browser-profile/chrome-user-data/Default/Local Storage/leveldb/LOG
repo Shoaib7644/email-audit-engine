@@ -1,0 +1,27 @@
+2026/08/06-18:49:07.519 d5b881 Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/08/06-18:49:07.523 d5b881 Recovering log #36
+2026/08/06-18:49:07.523 d5b881 Reusing old log /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Local Storage/leveldb/000036.log 
+2026/08/06-18:49:35.661 d5b884 Level-0 table #40: started
+2026/08/06-18:49:35.672 d5b884 Level-0 table #40: 26205 bytes OK
+2026/08/06-18:49:35.674 d5b884 Delete type=0 #36
+2026/08/06-18:49:39.825 d5b881 Level-0 table #42: started
+2026/08/06-18:49:39.832 d5b881 Level-0 table #42: 14617 bytes OK
+2026/08/06-18:49:39.834 d5b881 Delete type=0 #39
+2026/08/06-18:49:43.056 d5bd41 Level-0 table #44: started
+2026/08/06-18:49:43.057 d5bd41 Level-0 table #44: 15740 bytes OK
+2026/08/06-18:49:43.059 d5bd41 Delete type=0 #41
+2026/08/06-18:49:43.060 d5bd41 Compacting 4@0 + 1@1 files
+2026/08/06-18:49:43.061 d5bd41 Generated table #45@0: 111 keys, 26223 bytes
+2026/08/06-18:49:43.061 d5bd41 Compacted 4@0 + 1@1 files => 26223 bytes
+2026/08/06-18:49:43.062 d5bd41 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/06-18:49:43.062 d5bd41 Delete type=2 #35
+2026/08/06-18:49:43.062 d5bd41 Delete type=2 #37
+2026/08/06-18:49:43.062 d5bd41 Delete type=2 #42
+2026/08/06-18:49:43.062 d5bd41 Delete type=2 #40
+2026/08/06-18:49:43.062 d5bd41 Delete type=2 #44
+2026/08/06-18:49:54.369 d5b884 Level-0 table #47: started
+2026/08/06-18:49:54.371 d5b884 Level-0 table #47: 22662 bytes OK
+2026/08/06-18:49:54.374 d5b884 Delete type=0 #43
+2026/08/06-18:49:59.811 d5b884 Level-0 table #49: started
+2026/08/06-18:49:59.813 d5b884 Level-0 table #49: 17492 bytes OK
+2026/08/06-18:49:59.815 d5b884 Delete type=0 #46
