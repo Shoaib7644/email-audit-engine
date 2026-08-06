@@ -44,7 +44,7 @@ public class MainController {
     private final Button postSendOpenSummaryButton = new Button("Open Summary Excel");
     private final Button postSendOpenReportButton = new Button("Open Dashboard");
     private final Button postSendOpenFolderButton = new Button("Open Output Folder");
-    private final TextField postSendInboxField = new TextField("campaign.qa@gmail.com");
+    private final TextField postSendInboxField = new TextField("emailenginecheck@gmail.com");
     private final TextField postSendSubjectField = new TextField();
     private final ComboBox<String> postSendFolderComboBox = new ComboBox<>();
     private final ComboBox<String> postSendReceivedWithinComboBox = new ComboBox<>();
