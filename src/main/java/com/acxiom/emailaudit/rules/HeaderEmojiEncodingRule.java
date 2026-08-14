@@ -70,7 +70,7 @@ public final class HeaderEmojiEncodingRule implements AuditRule {
 
     @Override
     public RuleCategory category() {
-        return RuleCategory.HTML;
+        return RuleCategory.HEADER_DETAILS;
     }
 
     @Override

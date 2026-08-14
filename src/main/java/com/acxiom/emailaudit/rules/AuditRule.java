@@ -45,6 +45,7 @@ public interface AuditRule {
     enum RuleCategory {
         ACCESSIBILITY,
         CONTENT,
+        HEADER_DETAILS,
         LINKS,
         IMAGES,
         PERFORMANCE,

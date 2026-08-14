@@ -47,6 +47,23 @@ public final class FindingSummarizer {
 
         final String n = findings.toLowerCase(Locale.ROOT);
 
+        /* ── Unsubscribe link ── */
+        if (n.contains("unsubscribe")) {
+            if (n.contains("not found") || n.contains("missing")) {
+                return "Unsubscribe link is missing.";
+            }
+            if (_isUnreachable(n)) {
+                return "Unsubscribe destination cannot be reached.";
+            }
+            if (_isNotFound(n)) {
+                return "Unsubscribe page not found.";
+            }
+            if (_isEmptyPage(n)) {
+                return "Unsubscribe page appears empty.";
+            }
+            return "Unsubscribe link requires attention.";
+        }
+
         /* ── Privacy policy (check before generic broken-link) ── */
         if (n.contains("privacy policy") || n.contains("privacy link")) {
 
@@ -200,7 +217,7 @@ public final class FindingSummarizer {
                 || n.contains("descriptive text")
                 || n.contains("click here")
                 || n.contains("read more")) {
-            return "Links use unclear or non-descriptive text.";
+            return "One or more links have unclear or non-descriptive link text.";
         }
 
         /* ── Disclaimer / do-not-reply ── */

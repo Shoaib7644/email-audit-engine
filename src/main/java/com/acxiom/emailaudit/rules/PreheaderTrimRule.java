@@ -55,7 +55,7 @@ public final class PreheaderTrimRule implements AuditRule {
 
     @Override
     public RuleCategory category() {
-        return RuleCategory.CONTENT;
+        return RuleCategory.HEADER_DETAILS;
     }
 
     @Override

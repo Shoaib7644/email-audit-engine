@@ -4,6 +4,7 @@ import com.acxiom.emailaudit.config.ConfigurationManager;
 import com.acxiom.emailaudit.evidence.ScreenshotService;
 import com.acxiom.emailaudit.utilities.PerformanceMetrics;
 import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Frame;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
@@ -21,9 +22,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.SequencedMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -134,15 +137,6 @@ public final class LinkValidationRule implements AuditRule {
     /** Matches any href that starts with plain http:// (not https://). */
     private static final Pattern HTTP_SCHEME_PATTERN =
             Pattern.compile("^http://", Pattern.CASE_INSENSITIVE);
-
-    /**
-     * Matches unsubscribe-like hrefs or anchor text.
-     * Covers: "unsubscribe", "opt out", "opt-out", "remove me", "email preferences".
-     */
-    private static final Pattern UNSUBSCRIBE_PATTERN = Pattern.compile(
-            "unsub|opt.?out|remove.?me|email.?pref",
-            Pattern.CASE_INSENSITIVE
-    );
 
     /** Matches common unresolved ESP/CMS merge tag syntaxes left in a rendered href. */
     private static final List<Pattern> PLACEHOLDER_LINK_PATTERNS = List.of(
@@ -307,18 +301,18 @@ public final class LinkValidationRule implements AuditRule {
         final List<String> findings = new ArrayList<>();
         final List<String> passEvidence = new ArrayList<>();
 
-        // ── 2. Check for missing unsubscribe link ────────────────────────────
-        checkUnsubscribePresence(links, findings, passEvidence);
-
-        // ── 3. Check for HTTP (non-HTTPS) links ──────────────────────────────
+        // ── 2. Check for HTTP (non-HTTPS) links ──────────────────────────────
         checkInsecureLinks(links, findings);
 
-        // ── 4. Fail unresolved ESP/template placeholders in final rendered email
+        // ── 3. Fail unresolved ESP/template placeholders in final rendered email
         checkUnresolvedPlaceholderLinks(links, findings);
 
-        // ── 5. Validate HTTP/HTTPS links by clicking rendered elements ───────
+        // ── 4. Validate HTTP/HTTPS links by clicking rendered elements ───────
         final List<ProbeResult> enrichedProbeResults =
                 checkBrokenLinks(page, links, findings, passEvidence);
+
+        // ── 5. Check for missing unsubscribe link after final URLs are known ─
+        checkUnsubscribePresence(links, enrichedProbeResults, findings, passEvidence);
 
         final List<LinkAuditEntry> linkAuditEntries =
                 buildLinkAuditEntries(links, enrichedProbeResults);
@@ -344,11 +338,12 @@ public final class LinkValidationRule implements AuditRule {
 
     private static void checkUnsubscribePresence(
             final List<LinkEntry> links,
+            final List<ProbeResult> probeResults,
             final List<String> findings,
             final List<String> passEvidence) {
 
         final LinkEntry unsubscribeLink = links.stream()
-                .filter(LinkValidationRule::isUnsubscribeLink)
+                .filter(link -> isUnsubscribeLink(link, probeResults))
                 .findFirst()
                 .orElse(null);
 
@@ -371,9 +366,60 @@ public final class LinkValidationRule implements AuditRule {
                 .build());
     }
 
-    private static boolean isUnsubscribeLink(final LinkEntry link) {
-        return UNSUBSCRIBE_PATTERN.matcher(link.href()).find()
-                || UNSUBSCRIBE_PATTERN.matcher(link.text()).find();
+    private static boolean isUnsubscribeLink(
+            final LinkEntry link,
+            final List<ProbeResult> probeResults) {
+
+        if (hasPlaceholderLink(link)) {
+            return false;
+        }
+
+        if (isUnsubscribeCandidate(
+                link.text(),
+                displayHref(link) + " " + link.href(),
+                "")) {
+            return true;
+        }
+
+        return probeResults.stream()
+                .filter(result -> result.link().domIndex() == link.domIndex())
+                .anyMatch(result -> isUnsubscribeCandidate(
+                        "",
+                        "",
+                        result.finalUrl() + " " + String.join(" ", result.redirectChain())));
+    }
+
+    static boolean isUnsubscribeCandidate(
+            final String visibleText,
+            final String originalHref,
+            final String finalUrl) {
+
+        return hasUnsubscribeSignal(visibleText)
+                || hasUnsubscribeSignal(originalHref)
+                || hasUnsubscribeSignal(finalUrl);
+    }
+
+    private static boolean hasUnsubscribeSignal(final String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+
+        final String normalized = normalizeUnsubscribeCandidate(value);
+        return normalized.contains("unsubscribe")
+                || normalized.contains(" optout ")
+                || normalized.matches(".*\\bopt\\s+out\\b.*")
+                || normalized.matches(".*\\bremove\\s+me\\b.*")
+                || normalized.matches(".*\\bemail\\s+preferences\\b.*");
+    }
+
+    private static String normalizeUnsubscribeCandidate(final String value) {
+        final String decoded = safeUrlDecode(value);
+        return " " + decoded
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ")
+                .replaceAll("\\s+", " ")
+                .trim()
+                + " ";
     }
 
     // -------------------------------------------------------------------------
@@ -623,6 +669,7 @@ public final class LinkValidationRule implements AuditRule {
 
         final BrowserContext context = emailPage.context();
         final AtomicReference<Response> latestNavigationResponse = new AtomicReference<>();
+        final AtomicInteger ignoredNonTopLevelResponses = new AtomicInteger();
         final long startNanos = System.nanoTime();
         final LinkTiming timing = new LinkTiming();
         Consumer<Response> responseListener = null;
@@ -638,8 +685,10 @@ public final class LinkValidationRule implements AuditRule {
             }
 
             responseListener = response -> {
-                if (isMainNavigationResponse(response)) {
+                if (isTopLevelNavigationResponse(response)) {
                     latestNavigationResponse.set(response);
+                } else {
+                    ignoredNonTopLevelResponses.incrementAndGet();
                 }
             };
             context.onResponse(responseListener);
@@ -695,7 +744,13 @@ public final class LinkValidationRule implements AuditRule {
                             startNanos);
                 }
                 return recordAndReturn(
-                        buildRenderedResult(link, destinationPage, null, responseTimeMs, timing),
+                        buildRenderedResult(
+                                link,
+                                destinationPage,
+                                null,
+                                responseTimeMs,
+                                timing,
+                                ignoredNonTopLevelResponses.get()),
                         timing,
                         startNanos);
             }
@@ -712,7 +767,13 @@ public final class LinkValidationRule implements AuditRule {
             }
 
             return recordAndReturn(
-                    buildRenderedResult(link, destinationPage, browserResponse, responseTimeMs, timing),
+                    buildRenderedResult(
+                            link,
+                            destinationPage,
+                            browserResponse,
+                            responseTimeMs,
+                            timing,
+                            ignoredNonTopLevelResponses.get()),
                     timing,
                     startNanos);
 
@@ -813,16 +874,25 @@ public final class LinkValidationRule implements AuditRule {
             final Page linkPage,
             final Response response,
             final long responseTimeMs,
-            final LinkTiming timing) {
+            final LinkTiming timing,
+            final int ignoredNonTopLevelResponses) {
 
         final Integer status = response == null ? null : response.status();
         final String statusText = normaliseStatusText(
                 status,
                 response == null ? "" : response.statusText());
         final String finalUrl = currentUrl(linkPage, response);
-        final List<String> redirectChain = response == null ? List.of(finalUrl) : redirectChain(response);
-        final Integer redirectCount = Math.max(0, redirectChain.size() - 1);
+        final NavigationChain navigationChain = navigationChain(link, response, finalUrl);
+        final List<String> redirectChain = navigationChain.urls();
+        final Integer redirectCount = navigationChain.redirectCount();
         final String pageTitle = pageTitle(linkPage);
+        logRedirectTrace(
+                link,
+                response,
+                redirectCount,
+                redirectChain,
+                finalUrl,
+                ignoredNonTopLevelResponses);
 
         if (linkPage.isClosed()) {
             return new ProbeResult(
@@ -1040,13 +1110,19 @@ public final class LinkValidationRule implements AuditRule {
         }
     }
 
-    private static boolean isMainNavigationResponse(final Response response) {
+    private static boolean isTopLevelNavigationResponse(final Response response) {
         try {
-            return response != null
-                    && response.request() != null
-                    && response.request().isNavigationRequest();
+            if (response == null || response.request() == null) {
+                return false;
+            }
+            final Request request = response.request();
+            if (!request.isNavigationRequest()) {
+                return false;
+            }
+            final Frame frame = request.frame();
+            return frame != null && frame.parentFrame() == null;
         } catch (final Exception e) {
-            return response != null;
+            return false;
         }
     }
 
@@ -1260,7 +1336,68 @@ public final class LinkValidationRule implements AuditRule {
         };
     }
 
-    private static List<String> redirectChain(final Response response) {
+    private static NavigationChain navigationChain(
+            final LinkEntry link,
+            final Response response,
+            final String finalUrl) {
+
+        final List<String> urls = new ArrayList<>();
+        final String originalUrl = originalNavigationUrl(link);
+        if (!originalUrl.isBlank()) {
+            urls.add(originalUrl);
+        }
+
+        final List<String> requestChain = response == null
+                ? List.of()
+                : redirectRequestChain(response);
+        for (final String url : requestChain) {
+            addIfDifferentFromLast(urls, url);
+        }
+        addIfDifferentFromLast(urls, finalUrl);
+
+        return new NavigationChain(
+                urls.isEmpty() ? List.of(displayHref(link)) : List.copyOf(urls),
+                actualRedirectCount(response));
+    }
+
+    private static String originalNavigationUrl(final LinkEntry link) {
+        final String href = link.href() == null ? "" : link.href().trim();
+        if (!href.isBlank()) {
+            return href;
+        }
+        final String rawHref = link.rawHref() == null ? "" : link.rawHref().trim();
+        return rawHref.isBlank() ? EMPTY_HREF : rawHref;
+    }
+
+    private static void addIfDifferentFromLast(
+            final List<String> urls,
+            final String url) {
+
+        if (url == null || url.isBlank()) {
+            return;
+        }
+        if (urls.isEmpty() || !url.equals(urls.getLast())) {
+            urls.add(url);
+        }
+    }
+
+    private static int actualRedirectCount(final Response response) {
+        try {
+            Request current = response == null || response.request() == null
+                    ? null
+                    : response.request().redirectedFrom();
+            int count = 0;
+            while (current != null) {
+                count++;
+                current = current.redirectedFrom();
+            }
+            return count;
+        } catch (final Exception e) {
+            return 0;
+        }
+    }
+
+    private static List<String> redirectRequestChain(final Response response) {
         try {
             final Request request = response.request();
             if (request == null) {
@@ -1290,6 +1427,35 @@ public final class LinkValidationRule implements AuditRule {
                     ? List.of()
                     : List.of(finalUrl);
         }
+    }
+
+    private static void logRedirectTrace(
+            final LinkEntry link,
+            final Response response,
+            final Integer redirectCount,
+            final List<String> redirectChain,
+            final String finalUrl,
+            final int ignoredNonTopLevelResponses) {
+
+        if (!log.isDebugEnabled()) {
+            return;
+        }
+
+        log.debug("""
+                LINK REDIRECT TRACE
+                Original URL: {}
+                Navigation request: {}
+                Redirect count: {}
+                Navigation chain: {}
+                Final URL: {}
+                Ignored non-navigation requests: {}
+                """,
+                originalNavigationUrl(link),
+                response == null || response.request() == null ? "" : response.request().url(),
+                redirectCount,
+                redirectChain,
+                finalUrl,
+                ignoredNonTopLevelResponses);
     }
 
     private static String screenshotSourceName(final String url) {
@@ -1512,6 +1678,8 @@ public final class LinkValidationRule implements AuditRule {
 
     private record NavigationResult(Page page, long clickMs, long navigationMs) {}
 
+    private record NavigationChain(List<String> urls, int redirectCount) {}
+
     private static final class LinkTiming {
         private long clickMs;
         private long navigationMs;
@@ -1602,6 +1770,8 @@ public final class LinkValidationRule implements AuditRule {
             final String finalUrl = response == null || response.url() == null
                     ? link.href()
                     : response.url();
+            final NavigationChain navigationChain =
+                    LinkValidationRule.navigationChain(link, response, finalUrl);
 
             return new ProbeResult(
                     link,
@@ -1611,8 +1781,8 @@ public final class LinkValidationRule implements AuditRule {
                     finalUrl,
                     status,
                     statusText,
-                    null,
-                    response == null ? List.of() : LinkValidationRule.redirectChain(response),
+                    navigationChain.redirectCount(),
+                    navigationChain.urls(),
                     "",
                     "Unknown",
                     responseTimeMs,

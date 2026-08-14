@@ -4,6 +4,7 @@ import com.acxiom.emailaudit.core.ExecutionContext;
 import com.acxiom.emailaudit.core.ValidationMode;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
 import com.acxiom.emailaudit.output.ExecutionOutputManager;
+import com.acxiom.emailaudit.reporting.LinkImageValidationPdfExporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,6 +146,7 @@ public final class ApplicationLauncher {
             }
 
             logRunSummary(summary);
+            generatePdfReport(summary);
             ExecutionOutputManager.completeExecution(summary, null, executionStatus(summary));
 
             return (summary.failed() == 0 && summary.errored() == 0)
@@ -213,5 +215,14 @@ public final class ApplicationLauncher {
             return "FAIL";
         }
         return "PASS";
+    }
+
+    private static void generatePdfReport(final AuditOrchestrator.RunSummary summary) {
+        try {
+            final Path pdfPath = LinkImageValidationPdfExporter.export(summary);
+            log.info(" Link & Image PDF     : {}", pdfPath);
+        } catch (final RuntimeException ex) {
+            log.error("Link & Image PDF generation failed: {}", ex.getMessage(), ex);
+        }
     }
 }

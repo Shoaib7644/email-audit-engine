@@ -209,7 +209,9 @@ public final class ExecutionOutputManager {
         Files.createDirectories(LATEST_ROOT);
         deleteIfExists(LATEST_ROOT.resolve("reports"));
         copyDirectoryIfExists(output.dashboardDir(), LATEST_ROOT.resolve("dashboard"));
+        copyDirectoryIfExists(output.screenshotsDir(), LATEST_ROOT.resolve("screenshots"));
         copyFileIfExists(output.summaryWorkbookPath(), LATEST_ROOT.resolve("EmailAuditSummary.xlsx"));
+        copyFileIfExists(output.linkImagePdfPath(), LATEST_ROOT.resolve("LinkImageValidationReport.pdf"));
         copyFileIfExists(output.logsPath(), LATEST_ROOT.resolve("logs.txt"));
         copyFileIfExists(output.executionJsonPath(), LATEST_ROOT.resolve(EXECUTION_JSON));
         writeDashboardShortcut();
@@ -358,6 +360,10 @@ public final class ExecutionOutputManager {
             return executionRoot.resolve("EmailAuditSummary.xlsx");
         }
 
+        public Path linkImagePdfPath() {
+            return executionRoot.resolve("LinkImageValidationReport.pdf");
+        }
+
         public Path executionJsonPath() {
             return executionRoot.resolve(EXECUTION_JSON);
         }
@@ -419,9 +425,15 @@ public final class ExecutionOutputManager {
             metadata.put("warnings", warningCount(summary));
             metadata.put("dashboard", "dashboard/dashboard-v2.html");
             metadata.put("excel", "EmailAuditSummary.xlsx");
+            metadata.put("linkImagePdf", Files.exists(linkImagePdfPath())
+                    ? "LinkImageValidationReport.pdf"
+                    : "");
             metadata.put("screenshots", "screenshots/");
             metadata.put("dashboardPath", pathString(summary == null ? dashboardPath() : summary.dashboardPath()));
             metadata.put("summaryPath", pathString(summaryWorkbookPath));
+            metadata.put("linkImagePdfPath", Files.exists(linkImagePdfPath())
+                    ? pathString(linkImagePdfPath())
+                    : "");
             metadata.put("outputFolder", pathString(executionRoot));
             metadata.put("logsPath", pathString(logsPath()));
             return metadata;

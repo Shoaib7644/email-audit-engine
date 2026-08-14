@@ -153,12 +153,17 @@ public final class FindingFormatter {
      */
     public static String missingPrivacyLink(final String linkType) {
         final String type = coalesce(linkType, "compliance");
-        return "Missing Privacy Link\n"
+        final String title = type.toLowerCase().contains("unsubscribe")
+                ? "Missing Unsubscribe Link"
+                : type.toLowerCase().contains("privacy")
+                        ? "Missing Privacy Link"
+                        : "Missing Compliance Link";
+        return title + "\n"
                 + String.format(LABEL_EXPECTED, type + " link (CAN-SPAM / GDPR)")
                 + String.format(LABEL_FOUND,    "none")
                 + String.format(LABEL_DETAIL,
-                "Add an anchor whose text or href contains 'unsubscribe', "
-                        + "'opt-out', or 'email preferences'");
+                "Add an anchor whose visible text, original href, or final destination "
+                        + "contains a recognized unsubscribe or opt-out indicator.");
     }
 
     /**

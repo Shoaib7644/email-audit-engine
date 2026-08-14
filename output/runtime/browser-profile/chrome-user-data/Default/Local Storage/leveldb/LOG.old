@@ -1,24 +1,5 @@
-2026/08/06-13:33:47.421 d4a1a2 Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Local Storage/leveldb/MANIFEST-000001
-2026/08/06-13:33:47.424 d4a1a2 Recovering log #26
-2026/08/06-13:33:47.425 d4a1a2 Reusing old log /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Local Storage/leveldb/000026.log 
-2026/08/06-13:34:02.537 d4a1a8 Level-0 table #30: started
-2026/08/06-13:34:02.540 d4a1a8 Level-0 table #30: 22321 bytes OK
-2026/08/06-13:34:02.543 d4a1a8 Delete type=0 #26
-2026/08/06-13:34:16.170 d4a1a2 Level-0 table #32: started
-2026/08/06-13:34:16.175 d4a1a2 Level-0 table #32: 17082 bytes OK
-2026/08/06-13:34:16.176 d4a1a2 Delete type=0 #29
-2026/08/06-13:34:26.753 d4a1a2 Level-0 table #34: started
-2026/08/06-13:34:26.759 d4a1a2 Level-0 table #34: 18292 bytes OK
-2026/08/06-13:34:26.761 d4a1a2 Delete type=0 #31
-2026/08/06-13:34:26.762 d4a1a2 Compacting 4@0 + 1@1 files
-2026/08/06-13:34:26.764 d4a1a2 Generated table #35@0: 106 keys, 23020 bytes
-2026/08/06-13:34:26.764 d4a1a2 Compacted 4@0 + 1@1 files => 23020 bytes
-2026/08/06-13:34:26.765 d4a1a2 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/08/06-13:34:26.765 d4a1a2 Delete type=2 #34
-2026/08/06-13:34:26.766 d4a1a2 Delete type=2 #32
-2026/08/06-13:34:26.766 d4a1a2 Delete type=2 #27
-2026/08/06-13:34:26.766 d4a1a2 Delete type=2 #25
-2026/08/06-13:34:26.766 d4a1a2 Delete type=2 #30
-2026/08/06-13:34:31.143 d4a1a8 Level-0 table #37: started
-2026/08/06-13:34:31.146 d4a1a8 Level-0 table #37: 13947 bytes OK
-2026/08/06-13:34:31.148 d4a1a8 Delete type=0 #33
+2026/08/13-18:05:58.258 167bc7 Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/08/13-18:05:58.260 167bc7 Recovering log #9
+2026/08/13-18:05:58.260 167bc7 Level-0 table #12: started
+2026/08/13-18:05:58.264 167bc7 Level-0 table #12: 12318 bytes OK
+2026/08/13-18:05:58.266 167bc7 Delete type=0 #9

@@ -16,6 +16,11 @@ public enum ReportSection {
             "Validation of required email content, metadata, titles, and messaging elements."
     ),
 
+    HEADER_DETAILS(
+            "Header / Sender Details",
+            "Validation of preheader, preview-text, and sender-facing inbox details."
+    ),
+
     LINKS(
             "Links",
             "Validation of hyperlinks, anchor references, and link text quality."

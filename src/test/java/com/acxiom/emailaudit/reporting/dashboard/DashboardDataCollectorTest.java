@@ -2,6 +2,7 @@ package com.acxiom.emailaudit.reporting.dashboard;
 
 import com.acxiom.emailaudit.core.AuditContext;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.acxiom.emailaudit.rules.AuditRule;
 import com.acxiom.emailaudit.rules.LinkAuditEntry;
 import com.acxiom.emailaudit.rules.RuleResult;
@@ -59,8 +60,12 @@ public class DashboardDataCollectorTest {
         assertEquals(links.findingCount(), 4);
 
         final SectionCheckResult contentSection = section(file, "Content");
-        assertEquals(contentSection.status(), "SKIPPED");
+        assertEquals(contentSection.status(), "PASS");
         assertEquals(contentSection.findingCount(), 0);
+
+        final SectionCheckResult headerSection = section(file, "Header / Sender Details");
+        assertEquals(headerSection.status(), "SKIPPED");
+        assertEquals(headerSection.findingCount(), 0);
     }
 
     @Test
@@ -136,6 +141,140 @@ public class DashboardDataCollectorTest {
         assertEquals(link.target(), "_blank");
         assertEquals(link.domIndex(), Integer.valueOf(4));
         assertEquals(link.bounds(), "10,20 140x24");
+    }
+
+    @Test
+    public void collectUsesDashboardRelativePathsForManagedScreenshots() {
+        final ExecutionOutputManager.ExecutionOutput output =
+                ExecutionOutputManager.startNewExecution();
+        final Path screenshotPath =
+                output.screenshotsDir().resolve("link-shot.png").toAbsolutePath();
+        final AuditRule linkValidation = rule("LINK_VALIDATION", AuditRule.RuleCategory.LINKS);
+        final RuleResult result = RuleResult.builder(
+                        linkValidation,
+                        RuleResult.Status.PASS,
+                        System.currentTimeMillis())
+                .withMetadata("links", List.of(new LinkAuditEntry(
+                        "Request Quote",
+                        "https://example.test",
+                        "https://example.test",
+                        "HTTP",
+                        "",
+                        "PASS",
+                        "Rendered successfully",
+                        "Example",
+                        200,
+                        "OK",
+                        0,
+                        List.of(),
+                        500L,
+                        screenshotPath.toString(),
+                        "Text Link",
+                        "",
+                        "",
+                        "",
+                        1,
+                        "")))
+                .build();
+
+        final AuditContext context = AuditContext.builder(Path.of("sample.html"))
+                .withRuleResults(List.of(result))
+                .withScreenshotPath(screenshotPath)
+                .withStatus(AuditContext.AuditStatus.SUCCESS)
+                .completedNow()
+                .build();
+
+        final RunAuditData data = DashboardDataCollector.collect(
+                new AuditOrchestrator.RunSummary(
+                        1,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        null,
+                        List.of(context),
+                        25));
+
+        final FileAuditData file = data.files().getFirst();
+        assertEquals(file.screenshotPath(), "../screenshots/link-shot.png");
+        assertEquals(file.links().getFirst().screenshotPath(), "../screenshots/link-shot.png");
+    }
+
+    @Test
+    public void linksSectionImpactUsesActualFailingFindings() {
+        final AuditRule privacy = rule("PRIVACY_LINK", AuditRule.RuleCategory.LINKS);
+        final AuditRule unsubscribe = rule("LINK_VALIDATION", AuditRule.RuleCategory.LINKS);
+        final AuditRule linkText = rule("LINK_TEXT_VALIDATION", AuditRule.RuleCategory.LINKS);
+
+        final List<RuleResult> results = List.of(
+                RuleResult.pass(privacy, System.currentTimeMillis()),
+                RuleResult.fail(
+                        unsubscribe,
+                        System.currentTimeMillis(),
+                        List.of("Missing Unsubscribe Link\n"
+                                + "  Expected        : unsubscribe link (CAN-SPAM / GDPR)\n"
+                                + "  Found           : none\n"
+                                + "  Detail          : Add an unsubscribe link")),
+                RuleResult.fail(
+                        linkText,
+                        System.currentTimeMillis(),
+                        List.of("Generic link text detected: click here"))
+        );
+
+        final AuditContext context = AuditContext.builder(Path.of("sample.html"))
+                .withRuleResults(results)
+                .withStatus(AuditContext.AuditStatus.FAILED)
+                .completedNow()
+                .build();
+
+        final RunAuditData data = DashboardDataCollector.collect(
+                new AuditOrchestrator.RunSummary(
+                        1,
+                        1,
+                        0,
+                        0,
+                        1,
+                        0,
+                        null,
+                        List.of(context),
+                        25));
+
+        final SectionCheckResult links = section(data.files().getFirst(), "Links");
+        assertEquals(links.status(), "FAIL");
+        assertEquals(
+                links.businessImpact(),
+                "Unsubscribe link is missing. One or more links have unclear or non-descriptive link text.");
+    }
+
+    @Test
+    public void linksSectionImpactPassesWhenNoLinksRulesFail() {
+        final AuditRule privacy = rule("PRIVACY_LINK", AuditRule.RuleCategory.LINKS);
+        final AuditRule linkValidation = rule("LINK_VALIDATION", AuditRule.RuleCategory.LINKS);
+
+        final AuditContext context = AuditContext.builder(Path.of("sample.html"))
+                .withRuleResults(List.of(
+                        RuleResult.pass(privacy, System.currentTimeMillis()),
+                        RuleResult.pass(linkValidation, System.currentTimeMillis())))
+                .withStatus(AuditContext.AuditStatus.SUCCESS)
+                .completedNow()
+                .build();
+
+        final RunAuditData data = DashboardDataCollector.collect(
+                new AuditOrchestrator.RunSummary(
+                        1,
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        null,
+                        List.of(context),
+                        25));
+
+        final SectionCheckResult links = section(data.files().getFirst(), "Links");
+        assertEquals(links.status(), "PASS");
+        assertEquals(links.businessImpact(), "All link validation checks passed.");
     }
 
     private static SectionCheckResult section(final FileAuditData file, final String name) {

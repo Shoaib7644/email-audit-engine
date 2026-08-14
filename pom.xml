@@ -38,6 +38,7 @@
         <axe-playwright.version>4.10.0</axe-playwright.version>
         <javafx.version>21.0.2</javafx.version>
         <javax-mail.version>1.6.0</javax-mail.version>
+        <pdfbox.version>2.0.31</pdfbox.version>
         <maven-compiler.version>3.13.0</maven-compiler.version>
         <maven-surefire.version>3.5.2</maven-surefire.version>
         <maven-assembly.version>3.7.1</maven-assembly.version>
@@ -99,6 +100,11 @@
             <groupId>com.sun.mail</groupId>
             <artifactId>javax.mail</artifactId>
             <version>${javax-mail.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>

@@ -173,7 +173,7 @@ public final class LinkTextValidationRule implements AuditRule {
     }
     @Override
     public RuleCategory category() {
-        return RuleCategory.CONTENT;
+        return RuleCategory.LINKS;
     }
 
     @Override

@@ -11,6 +11,7 @@ import com.acxiom.emailaudit.gmail.GmailService;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
 import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.acxiom.emailaudit.reporting.ExcelExporter;
+import com.acxiom.emailaudit.reporting.LinkImageValidationPdfExporter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -32,6 +33,7 @@ public class MainController {
 
     private AuditOrchestrator.RunSummary lastRunSummary;
     private Path generatedExcelPath;
+    private Path generatedPdfPath;
     private Path campaignSpecificationPath;
     private CampaignSpecification selectedCampaignSpecification;
     private boolean specificationPendingValidation;
@@ -40,10 +42,12 @@ public class MainController {
     private final Button openSummaryButton      = new Button("Open Summary Excel");
     private final Button openReportButton       = new Button("Open Dashboard");
     private final Button openReportsFolderButton = new Button("Open Output Folder");
+    private final Button openLinkImagePdfButton = new Button("Open Link & Image PDF");
     private final Button postSendRunButton      = new Button("Validate Email");
     private final Button postSendOpenSummaryButton = new Button("Open Summary Excel");
     private final Button postSendOpenReportButton = new Button("Open Dashboard");
     private final Button postSendOpenFolderButton = new Button("Open Output Folder");
+    private final Button postSendOpenLinkImagePdfButton = new Button("Open Link & Image PDF");
     private final TextField postSendInboxField = new TextField("emailenginecheck@gmail.com");
     private final TextField postSendSubjectField = new TextField();
     private final ComboBox<String> postSendFolderComboBox = new ComboBox<>();
@@ -81,10 +85,12 @@ public class MainController {
         openSummaryButton.getStyleClass().add("btn-secondary");
         openReportButton.getStyleClass().add("btn-secondary");
         openReportsFolderButton.getStyleClass().add("btn-secondary");
+        openLinkImagePdfButton.getStyleClass().add("btn-secondary");
         postSendRunButton.getStyleClass().add("btn-primary");
         postSendOpenSummaryButton.getStyleClass().add("btn-secondary");
         postSendOpenReportButton.getStyleClass().add("btn-secondary");
         postSendOpenFolderButton.getStyleClass().add("btn-secondary");
+        postSendOpenLinkImagePdfButton.getStyleClass().add("btn-secondary");
 
         progressBar.setMaxWidth(Double.MAX_VALUE);
         progressBar.setProgress(0);
@@ -103,9 +109,11 @@ public class MainController {
         openSummaryButton.setDisable(true);
         openReportButton.setDisable(true);
         openReportsFolderButton.setDisable(true);
+        openLinkImagePdfButton.setDisable(true);
         postSendOpenSummaryButton.setDisable(true);
         postSendOpenReportButton.setDisable(true);
         postSendOpenFolderButton.setDisable(true);
+        postSendOpenLinkImagePdfButton.setDisable(true);
 
         root.getChildren().addAll(
                 headerPanel,
@@ -119,10 +127,12 @@ public class MainController {
         openReportButton.setOnAction(e -> openDashboardInChrome());
         openSummaryButton.setOnAction(e -> openSummaryExcel());
         openReportsFolderButton.setOnAction(e -> openReportsFolder());
+        openLinkImagePdfButton.setOnAction(e -> openLinkImagePdf());
         postSendRunButton.setOnAction(e -> runPostSendAudit());
         postSendOpenReportButton.setOnAction(e -> openDashboardInChrome());
         postSendOpenSummaryButton.setOnAction(e -> openSummaryExcel());
         postSendOpenFolderButton.setOnAction(e -> openReportsFolder());
+        postSendOpenLinkImagePdfButton.setOnAction(e -> openLinkImagePdf());
     }
 
     private VBox createClientPanel() {
@@ -277,14 +287,15 @@ public class MainController {
                 runButton,
                 openReportButton,
                 openSummaryButton,
-                openReportsFolderButton);
+                openReportsFolderButton,
+                openLinkImagePdfButton);
         for (final Button button : buttons) {
             button.setMaxWidth(Double.MAX_VALUE);
         }
 
         for (int index = 0; index < buttons.size(); index++) {
             ColumnConstraints column = new ColumnConstraints();
-            column.setPercentWidth(25);
+            column.setPercentWidth(20);
             column.setHgrow(Priority.ALWAYS);
             actionGrid.getColumnConstraints().add(column);
             actionGrid.add(buttons.get(index), index, 0);
@@ -332,14 +343,15 @@ public class MainController {
                 postSendRunButton,
                 postSendOpenReportButton,
                 postSendOpenSummaryButton,
-                postSendOpenFolderButton);
+                postSendOpenFolderButton,
+                postSendOpenLinkImagePdfButton);
         for (final Button button : buttons) {
             button.setMaxWidth(Double.MAX_VALUE);
         }
 
         for (int index = 0; index < buttons.size(); index++) {
             ColumnConstraints column = new ColumnConstraints();
-            column.setPercentWidth(25);
+            column.setPercentWidth(20);
             column.setHgrow(Priority.ALWAYS);
             actionGrid.getColumnConstraints().add(column);
             actionGrid.add(buttons.get(index), index, 0);
@@ -521,12 +533,15 @@ public class MainController {
         setCampaignSpecificationControlsDisabled(true);
         lastRunSummary = null;
         generatedExcelPath = null;
+        generatedPdfPath = null;
         openSummaryButton.setDisable(true);
         openReportButton.setDisable(true);
         openReportsFolderButton.setDisable(true);
+        openLinkImagePdfButton.setDisable(true);
         postSendOpenSummaryButton.setDisable(true);
         postSendOpenReportButton.setDisable(true);
         postSendOpenFolderButton.setDisable(true);
+        postSendOpenLinkImagePdfButton.setDisable(true);
         logArea.clear();
         logArea.appendText("» Validation Mode: " + validationMode.name() + "\n");
         logArea.appendText("» Input Source: " + inputSource + "\n");
@@ -547,6 +562,16 @@ public class MainController {
                 generatedExcelPath = ExcelExporter.export(summary);
             } catch (final RuntimeException ex) {
                 logArea.appendText(" Excel summary generation failed: " + ex.getMessage() + "\n");
+            }
+
+            logArea.appendText(" Generating Link & Image Validation PDF...\n");
+            try {
+                generatedPdfPath = LinkImageValidationPdfExporter.export(summary);
+                logArea.appendText(" Link & Image PDF: " + generatedPdfPath + "\n");
+                logArea.appendText(" PDF generation completed.\n");
+            } catch (final RuntimeException ex) {
+                generatedPdfPath = null;
+                logArea.appendText(" Link & Image PDF generation failed: " + ex.getMessage() + "\n");
             }
 
             // ── Execution time formatting ──────────────────────────────────
@@ -571,6 +596,7 @@ public class MainController {
                             "-----------------------------------------\n"    +
                             " Dashboard        : " + dashboardDisplay           + "\n" +
                             " Summary Sheet    : " + generatedExcelPath         + "\n" +
+                            " Link/Image PDF   : " + (generatedPdfPath == null ? "N/A" : generatedPdfPath) + "\n" +
                             " Output Folder    : " + ExecutionOutputManager.ensureCurrentExecution().executionRoot() + "\n" +
                             "=========================================\n";
             logArea.appendText(completionSummary);
@@ -586,10 +612,14 @@ public class MainController {
                 postSendOpenSummaryButton.setDisable(false);
                 postSendOpenReportButton.setDisable(false);
                 postSendOpenFolderButton.setDisable(false);
+                postSendOpenLinkImagePdfButton.setDisable(generatedPdfPath == null
+                        || !generatedPdfPath.toFile().exists());
             } else {
                 openSummaryButton.setDisable(false);
                 openReportButton.setDisable(false);
                 openReportsFolderButton.setDisable(false);
+                openLinkImagePdfButton.setDisable(generatedPdfPath == null
+                        || !generatedPdfPath.toFile().exists());
             }
         });
 
@@ -702,6 +732,21 @@ public class MainController {
                     ExecutionOutputManager.ensureCurrentExecution().executionRoot().toFile());
         } catch (Exception ex) {
             logArea.appendText(" File system lock access path restriction error.\n");
+        }
+    }
+
+    private void openLinkImagePdf() {
+        try {
+            if (generatedPdfPath == null || !generatedPdfPath.toFile().exists()) {
+                logArea.appendText(" Link & Image PDF has not been generated yet.\n");
+                return;
+            }
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(generatedPdfPath.toFile());
+                logArea.appendText(" Opening Link & Image Validation PDF.\n");
+            }
+        } catch (Exception ex) {
+            logArea.appendText(" Unable to open Link & Image PDF: " + ex.getMessage() + "\n");
         }
     }
 

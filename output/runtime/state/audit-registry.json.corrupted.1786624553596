@@ -1,0 +1,20 @@
+{
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/Ready_to_humblebrag_about_your_internet_NG_T1_NG_H_040_Test_.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/Ready_to_humblebrag_about_your_internet_NG_T1_NG_H_040_Test_.html",
+    "contentHash" : "b8461cb38f5a9b316b7e98f4643f5615c817e12c9c84328b8cd44900fd22fc97",
+    "status" : "FAILED",
+    "processedAt" : "2026-08-13T11:23:33.173017Z",
+    "errorMessage" : "11 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  },
+  "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NEW_index.html" : {
+    "filePath" : "/Users/shoaibahmed/freeClaude/email-audit-engine/input/NEW_index.html",
+    "contentHash" : "172512fdff63191b848c9a51931b98dd81af47f30fb720e9704fbfefeab4955e",
+    "status" : "FAILED",
+    "processedAt" : "2026-08-13T11:25:06.328688Z",
+    "errorMessage" : "7 rule(s) reported findings",
+    "successful" : false,
+    "failed" : true
+  }
+}

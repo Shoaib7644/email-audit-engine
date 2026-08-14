@@ -53,7 +53,7 @@ public final class PreheaderPunctuationRule implements AuditRule {
 
     @Override
     public RuleCategory category() {
-        return RuleCategory.CONTENT;
+        return RuleCategory.HEADER_DETAILS;
     }
 
     @Override

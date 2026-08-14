@@ -165,11 +165,7 @@ public final class ImageSourceValidationRule implements AuditRule {
 
     @Override
     public RuleCategory category() {
-        // NOTE: only RuleCategory.CONTENT and RuleCategory.LINKS were visible
-        // in the files shared with me. If your RuleCategory enum has a more
-        // specific value used by the alt-text rule (e.g. ACCESSIBILITY or
-        // IMAGES), swap it in here so this rule groups with it correctly.
-        return RuleCategory.CONTENT;
+        return RuleCategory.IMAGES;
     }
 
     @Override

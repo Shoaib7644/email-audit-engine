@@ -4,9 +4,11 @@ import com.acxiom.emailaudit.core.AuditContext;
 import com.acxiom.emailaudit.core.ClientContext;
 import com.acxiom.emailaudit.core.ExecutionContext;
 import com.acxiom.emailaudit.campaign.CampaignValidationResult;
+import com.acxiom.emailaudit.campaign.CampaignValidationRow;
 import com.acxiom.emailaudit.gmail.GmailMetadata;
 import com.acxiom.emailaudit.gmail.GmailMetadataContext;
 import com.acxiom.emailaudit.orchestration.AuditOrchestrator;
+import com.acxiom.emailaudit.output.ExecutionOutputManager;
 import com.acxiom.emailaudit.reporting.FindingSummarizer;
 import com.acxiom.emailaudit.reporting.ReportSection;
 import com.acxiom.emailaudit.reporting.ReportSectionMapper;
@@ -17,12 +19,16 @@ import com.acxiom.emailaudit.rules.LinkAuditEntry;
 import com.acxiom.emailaudit.rules.LinkValidationRule;
 import com.acxiom.emailaudit.rules.RuleResult;
 
+import java.net.URI;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Converts audit execution results into dashboard-friendly data models.
@@ -171,13 +177,15 @@ public final class DashboardDataCollector {
                 buildImageAuditDataList(ruleResults);
 
         final CampaignValidationResult campaignValidation =
-                buildCampaignValidationResult(ruleResults);
+                portableCampaignValidationResult(
+                        buildCampaignValidationResult(ruleResults));
 
         final String screenshotPath =
                 context.getScreenshotPath() != null
-                        ? context.getScreenshotPath()
-                          .toAbsolutePath()
-                          .toString()
+                        ? portableDashboardPath(
+                                context.getScreenshotPath()
+                                        .toAbsolutePath()
+                                        .toString())
                         : null;
 
         return new FileAuditData(
@@ -251,8 +259,8 @@ public final class DashboardDataCollector {
                     result.displayHeight(),
                     result.imageLoaded(),
                     result.rendered(),
-                    result.screenshotPath(),
-                    result.thumbnailPath(),
+                    portableDashboardPath(result.screenshotPath()),
+                    portableDashboardPath(result.thumbnailPath()),
                     result.notes(),
                     result.bounds(),
                     result.imageType());
@@ -271,8 +279,8 @@ public final class DashboardDataCollector {
                     integerOrNull(map.get("displayHeight")),
                     booleanOrFalse(map.get("imageLoaded")),
                     booleanOrFalse(map.get("rendered")),
-                    stringOrNull(map.get("screenshotPath")),
-                    stringOrNull(map.get("thumbnailPath")),
+                    portableDashboardPath(stringOrNull(map.get("screenshotPath"))),
+                    portableDashboardPath(stringOrNull(map.get("thumbnailPath"))),
                     stringOrEmpty(map.get("notes")),
                     stringOrEmpty(map.get("bounds")),
                     stringOrEmpty(map.get("imageType")));
@@ -323,7 +331,7 @@ public final class DashboardDataCollector {
                     entry.redirectCount(),
                     entry.redirectChain(),
                     entry.responseTimeMs(),
-                    entry.screenshotPath(),
+                    portableDashboardPath(entry.screenshotPath()),
                     entry.element(),
                     entry.ariaLabel(),
                     entry.title(),
@@ -349,7 +357,7 @@ public final class DashboardDataCollector {
                     integerOrNull(map.get("redirectCount")),
                     stringList(map.get("redirectChain")),
                     longOrNull(map.get("responseTimeMs")),
-                    stringOrNull(map.get("screenshotPath")),
+                    portableDashboardPath(stringOrNull(map.get("screenshotPath"))),
                     stringOrEmpty(map.get("element")),
                     stringOrEmpty(map.get("ariaLabel")),
                     stringOrEmpty(map.get("title")),
@@ -359,6 +367,123 @@ public final class DashboardDataCollector {
         }
 
         return null;
+    }
+
+    private static CampaignValidationResult portableCampaignValidationResult(
+            final CampaignValidationResult result) {
+
+        if (result == null || result.rows().isEmpty()) {
+            return result;
+        }
+
+        final List<CampaignValidationRow> rows = result.rows().stream()
+                .map(DashboardDataCollector::portableCampaignValidationRow)
+                .toList();
+
+        return new CampaignValidationResult(
+                result.specificationSelected(),
+                result.message(),
+                result.expectedEntries(),
+                result.matched(),
+                result.missing(),
+                result.unexpected(),
+                result.trackingErrors(),
+                result.urlErrors(),
+                result.passed(),
+                result.failed(),
+                result.warnings(),
+                result.originalHeaders(),
+                rows);
+    }
+
+    private static CampaignValidationRow portableCampaignValidationRow(
+            final CampaignValidationRow row) {
+
+        return new CampaignValidationRow(
+                row.index(),
+                row.identifier(),
+                row.type(),
+                row.actualType(),
+                row.expectedUrl(),
+                row.actualUrl(),
+                row.visibleText(),
+                row.expectedLabel(),
+                row.actualLabel(),
+                row.expectedCategory(),
+                row.actualCategory(),
+                row.expectedTracking(),
+                row.actualTrackingParameters(),
+                row.urlStatus(),
+                row.trackingStatus(),
+                row.labelStatus(),
+                row.categoryStatus(),
+                row.elementStatus(),
+                row.typeStatus(),
+                row.screenshotStatus(),
+                portableDashboardPath(row.screenshotPath()),
+                row.linkValidationStatus(),
+                row.finalDestinationUrl(),
+                row.httpStatus(),
+                row.validation(),
+                row.notes(),
+                row.rawColumns());
+    }
+
+    private static String portableDashboardPath(final String rawPath) {
+        final String value = stringOrNull(rawPath);
+        if (value == null) {
+            return null;
+        }
+        if (hasNonFileScheme(value)) {
+            return value;
+        }
+
+        return ExecutionOutputManager.currentExecution()
+                .map(output -> portableDashboardPath(value, output.dashboardDir()))
+                .orElse(value.replace('\\', '/'));
+    }
+
+    private static String portableDashboardPath(
+            final String rawPath,
+            final Path dashboardDirectory) {
+
+        try {
+            final Path source = pathFromScreenshotValue(rawPath);
+            if (source == null || !source.isAbsolute()) {
+                return rawPath.replace('\\', '/');
+            }
+
+            final Path normalizedSource = source.toAbsolutePath().normalize();
+            final Path executionRoot = dashboardDirectory
+                    .toAbsolutePath()
+                    .normalize()
+                    .getParent();
+            if (executionRoot == null || !normalizedSource.startsWith(executionRoot)) {
+                return normalizedSource.toString().replace('\\', '/');
+            }
+
+            return dashboardDirectory
+                    .toAbsolutePath()
+                    .normalize()
+                    .relativize(normalizedSource)
+                    .toString()
+                    .replace('\\', '/');
+        } catch (final RuntimeException ex) {
+            return rawPath.replace('\\', '/');
+        }
+    }
+
+    private static Path pathFromScreenshotValue(final String rawPath) {
+        if (rawPath.startsWith("file://")) {
+            return Path.of(URI.create(rawPath));
+        }
+        return Path.of(rawPath);
+    }
+
+    private static boolean hasNonFileScheme(final String value) {
+        final int schemeIndex = value.indexOf("://");
+        return schemeIndex > 0
+                && !"file".equalsIgnoreCase(value.substring(0, schemeIndex));
     }
 
     private static String stringOrEmpty(final Object value) {
@@ -441,7 +566,7 @@ public final class DashboardDataCollector {
         int    findingCount   = 0;
         String status         = "PASS";
         String severity       = "INFO";
-        String businessImpact = section.getDescription();
+        String businessImpact = passingSectionImpact(section);
         RuleResult firstAttentionRule = null;
         RuleResult firstSkippedRule   = null;
 
@@ -460,13 +585,7 @@ public final class DashboardDataCollector {
         if (firstAttentionRule != null) {
             status = "FAIL";
             severity = firstAttentionRule.getSeverity().name();
-            businessImpact = firstAttentionRule.getBusinessImpact();
-
-            if (!firstAttentionRule.getFindings().isEmpty()) {
-                businessImpact =
-                        FindingSummarizer.summarize(
-                                firstAttentionRule.getFindings().getFirst());
-            }
+            businessImpact = attentionSectionImpact(rules);
         } else if (firstSkippedRule != null) {
             status = "SKIPPED";
             severity = firstSkippedRule.getSeverity().name();
@@ -479,6 +598,53 @@ public final class DashboardDataCollector {
                 severity,
                 findingCount,
                 businessImpact);
+    }
+
+    private static String passingSectionImpact(final ReportSection section) {
+        if (section == ReportSection.LINKS) {
+            return "All link validation checks passed.";
+        }
+        return section.getDescription();
+    }
+
+    private static String attentionSectionImpact(final List<RuleResult> rules) {
+        final Set<String> summaries = new LinkedHashSet<>();
+        final Set<String> fallbackImpacts = new LinkedHashSet<>();
+
+        for (final RuleResult rule : rules) {
+            if (!rule.requiresAttention()) {
+                continue;
+            }
+
+            for (final String finding : rule.getFindings()) {
+                final String summary = FindingSummarizer.summarize(finding);
+                if (summary != null && !summary.isBlank()) {
+                    summaries.add(summary);
+                }
+            }
+
+            final String impact = rule.getBusinessImpact();
+            if (impact != null && !impact.isBlank()) {
+                fallbackImpacts.add(impact);
+            }
+        }
+
+        if (!summaries.isEmpty()) {
+            return conciseCombinedSummary(summaries);
+        }
+        if (!fallbackImpacts.isEmpty()) {
+            return conciseCombinedSummary(fallbackImpacts);
+        }
+        return "One or more checks in this section require attention.";
+    }
+
+    private static String conciseCombinedSummary(final Set<String> summaries) {
+        final List<String> values = new ArrayList<>(summaries);
+        if (values.size() <= 3) {
+            return String.join(" ", values);
+        }
+        return String.join(" ", values.subList(0, 3))
+                + " Additional issues require attention.";
     }
 
     private static List<RuleAuditData> buildRuleAuditDataList(

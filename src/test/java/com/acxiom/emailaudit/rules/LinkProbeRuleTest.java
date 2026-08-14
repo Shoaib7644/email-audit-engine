@@ -32,6 +32,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class LinkProbeRuleTest {
@@ -49,7 +50,26 @@ public class LinkProbeRuleTest {
                 new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         server.setExecutor(executor);
         server.createContext("/ok", exchange -> respond(exchange, 200, "ok"));
+        server.createContext("/direct", exchange -> respondHtml(exchange, 200,
+                "<!doctype html><title>Direct</title><body>direct</body>"));
+        server.createContext("/redirect-one", exchange -> redirect(exchange, "/redirect-final"));
+        server.createContext("/redirect-two", exchange -> redirect(exchange, "/redirect-hop"));
+        server.createContext("/redirect-hop", exchange -> redirect(exchange, "/redirect-final"));
+        server.createContext("/redirect-final", exchange -> respondHtml(exchange, 200,
+                "<!doctype html><title>Redirect Final</title><body>final</body>"));
+        server.createContext("/history-final", exchange -> respondHtml(exchange, 200,
+                "<!doctype html><title>History Final</title>"
+                        + "<script>history.replaceState(null, '', '/history-final-canonical');</script>"
+                        + "<body>history final</body>"));
+        server.createContext("/subresource-page", this::handleSubresourcePage);
+        server.createContext("/chat", exchange -> respondHtml(exchange, 200,
+                "<!doctype html><title>Chat Widget</title><body>chat</body>"));
+        server.createContext("/xhr", exchange -> respond(exchange, 200, "{\"ok\":true}"));
+        server.createContext("/pixel", this::handlePixel);
         server.createContext("/missing", exchange -> respond(exchange, 404, "not found"));
+        server.createContext("/track", this::handleTrackingRedirect);
+        server.createContext("/consent/unsubscribe/", exchange -> respond(exchange, 200, "unsubscribe ok"));
+        server.createContext("/preferences", exchange -> respond(exchange, 200, "preferences ok"));
         server.createContext("/browser-only", this::handleBrowserOnly);
         server.createContext("/playwright-only", this::handlePlaywrightOnly);
         server.start();
@@ -165,6 +185,132 @@ public class LinkProbeRuleTest {
     }
 
     @Test
+    public void missingUnsubscribeFindingUsesUnsubscribeTerminology() {
+        final Page page = mock(Page.class);
+        when(page.url()).thenReturn("file:///tmp/email.html");
+        when(page.evaluate(anyString())).thenReturn(List.of(
+                link("mailto:support@example.com", "Email support")
+        ));
+
+        final RuleResult result = new LinkValidationRule().execute(page);
+
+        assertTrue(result.isFailed(), String.join("\n", result.getFindings()));
+        assertTrue(result.getFindings().stream()
+                        .anyMatch(finding -> finding.contains("Missing Unsubscribe Link")),
+                String.join("\n", result.getFindings()));
+        assertTrue(result.getFindings().stream()
+                        .noneMatch(finding -> finding.contains("Missing Privacy Link")),
+                String.join("\n", result.getFindings()));
+    }
+
+    @Test
+    public void unsubscribeMatcherRecognizesLiteralTextHrefAndFinalDestination() {
+        assertTrue(LinkValidationRule.isUnsubscribeCandidate(
+                "Unsubscribe",
+                "https://example.test/profile",
+                ""));
+        assertTrue(LinkValidationRule.isUnsubscribeCandidate(
+                "Manage email",
+                "https://example.test/email-preferences",
+                ""));
+        assertTrue(LinkValidationRule.isUnsubscribeCandidate(
+                "Manage settings",
+                "https://tracking.example.test/r?id=123",
+                "https://www.att.com/consent/unsubscribe/?token=abc"));
+        assertTrue(LinkValidationRule.isUnsubscribeCandidate(
+                "Opt out",
+                "https://example.test/profile",
+                ""));
+        assertFalse(LinkValidationRule.isUnsubscribeCandidate(
+                "Preferences",
+                "https://example.test/preferences",
+                ""));
+    }
+
+    @Test
+    public void opaqueTrackingUrlQualifiesAsUnsubscribeWhenFinalUrlIsUnsubscribe() {
+        final RuleResult result = executeAgainstHtml("""
+                <!doctype html>
+                <html><body>
+                  <a href="%s/track">Manage settings</a>
+                </body></html>
+                """.formatted(baseUrl));
+
+        assertTrue(result.getFindings().stream()
+                        .noneMatch(finding -> finding.contains("Missing Unsubscribe Link")),
+                        String.join("\n", result.getFindings()));
+    }
+
+    @Test
+    public void redirectChainForDirectUrlContainsOnlyFinalNavigationUrl() {
+        final LinkAuditEntry direct = validateSingleTarget("Direct", baseUrl + "/direct");
+
+        assertEquals(direct.validationStatus(), "PASS");
+        assertEquals(direct.httpStatus(), Integer.valueOf(200));
+        assertEquals(direct.redirectCount(), Integer.valueOf(0));
+        assertEquals(direct.redirectChain(), List.of(baseUrl + "/direct"));
+        assertEquals(direct.redirectChain().getLast(), direct.finalUrl());
+    }
+
+    @Test
+    public void redirectChainForOneRedirectContainsOnlyNavigationUrls() {
+        final LinkAuditEntry redirected = validateSingleTarget("One Redirect", baseUrl + "/redirect-one");
+
+        assertEquals(redirected.validationStatus(), "PASS");
+        assertEquals(redirected.httpStatus(), Integer.valueOf(200));
+        assertEquals(redirected.redirectCount(), Integer.valueOf(1));
+        assertEquals(redirected.redirectChain(), List.of(
+                baseUrl + "/redirect-one",
+                baseUrl + "/redirect-final"));
+        assertEquals(redirected.redirectChain().getLast(), redirected.finalUrl());
+    }
+
+    @Test
+    public void redirectChainForMultipleRedirectsContainsOnlyNavigationUrls() {
+        final LinkAuditEntry redirected = validateSingleTarget("Two Redirects", baseUrl + "/redirect-two");
+
+        assertEquals(redirected.validationStatus(), "PASS");
+        assertEquals(redirected.httpStatus(), Integer.valueOf(200));
+        assertEquals(redirected.redirectCount(), Integer.valueOf(2));
+        assertEquals(redirected.redirectChain(), List.of(
+                baseUrl + "/redirect-two",
+                baseUrl + "/redirect-hop",
+                baseUrl + "/redirect-final"));
+        assertEquals(redirected.redirectChain().getLast(), redirected.finalUrl());
+    }
+
+    @Test
+    public void redirectChainIgnoresIframeFetchPixelAndChatWidgetRequests() {
+        final LinkAuditEntry target = validateSingleTarget("Support Page", baseUrl + "/subresource-page");
+
+        assertEquals(target.validationStatus(), "PASS");
+        assertEquals(target.httpStatus(), Integer.valueOf(200));
+        assertEquals(target.pageTitle(), "Understand Internet Speeds - AT&T Internet Customer Support");
+        assertEquals(target.redirectCount(), Integer.valueOf(0));
+        assertEquals(target.redirectChain(), List.of(baseUrl + "/subresource-page"));
+        assertEquals(target.redirectChain().getLast(), target.finalUrl());
+        assertFalse(target.redirectChain().stream().anyMatch(url ->
+                        url.contains("/chat")
+                                || url.contains("/xhr")
+                                || url.contains("/pixel")),
+                String.join("\n", target.redirectChain()));
+    }
+
+    @Test
+    public void finalUrlCanDifferWithoutManufacturingRedirectCount() {
+        final LinkAuditEntry target = validateSingleTarget("History Final", baseUrl + "/history-final");
+
+        assertEquals(target.validationStatus(), "PASS");
+        assertEquals(target.httpStatus(), Integer.valueOf(200));
+        assertEquals(target.redirectCount(), Integer.valueOf(0));
+        assertEquals(target.finalUrl(), baseUrl + "/history-final-canonical");
+        assertEquals(target.redirectChain(), List.of(
+                baseUrl + "/history-final",
+                baseUrl + "/history-final-canonical"));
+        assertEquals(target.redirectChain().getLast(), target.finalUrl());
+    }
+
+    @Test
     public void privacyLinkPassesWhenServerRequiresBrowserLikeHeaders() {
         final Page page = mock(Page.class);
         when(page.evaluate(anyString())).thenReturn(Map.of(
@@ -226,6 +372,28 @@ public class LinkProbeRuleTest {
         );
     }
 
+    private LinkAuditEntry validateSingleTarget(
+            final String text,
+            final String href) {
+
+        final RuleResult result = executeAgainstHtml("""
+                <!doctype html>
+                <html><body>
+                  <a href="mailto:unsubscribe@example.test">Unsubscribe</a>
+                  <a href="%s">%s</a>
+                </body></html>
+                """.formatted(href, text));
+
+        @SuppressWarnings("unchecked")
+        final List<LinkAuditEntry> links =
+                (List<LinkAuditEntry>) result.getMetadata().get("links");
+
+        return links.stream()
+                .filter(link -> link.visibleText().equals(text))
+                .findFirst()
+                .orElseThrow();
+    }
+
     private RuleResult executeAgainstHtml(final String html) {
         try {
             final Path emailFile = Files.createTempFile("link-journey-email", ".html");
@@ -267,6 +435,50 @@ public class LinkProbeRuleTest {
         final String fetchSite = firstHeader(exchange, "Sec-Fetch-Site");
         respond(exchange, fetchSite.isBlank() ? 403 : 200,
                 fetchSite.isBlank() ? "forbidden" : "ok");
+    }
+
+    private void handleTrackingRedirect(final HttpExchange exchange) throws IOException {
+        exchange.getResponseHeaders().add("Location", baseUrl + "/consent/unsubscribe/");
+        exchange.sendResponseHeaders(302, -1);
+        exchange.close();
+    }
+
+    private void handleSubresourcePage(final HttpExchange exchange) throws IOException {
+        respondHtml(exchange, 200,
+                "<!doctype html>"
+                        + "<title>Understand Internet Speeds - AT&T Internet Customer Support</title>"
+                        + "<body>"
+                        + "<iframe src=\"" + baseUrl + "/chat\"></iframe>"
+                        + "<img src=\"" + baseUrl + "/pixel\" alt=\"tracking pixel\">"
+                        + "<script>fetch('" + baseUrl + "/xhr');</script>"
+                        + "support content"
+                        + "</body>");
+    }
+
+    private void handlePixel(final HttpExchange exchange) throws IOException {
+        final byte[] bytes = new byte[] {
+                (byte) 0x89, 0x50, 0x4E, 0x47,
+                0x0D, 0x0A, 0x1A, 0x0A
+        };
+        exchange.getResponseHeaders().add("Content-Type", "image/png");
+        exchange.sendResponseHeaders(200, bytes.length);
+        exchange.getResponseBody().write(bytes);
+        exchange.close();
+    }
+
+    private void redirect(final HttpExchange exchange, final String path) throws IOException {
+        exchange.getResponseHeaders().add("Location", baseUrl + path);
+        exchange.sendResponseHeaders(302, -1);
+        exchange.close();
+    }
+
+    private static void respondHtml(
+            final HttpExchange exchange,
+            final int status,
+            final String body) throws IOException {
+
+        exchange.getResponseHeaders().add("Content-Type", "text/html; charset=utf-8");
+        respond(exchange, status, body);
     }
 
     private static String firstHeader(final HttpExchange exchange, final String name) {

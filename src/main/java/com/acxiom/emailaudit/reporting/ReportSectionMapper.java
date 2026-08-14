@@ -16,11 +16,7 @@ public final class ReportSectionMapper {
                     Map.entry("ACCESSIBILITY_AXE", ReportSection.ACCESSIBILITY),
                     Map.entry("ALT_TEXT_VALIDATION", ReportSection.ACCESSIBILITY),
                     Map.entry("HEADING_HIERARCHY", ReportSection.ACCESSIBILITY),
-                    // New: groups with ALT_TEXT_VALIDATION — both are
-                    // image-quality checks (accessible label present vs.
-                    // image actually renders) and should land in the same
-                    // ACCESSIBILITY section summary bucket.
-                    Map.entry("IMAGE_SRC_VALIDATION", ReportSection.ACCESSIBILITY),
+                    Map.entry("IMAGE_SRC_VALIDATION", ReportSection.IMAGES),
                     Map.entry("IMAGE_VALIDATION", ReportSection.IMAGES),
 
                     Map.entry("CAMPAIGN_VALIDATION", ReportSection.CAMPAIGN_VALIDATION),
@@ -40,9 +36,9 @@ public final class ReportSectionMapper {
                     Map.entry("VIEW_ONLINE_LINK", ReportSection.LINKS),
 
                     Map.entry("DISCLAIMER_PRESENT", ReportSection.CONTENT),
-                    Map.entry("PREHEADER_TRIM_VALIDATION", ReportSection.CONTENT),
-                    Map.entry("PREHEADER_PUNCTUATION_VALIDATION", ReportSection.CONTENT),
-                    Map.entry("HEADER_EMOJI_ENCODING_VALIDATION", ReportSection.CONTENT)
+                    Map.entry("PREHEADER_TRIM_VALIDATION", ReportSection.HEADER_DETAILS),
+                    Map.entry("PREHEADER_PUNCTUATION_VALIDATION", ReportSection.HEADER_DETAILS),
+                    Map.entry("HEADER_EMOJI_ENCODING_VALIDATION", ReportSection.HEADER_DETAILS)
             );
 
     private ReportSectionMapper() {

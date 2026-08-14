@@ -1,0 +1,26 @@
+» Validation Mode: POST_SEND
+» Input Source: Gmail Inbox - emailenginecheck@gmail.com / Inbox
+» Starting audit...
+» Retrieving post-send email...
+» Email HTML downloaded. Starting shared audit pipeline...
+» Completed
+ Generating Link & Image Validation PDF...
+ Link & Image PDF: /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/POST_SEND/2026-08-13_12-43-37/LinkImageValidationReport.pdf
+ PDF generation completed.
+
+=========================================
+  AUDIT PIPELINE COMPLETE
+=========================================
+ Total HTML Files : 1
+ Processed        : 1
+ Skipped          : 0
+ Succeeded        : 0
+ Failed           : 1
+ Errors           : 0
+ Execution Time   : 1m 31s
+-----------------------------------------
+ Dashboard        : /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/POST_SEND/2026-08-13_12-43-37/dashboard/dashboard-v2.html
+ Summary Sheet    : /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/POST_SEND/2026-08-13_12-43-37/EmailAuditSummary.xlsx
+ Link/Image PDF   : /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/POST_SEND/2026-08-13_12-43-37/LinkImageValidationReport.pdf
+ Output Folder    : /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/POST_SEND/2026-08-13_12-43-37
+=========================================

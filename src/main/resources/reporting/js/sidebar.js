@@ -32,16 +32,16 @@ var Sidebar = (function () {
         IMAGES:          null,                                        /* special: use file.images */
         CAMPAIGN_VALIDATION: ['CAMPAIGN_VALIDATION'],
         EMAIL_METADATA:  null,                                        /* special: root-level post-send metadata */
-        LINK_VALIDATION: ['LINK_VALIDATION'],
-        CTA_TRACKING:    ['CTA_VALIDATION', 'LINK_TEXT_VALIDATION'],
+        LINK_VALIDATION: ['LINK_VALIDATION', 'LINK_TEXT_VALIDATION', 'BROKEN_ANCHOR'],
+        CTA_TRACKING:    ['CTA_VALIDATION'],
         HTML_QUALITY:    ['DUPLICATE_ID', 'HEADING_HIERARCHY', 'CONTENT_VALIDATION'],
-        IMAGE_AUDIT:     ['ALT_TEXT_VALIDATION'],
+        IMAGE_AUDIT:     [],
         URL_DEFENSE:     ['URL_DEFENSE'],
-        ACCESSIBILITY:   ['ACCESSIBILITY_AXE'],
+        ACCESSIBILITY:   ['ACCESSIBILITY_AXE', 'ALT_TEXT_VALIDATION'],
         PRIVACY:         ['PRIVACY_LINK'],
         DISCLOSURE:      ['VIEW_ONLINE_LINK'],
         DISCLAIMER:      ['DISCLAIMER_PRESENT'],
-        UNSUBSCRIBE:     ['BROKEN_ANCHOR', 'CTA_VALIDATION'],
+        UNSUBSCRIBE:     [],
         HEADER_DETAILS:  ['PREHEADER_TRIM_VALIDATION', 'PREHEADER_PUNCTUATION_VALIDATION', 'HEADER_EMOJI_ENCODING_VALIDATION']
     };
 
@@ -146,12 +146,16 @@ var Sidebar = (function () {
                 var failedImages = images.filter(function (image) {
                     return String(image.validationStatus || '').toUpperCase() === 'FAIL';
                 }).length;
+                var failedImageSourceRules = allRules.filter(function (rule) {
+                    var s = _normStatus(rule.status);
+                    return rule.ruleId === 'IMAGE_SRC_VALIDATION' && (s === 'FAIL' || s === 'ERROR');
+                }).length;
                 var warningImages = images.filter(function (image) {
                     return String(image.validationStatus || '').toUpperCase() === 'WARNING';
                 }).length;
 
-                if (failedImages > 0) {
-                    badgeEl.textContent = failedImages;
+                if (failedImages + failedImageSourceRules > 0) {
+                    badgeEl.textContent = failedImages + failedImageSourceRules;
                     badgeEl.className   = 'nav-badge nav-badge--fail';
                 } else if (warningImages > 0) {
                     badgeEl.textContent = warningImages;

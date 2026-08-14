@@ -27,12 +27,9 @@
  *    That rule flags generic anchor text (e.g. "click here"); it isn't a
  *    CTA or tracking-parameter check. Same destination category as #1.
  *
- * 3. IMAGE_SRC_VALIDATION added under "IMAGE_AUDIT". This rule (checks
- *    that every <img> src actually loads) was missing from
- *    RULE_TO_CATEGORY entirely, so categoryForRule() returned null for it
- *    and its findings had no sidebar category to land in. Grouped with
- *    ALT_TEXT_VALIDATION, since together they cover both halves of image
- *    quality: accessible label present, and the image actually renders.
+ * 3. IMAGE_SRC_VALIDATION belongs under the Images audit because it checks
+ *    whether every <img> src actually loads. ALT_TEXT_VALIDATION remains
+ *    accessibility-focused.
  *
  * These three changes bring this file back in sync with
  * BusinessCategoryMapper.java (used by the Excel export) and
@@ -61,9 +58,9 @@ var Categories = (function () {
         "CONTENT_VALIDATION":    "HTML_QUALITY",
         "HEADING_HIERARCHY":     "HTML_QUALITY",
         "DUPLICATE_ID":          "HTML_QUALITY",
-        "ALT_TEXT_VALIDATION":   "IMAGE_AUDIT",
+        "ALT_TEXT_VALIDATION":   "ACCESSIBILITY",
         "IMAGE_VALIDATION":      "IMAGES",
-        "IMAGE_SRC_VALIDATION":  "IMAGE_AUDIT",
+        "IMAGE_SRC_VALIDATION":  "IMAGES",
         "CAMPAIGN_VALIDATION":   "CAMPAIGN_VALIDATION",
         "ACCESSIBILITY_AXE":     "ACCESSIBILITY",
         "PRIVACY_LINK":          "PRIVACY",

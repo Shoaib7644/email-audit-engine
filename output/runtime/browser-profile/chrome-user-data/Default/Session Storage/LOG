@@ -1,32 +1,32 @@
-2026/08/06-18:49:07.760 d5b881 Creating DB /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Session Storage since it was missing.
-2026/08/06-18:49:07.765 d5b881 Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Session Storage/MANIFEST-000001
-2026/08/06-18:49:19.942 d5b884 Level-0 table #5: started
-2026/08/06-18:49:19.944 d5b884 Level-0 table #5: 44265 bytes OK
-2026/08/06-18:49:19.951 d5b884 Delete type=0 #3
-2026/08/06-18:49:33.287 d5b884 Level-0 table #7: started
-2026/08/06-18:49:33.291 d5b884 Level-0 table #7: 49105 bytes OK
-2026/08/06-18:49:33.293 d5b884 Delete type=0 #4
-2026/08/06-18:49:43.056 d5b884 Level-0 table #9: started
-2026/08/06-18:49:43.058 d5b884 Level-0 table #9: 33680 bytes OK
-2026/08/06-18:49:43.060 d5b884 Delete type=0 #6
-2026/08/06-18:49:59.898 d5b884 Level-0 table #11: started
-2026/08/06-18:49:59.899 d5b884 Level-0 table #11: 48598 bytes OK
-2026/08/06-18:49:59.900 d5b884 Delete type=0 #8
-2026/08/06-18:50:05.353 d5b884 Level-0 table #13: started
-2026/08/06-18:50:05.356 d5b884 Level-0 table #13: 42454 bytes OK
-2026/08/06-18:50:05.358 d5b884 Delete type=0 #10
-2026/08/06-18:50:29.997 d5b884 Level-0 table #15: started
-2026/08/06-18:50:30.000 d5b884 Level-0 table #15: 54776 bytes OK
-2026/08/06-18:50:30.002 d5b884 Delete type=0 #12
-2026/08/06-18:50:30.003 d5b884 Compacting 4@0 + 1@1 files
-2026/08/06-18:50:30.010 d5b884 Generated table #16@0: 510 keys, 220729 bytes
-2026/08/06-18:50:30.010 d5b884 Compacted 4@0 + 1@1 files => 220729 bytes
-2026/08/06-18:50:30.011 d5b884 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/08/06-18:50:30.012 d5b884 Delete type=2 #15
-2026/08/06-18:50:30.012 d5b884 Delete type=2 #7
-2026/08/06-18:50:30.012 d5b884 Delete type=2 #13
-2026/08/06-18:50:30.012 d5b884 Delete type=2 #11
-2026/08/06-18:50:30.012 d5b884 Delete type=2 #9
-2026/08/06-18:50:39.146 d5b884 Level-0 table #18: started
-2026/08/06-18:50:39.148 d5b884 Level-0 table #18: 51568 bytes OK
-2026/08/06-18:50:39.155 d5b884 Delete type=0 #14
+2026/08/13-18:07:21.086 168a3f Creating DB /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Session Storage since it was missing.
+2026/08/13-18:07:21.089 168a3f Reusing MANIFEST /Users/shoaibahmed/freeClaude/email-audit-engine/output/runtime/browser-profile/chrome-user-data/Default/Session Storage/MANIFEST-000001
+2026/08/13-18:07:34.955 168a3f Level-0 table #5: started
+2026/08/13-18:07:34.962 168a3f Level-0 table #5: 45817 bytes OK
+2026/08/13-18:07:34.964 168a3f Delete type=0 #3
+2026/08/13-18:07:45.543 168a46 Level-0 table #7: started
+2026/08/13-18:07:45.547 168a46 Level-0 table #7: 55754 bytes OK
+2026/08/13-18:07:45.551 168a46 Delete type=0 #4
+2026/08/13-18:08:01.752 168a43 Level-0 table #9: started
+2026/08/13-18:08:01.755 168a43 Level-0 table #9: 57465 bytes OK
+2026/08/13-18:08:01.756 168a43 Delete type=0 #6
+2026/08/13-18:08:13.429 168a43 Level-0 table #11: started
+2026/08/13-18:08:13.431 168a43 Level-0 table #11: 46310 bytes OK
+2026/08/13-18:08:13.433 168a43 Delete type=0 #8
+2026/08/13-18:08:26.388 168a43 Level-0 table #13: started
+2026/08/13-18:08:26.391 168a43 Level-0 table #13: 42956 bytes OK
+2026/08/13-18:08:26.392 168a43 Delete type=0 #10
+2026/08/13-18:08:38.132 168a43 Level-0 table #15: started
+2026/08/13-18:08:38.135 168a43 Level-0 table #15: 50003 bytes OK
+2026/08/13-18:08:38.136 168a43 Delete type=0 #12
+2026/08/13-18:08:38.136 168a43 Compacting 4@0 + 1@1 files
+2026/08/13-18:08:38.139 168a43 Generated table #16@0: 441 keys, 245374 bytes
+2026/08/13-18:08:38.139 168a43 Compacted 4@0 + 1@1 files => 245374 bytes
+2026/08/13-18:08:38.140 168a43 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/13-18:08:38.141 168a43 Delete type=2 #15
+2026/08/13-18:08:38.141 168a43 Delete type=2 #7
+2026/08/13-18:08:38.141 168a43 Delete type=2 #13
+2026/08/13-18:08:38.141 168a43 Delete type=2 #11
+2026/08/13-18:08:38.141 168a43 Delete type=2 #9
+2026/08/13-18:08:51.295 168a43 Level-0 table #18: started
+2026/08/13-18:08:51.298 168a43 Level-0 table #18: 61939 bytes OK
+2026/08/13-18:08:51.301 168a43 Delete type=0 #14

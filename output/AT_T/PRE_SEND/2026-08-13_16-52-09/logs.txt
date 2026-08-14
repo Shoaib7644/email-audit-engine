@@ -1,0 +1,24 @@
+» Validation Mode: PRE_SEND
+» Input Source: HTML Folder
+» Starting audit...
+» Completed
+ Generating Link & Image Validation PDF...
+ Link & Image PDF: /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/PRE_SEND/2026-08-13_16-52-09/LinkImageValidationReport.pdf
+ PDF generation completed.
+
+=========================================
+  AUDIT PIPELINE COMPLETE
+=========================================
+ Total HTML Files : 2
+ Processed        : 2
+ Skipped          : 0
+ Succeeded        : 0
+ Failed           : 2
+ Errors           : 0
+ Execution Time   : 2m 56s
+-----------------------------------------
+ Dashboard        : /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/PRE_SEND/2026-08-13_16-52-09/dashboard/dashboard-v2.html
+ Summary Sheet    : /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/PRE_SEND/2026-08-13_16-52-09/EmailAuditSummary.xlsx
+ Link/Image PDF   : /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/PRE_SEND/2026-08-13_16-52-09/LinkImageValidationReport.pdf
+ Output Folder    : /Users/shoaibahmed/freeClaude/email-audit-engine/output/AT_T/PRE_SEND/2026-08-13_16-52-09
+=========================================

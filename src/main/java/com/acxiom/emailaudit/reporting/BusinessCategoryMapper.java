@@ -52,13 +52,9 @@ public final class BusinessCategoryMapper {
             Map.entry("DUPLICATE_ID",          "Broken HTML Codes"),
             Map.entry("HEADING_HIERARCHY",     "Broken HTML Codes"),
 
-            Map.entry("ALT_TEXT_VALIDATION",   "Image Inventory & Rendering"),
+            Map.entry("ALT_TEXT_VALIDATION",   "Accessibility Violations"),
             Map.entry("IMAGE_VALIDATION",      "Images"),
-            // Groups with ALT_TEXT_VALIDATION under the same "Image
-            // Inventory & Rendering" sidebar bucket — together they cover
-            // both halves of image quality (accessible label present, and
-            // the image actually renders).
-            Map.entry("IMAGE_SRC_VALIDATION",  "Image Inventory & Rendering"),
+            Map.entry("IMAGE_SRC_VALIDATION",  "Images"),
 
             Map.entry("CAMPAIGN_VALIDATION",   "Campaign Validation"),
 

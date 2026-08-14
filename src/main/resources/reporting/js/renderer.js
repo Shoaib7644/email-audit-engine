@@ -49,16 +49,16 @@ var Renderer = (function () {
         LINKS:           null,
         IMAGES:          null,
         CAMPAIGN_VALIDATION: ['CAMPAIGN_VALIDATION'],
-        LINK_VALIDATION: ['LINK_VALIDATION'],
-        CTA_TRACKING:    ['CTA_VALIDATION', 'LINK_TEXT_VALIDATION'],
+        LINK_VALIDATION: ['LINK_VALIDATION', 'LINK_TEXT_VALIDATION', 'BROKEN_ANCHOR'],
+        CTA_TRACKING:    ['CTA_VALIDATION'],
         HTML_QUALITY:    ['DUPLICATE_ID', 'HEADING_HIERARCHY', 'CONTENT_VALIDATION'],
-        IMAGE_AUDIT:     ['ALT_TEXT_VALIDATION'],
+        IMAGE_AUDIT:     [],
         URL_DEFENSE:     ['URL_DEFENSE'],
-        ACCESSIBILITY:   ['ACCESSIBILITY_AXE'],
+        ACCESSIBILITY:   ['ACCESSIBILITY_AXE', 'ALT_TEXT_VALIDATION'],
         PRIVACY:         ['PRIVACY_LINK'],
         DISCLOSURE:      ['VIEW_ONLINE_LINK'],
         DISCLAIMER:      ['DISCLAIMER_PRESENT'],
-        UNSUBSCRIBE:     ['BROKEN_ANCHOR', 'CTA_VALIDATION'],
+        UNSUBSCRIBE:     [],
         HEADER_DETAILS:  ['PREHEADER_TRIM_VALIDATION', 'PREHEADER_PUNCTUATION_VALIDATION', 'HEADER_EMOJI_ENCODING_VALIDATION']
     };
 
@@ -747,6 +747,10 @@ var Renderer = (function () {
     ============================================================ */
     function _buildImagesAudit(file) {
         var images = Array.isArray(file.images) ? file.images : [];
+        var rules = Array.isArray(file.rules) ? file.rules : [];
+        var imageSourceRules = rules.filter(function (rule) {
+            return rule.ruleId === 'IMAGE_SRC_VALIDATION';
+        });
         var total = images.length;
         var rendered = images.filter(function (image) { return image.rendered && _imageValidationStatus(image) !== 'FAIL'; }).length;
         var failed = images.filter(function (image) { return _imageValidationStatus(image) === 'FAIL'; }).length;
@@ -817,7 +821,8 @@ var Renderer = (function () {
             '</table>' +
             '</div>' +
             '<div class="links-pagination" id="images-pagination"></div>' +
-            '</div>'
+            '</div>' +
+            (imageSourceRules.length > 0 ? _buildIssueList(rules, ['IMAGE_SRC_VALIDATION']) : '')
         );
     }
 
@@ -2065,7 +2070,7 @@ var Renderer = (function () {
         var content;
 
         if (path) {
-            var src = path.indexOf('://') >= 0 ? path : 'file://' + path.replace(/\\/g, '/');
+            var src = _fileSrc(path);
             content =
                 '<div class="screenshot-img-wrap" style="max-height:480px;overflow:hidden;position:relative">' +
                 '<img class="screenshot-img" src="' + _esc(src) + '" alt="Email preview: ' + _esc(file.fileName) + '" onerror="Renderer.handleScreenshotError(this)"/>' +
@@ -2312,7 +2317,12 @@ var Renderer = (function () {
     }
 
     function _fileSrc(path) {
-        return path.indexOf('://') >= 0 ? path : 'file://' + path.replace(/\\/g, '/');
+        var value = String(path || '').trim().replace(/\\/g, '/');
+        if (!value) { return ''; }
+        if (value.indexOf('://') >= 0) { return value; }
+        if (/^[A-Za-z]:\//.test(value)) { return 'file:///' + value; }
+        if (value.charAt(0) === '/') { return 'file://' + value; }
+        return value;
     }
 
     function _esc(v) {
